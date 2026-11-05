@@ -1,0 +1,13 @@
+# build output
+bin/
+obj/
+
+# derived from the game's own code - never commit (see tools/publicize.ps1)
+lib/
+*.publicized.dll
+
+# runtime files
+*.log
+state.json
+cmd.txt
+shot.png

@@ -30,6 +30,13 @@ namespace KingdomBot
             Dir = Path.Combine(Paths.BepInExRootPath, "KingdomBot");
             Directory.CreateDirectory(Dir);
             Brain = new Brain(this);
+            // user settings: BepInEx/config/emil.kingdombot.cfg
+            Brain.ConfigMode = Config.Bind("General", "Mode", "auto",
+                "auto = pick the run type from the achievements still missing on Steam; or master | fire3 | pacifist").Value;
+            Speed = Config.Bind("General", "Speed", 16f, "Game speed while the bot plays (1-16). F10 cycles at runtime.").Value;
+            BotActive = AutoBrain = Config.Bind("General", "AutoStart", true, "Bot takes over as soon as the game runs (F8/F9 toggle).").Value;
+            Brain.AutoRestart = Config.Bind("General", "AutoRestart", true, "Start a new game automatically after game over.").Value;
+            Brain.PacifistEnabled = Config.Bind("Modes", "Pacifist", true, "auto: try the no-kill / no-dropped-coin run (Five Days + Eighth Day).").Value;
             new Harmony("emil.kingdombot").PatchAll(typeof(Plugin).Assembly);
             // BepInEx's manager object gets destroyed by Kingdom's scene loading -> our own persistent Runner
             // is created later from a Harmony hook (creating GameObjects this early crashes Unity 5.3).
@@ -101,7 +108,8 @@ namespace KingdomBot
                 if (l == "auto on") { AutoBrain = true; continue; }
                 if (l == "auto off") { AutoBrain = false; continue; }
                 if (l == "newgame") { try { Acc.Call(Managers.game, "Restart"); Log("New game requested"); } catch (Exception e) { Log("newgame failed: " + e.Message); } continue; }
-                if (l.StartsWith("mode ")) { Brain.Mode = l.Substring(5).Trim(); Log("Mode: " + Brain.Mode); continue; }
+                if (l.StartsWith("mode ")) { Brain.ConfigMode = l.Substring(5).Trim(); Brain.Mode = Brain.ConfigMode == "auto" ? Campaign.PickMode(Brain.PacifistEnabled) : Brain.ConfigMode; Log("Mode: " + Brain.ConfigMode + " -> " + Brain.Mode); continue; }
+                if (l == "achievements") { Log(Campaign.Summary()); continue; }
                 if (l == "clear") { Queue.Clear(); Ctl.Reset(); continue; }
                 if (l.StartsWith("speed ")) { Speed = float.Parse(l.Substring(6), System.Globalization.CultureInfo.InvariantCulture); continue; }
                 Queue.Enqueue(l);
@@ -112,7 +120,7 @@ namespace KingdomBot
         {
             if (!BotActive && !AutoBrain) { GUI.Label(new Rect(10, 10, 600, 22), "KingdomBot: aus (F8)"); return; }
             GUI.color = Color.yellow;
-            GUI.Label(new Rect(10, 10, 1200, 22), "KingdomBot " + (BotActive ? "AKTIV" : "pausiert") + (AutoBrain ? " [AUTO]" : "") + " " + Speed + "x  Versuch " + (Brain.Runs + 1) + "  " + _status);
+            GUI.Label(new Rect(10, 10, 1200, 22), "KingdomBot " + (BotActive ? "AKTIV" : "pausiert") + (AutoBrain ? " [AUTO]" : "") + " " + Speed + "x  Modus " + Brain.Mode + (Brain.ConfigMode == "auto" ? " (auto)" : "") + "  Versuch " + (Brain.Runs + 1) + "  " + _status);
         }
     }
 

@@ -27,7 +27,10 @@ namespace KingdomBot
         public int GallopFromDay = 8;        // ON_THE_NINTH_DAY: first gallop must happen at day counter >= 8
         /// <summary>"main": no walls on day 0, castle upgrade on day 1 -> free walls (ON_THE_SECOND_DAY).
         /// "fire3": first campfire only on day counter 2 (ON_THE_THIRD_DAY), survive two nights by evading.</summary>
-        public string Mode = "main";
+        public string Mode = "master";        // effective mode of the current run
+        public string ConfigMode = "auto";   // auto | master | fire3 | pacifist
+        public bool PacifistEnabled = true;
+        float _newGameAt = -1f;
         public bool AcreRun = false;       // dedicated run: heavy forest clearing until day 6
 
         public Brain(Plugin pl) { _pl = pl; }
@@ -36,7 +39,47 @@ namespace KingdomBot
         bool OnCooldown(int id) { float t; return _cooldown.TryGetValue(id, out t) && Time.time < t; }
         void Cool(int id, float s) { _cooldown[id] = Time.time + s; }
 
-        public bool MaySprint { get { return GameState.Day >= GallopFromDay; } }
+        public bool MaySprint
+        {
+            get
+            {
+                if (Mode == "pacifist" || Mode == "fire3") return true;
+                if (Campaign.Has(Campaign.NinthDay) == true) return true;   // already unlocked: no need to wait
+                return GameState.Day >= GallopFromDay;
+            }
+        }
+
+        void ChooseModeForRun()
+        {
+            if (ConfigMode == "main") ConfigMode = "master";
+            Mode = ConfigMode == "auto" ? Campaign.PickMode(PacifistEnabled) : ConfigMode;
+            Plugin.Log("Neuer Lauf - Modus: " + Mode + " | " + Campaign.Summary());
+        }
+
+        /// <summary>Short special runs end as soon as their goal is reached or impossible (only in auto).</summary>
+        void CheckRunEnd()
+        {
+            if (ConfigMode != "auto" || _newGameAt > 0f) return;
+            var am = Managers.achievements; if (am == null || am.flags == null) return;
+            int dayC = am.counters[1];
+            string reason = null;
+            if (Mode == "fire3")
+            {
+                if (am.flags[3] && dayC < 2) reason = "Feuer zu früh";
+                else if (am.flags[3] && dayC >= 2) reason = "Feuer-Lauf fertig";
+            }
+            else if (Mode == "pacifist")
+            {
+                bool fiveOpen = Campaign.Missing(Campaign.FifthDays) && am.counters[5] == 0 && dayC < 5;
+                bool eightOpen = Campaign.Missing(Campaign.EighthDay) && !am.flags[5] && dayC < 7;
+                if (!fiveOpen && !eightOpen) reason = "Pazifist-Lauf fertig (Kills=" + am.counters[5] + ", Münze am Boden=" + am.flags[5] + ")";
+            }
+            if (reason != null)
+            {
+                Plugin.Log("Lauf beendet: " + reason + " -> neues Spiel");
+                _newGameAt = Time.unscaledTime + 6f;   // let the unlock coroutine finish first
+            }
+        }
 
         public void Think()
         {
@@ -60,7 +103,7 @@ namespace KingdomBot
                 _coinsAtTap = -1;
             }
             int dNow = GameState.Day;
-            if (dNow < _lastDaySeen) { _lastCastleUpgradeDay = -1; _cooldown.Clear(); Plugin.Log("Neuer Lauf erkannt"); }
+            if (dNow < _lastDaySeen || _lastDaySeen < 0) { _lastCastleUpgradeDay = -1; _cooldown.Clear(); ChooseModeForRun(); }
             if (dNow != _lastDaySeen && Managers.achievements != null && Managers.achievements.flags != null)
             {
                 var am = Managers.achievements;
@@ -68,6 +111,12 @@ namespace KingdomBot
                     dNow, Mode, am.flags[2], am.flags[3], am.flags[4], am.flags[5], am.flags[7], am.counters[3], am.counters[4], am.counters[5], am.counters[7]));
             }
             _lastDaySeen = dNow;
+            if (_newGameAt > 0f && Time.unscaledTime >= _newGameAt && Managers.game != null)
+            {
+                _newGameAt = -1f; _lastDaySeen = -1;
+                Acc.Call(Managers.game, "Restart");
+                Status = "Neues Spiel"; Push("wait 3"); return;
+            }
             var game = Managers.game;
             var p = GameState.Player;
             if (game == null || p == null) { Status = "kein Spiel"; return; }
@@ -90,6 +139,8 @@ namespace KingdomBot
 
             var k = Managers.kingdom;
             int day = GameState.Day;
+            CheckRunEnd();
+            if (Mode == "pacifist") { ThinkPacifist(); return; }
             float hour = GameState.Hour;
             float px = GameState.PX;
             int coins = GameState.Coins;
@@ -285,9 +336,56 @@ namespace KingdomBot
             Push("walkto " + F(target) + " 1");
         }
 
+        // ---------------- pacifist run: FOR_FIVE_DAYS (no kills until day 5) + ON_THE_EIGTH_DAY (no dropped coin until day 7) ----------------
+        void ThinkPacifist()
+        {
+            var k = Managers.kingdom;
+            float px = GameState.PX, hour = GameState.Hour;
+            var enemies = UnityEngine.Object.FindObjectsOfType<Enemy>();
+            float nearL = float.MaxValue, nearR = float.MaxValue;
+            foreach (var e in enemies)
+            {
+                float d = e.transform.position.x - px;
+                if (d < 0) nearL = Mathf.Min(nearL, -d); else nearR = Mathf.Min(nearR, d);
+            }
+            float nearest = Mathf.Min(nearL, nearR);
+            _safeMode = true;
+            if (nearest < 22f)
+            {
+                // run away from the closer side, but never into the other group; stay inside the world/portals
+                float lo = PortalLimit(-1), hi = PortalLimit(1);
+                float target;
+                if (nearL < nearR) target = Mathf.Min(px + Mathf.Min(14f, nearR - 8f), hi);
+                else target = Mathf.Max(px - Mathf.Min(14f, nearL - 8f), lo);
+                if (Mathf.Abs(target - px) < 1.5f) target = nearL < nearR ? hi : lo;   // squeezed: break out towards the far side
+                Status = "Pazifist: ausweichen (L " + (nearL < 999 ? nearL.ToString("0") : "-") + " / R " + (nearR < 999 ? nearR.ToString("0") : "-") + ")";
+                Push("goto " + F(target) + " 1 2"); return;
+            }
+            // daytime: pick up coins that were NOT dropped by us, otherwise wait in the middle of the map
+            var c = NearestCoin(px, px - 30f, px + 30f);
+            if (c != null && !c.droppedByPlayer && k.isDaytime) { Cool(c.GetInstanceID(), 1e7f); Status = "Pazifist: Münze"; Push("walkto " + F(c.transform.position.x) + " 0.3 10"); return; }
+            float mid = (PortalLimit(-1) + PortalLimit(1)) / 2f;
+            Status = "Pazifist: warten (Tag " + GameState.Day + ")";
+            if (Mathf.Abs(px - mid) > 6f) Push("walkto " + F(mid) + " 3 5"); else Push("wait 1");
+        }
+
+        /// <summary>Furthest safe x on one side: a bit inside the nearest inner portal (enemies spawn there).</summary>
+        static float PortalLimit(int side)
+        {
+            float px = GameState.PX, best = side < 0 ? -1e6f : 1e6f;
+            foreach (var p in UnityEngine.Object.FindObjectsOfType<Portal>())
+            {
+                float x = p.transform.position.x;
+                if (side < 0 && x < px && x > best) best = x;
+                if (side > 0 && x > px && x < best) best = x;
+            }
+            if (Mathf.Abs(best) > 1e5f) best = px + side * 60f;
+            return best - side * 15f;
+        }
+
         bool GiftPending()
         {
-            if (Mode != "main") return false;
+            if (Mode != "master" || Campaign.Has(Campaign.SecondDay) == true) return false;
             var am = Managers.achievements;
             if (am == null || am.flags == null || am.flags[2]) return false;   // FreeWallBuilt already set this run
             return am.counters[1] <= 1;
@@ -324,7 +422,7 @@ namespace KingdomBot
         /// <summary>Checked several times per second: abort the running plan when it became dangerous.</summary>
         public bool ShouldInterrupt()
         {
-            if (_safeMode) return false;
+            if (_safeMode || Mode == "pacifist") return false;
             var p = GameState.Player; var k = Managers.kingdom; var g = Managers.game;
             if (p == null || k == null || g == null || (int)g.gameState != 2) return false;
             float px = GameState.PX, home = k.campfirePosition, hour = GameState.Hour; int day = GameState.Day;

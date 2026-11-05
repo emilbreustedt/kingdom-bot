@@ -14,6 +14,8 @@ controller input with its own, and runs a rule-based strategy at up to 16× game
 - **State export** every second to `BepInEx/KingdomBot/state.json` (day, coins, units, walls, portals, enemies, payables, achievement counters/flags)
 - **Command queue** for remote control/debugging (`BepInEx/KingdomBot/cmd.txt`)
 - **Strategy ("Brain")**: campfire → recruit beggars → bows/hammers → walls on both sides → castle upgrades, wall upgrades, towers; retreats at night, evades enemies, interrupts plans when it gets dark
+- **Run modes + `auto` campaign**: reads which achievements are still missing on Steam (read-only — the bot never unlocks anything itself) and picks the next run type; short special runs restart automatically once their goal is reached or out of reach
+- **Portal assault** (master mode): mason shrine → stone, castle up to shield shops, knights, border-banner charges
 - **Achievement routines**
   - *On the Second Day I Got a Gift* — castle level 2 before the achievement day counter reaches 2 (needs a free wall foundation within 12 units)
   - *On the Third Day I Lit Up a Fire* — `mode fire3`: survive two nights without a camp, light the fire on day 3
@@ -44,11 +46,30 @@ controller input with its own, and runs a rule-based strategy at up to 16× game
    ```
    The game folder is found automatically (all Steam libraries) or via `$env:KINGDOM_PATH`.
    On first build `tools/publicize.ps1` creates `lib/Assembly-CSharp.publicized.dll` from your installation.
-4. Start the game:
+4. Optional settings in `BepInEx/config/emil.kingdombot.cfg` (created on first start):
+   ```ini
+   [General]
+   Mode = auto          # auto | master | fire3 | pacifist
+   Speed = 16
+   AutoStart = true
+   AutoRestart = true
+   ```
+5. Start the game:
    ```powershell
    .\start.ps1             # windowed, moved to the widest screen
    .\start.ps1 -Minimize   # keeps running minimized
    ```
+
+To update the bot **without losing the current run** use `.\deploy.ps1` (save & quit → build → start; the game reloads its `AUTO` save).
+
+## Modes
+
+| Mode | Targets |
+|------|---------|
+| `auto` | default — chooses one of the modes below based on your missing achievements |
+| `master` | *Second Day Gift* and *Ninth Day* (only if missing), survival up to day 100, portal assault → *Safe in 25–40*, *Tenth Day*, win |
+| `fire3` | *On the Third Day I Lit Up a Fire* — survive two nights without a camp |
+| `pacifist` | *Five Days I Turned the Other Cheek* + *Eighth Day I Fumbled* — no recruiting, no dropped coins (experimental) |
 
 ## Controls
 
@@ -61,9 +82,9 @@ controller input with its own, and runs a rule-based strategy at up to 16× game
 ### Commands (`BepInEx/KingdomBot/cmd.txt`, polled twice per second)
 
 ```
-bot on | bot off | auto on | auto off | clear
+bot on | bot off | auto on | auto off | clear | achievements | savequit
 speed 16
-mode main | mode fire3
+mode auto | mode master | mode fire3 | mode pacifist
 newgame
 goto X [tol] [timeout]     walkto X [tol] [timeout]
 payid <instanceId> [x]     pay      tap N      wait S      shot
@@ -85,11 +106,15 @@ Notes from reverse engineering (Kingdom: Classic 1.x):
 - Castle upgrades have a cooldown (~230 game seconds after level 1). Level 2 builds free walls
   (closest foundation per side within 12), level 4 upgrades walls/towers, level 5 adds shield shops.
 - Taps longer than one frame count as "hold" at high time scales.
+- Beggars only pick up coins dropped by the player; coins knocked out of the purse by a hit count as dropped too.
+- Knights: castle level 5 → shield shops → an archer takes the shield. Paying the border banner sends every ready knight
+  (with archers) to charge the closest portal on that side. Destroying the last inner portal spawns the final wave;
+  defeating it wins the game.
 
 ## Status
 
-Survives ~15–20 days reliably. Reaching day 35–60 and the *Safe in X* achievements (destroying all
-portals) needs a stronger mid-game (farms, multiple wall rings, knights) — contributions welcome.
+Best run so far: day 98 (unlocked every *Survive past day X* up to XCV). Gift, Third Day, Ninth Day work reliably.
+Portal assault and the special runs (Acre, Feast, First Day Army, pacifist) are work in progress.
 
 ## License
 

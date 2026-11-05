@@ -94,7 +94,7 @@ namespace KingdomBot
                 bool can = false; try { can = py.CanPay(); } catch { }
                 bool onWall = py.GetComponent<Wall>() != null || (py.transform.parent != null && py.transform.parent.GetComponent<Wall>() != null);
                 sb.Append("{\"t\":" + S(py.GetType().Name) + ",\"n\":" + S(Clean(py.name)) + ",\"x\":" + N(py.transform.position.x) + ",\"price\":" + py.price + ",\"can\":" + (can ? "true" : "false")
-                    + (py is PayableUpgrade ? ",\"cd\":" + N(((PayableUpgrade)py).cooldown) : "")
+                    + (py is PayableUpgrade ? ",\"cd\":" + N(((PayableUpgrade)py).cooldown) + (((PayableUpgrade)py).requiresStoneTech ? ",\"stone\":true" : "") : "")
                     + (onWall ? ",\"wall\":true" : "") + (py.transform.parent != null ? ",\"parent\":" + S(Clean(py.transform.parent.name)) : "") + "}");
             }
             sb.Append("]");
@@ -136,6 +136,7 @@ namespace KingdomBot
             }
             sb.Append("]");
 
+            if (Managers.techUpgrades != null) sb.Append(",\"stoneTech\":" + (Managers.techUpgrades.stoneBuilding ? "true" : "false"));
             var castle = UnityEngine.Object.FindObjectOfType<Castle>();
             if (castle != null) sb.Append(",\"castle\":{\"x\":" + N(castle.transform.position.x) + ",\"level\":" + S(castle.level.ToString()) + "}");
             var wb = Managers.world != null ? Managers.world.worldBounds : null;

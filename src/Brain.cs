@@ -53,7 +53,7 @@ namespace KingdomBot
         {
             if (ConfigMode == "main") ConfigMode = "master";
             Mode = ConfigMode == "auto" ? Campaign.PickMode(PacifistEnabled) : ConfigMode;
-            Plugin.Log("Neuer Lauf - Modus: " + Mode + " | " + Campaign.Summary());
+            Plugin.Log("New run - mode: " + Mode + " | " + Campaign.Summary());
         }
 
         /// <summary>Short special runs end as soon as their goal is reached or impossible (only in auto).</summary>
@@ -65,18 +65,18 @@ namespace KingdomBot
             string reason = null;
             if (Mode == "fire3")
             {
-                if (am.flags[3] && dayC < 2) reason = "Feuer zu früh";
-                else if (am.flags[3] && dayC >= 2) reason = "Feuer-Lauf fertig";
+                if (am.flags[3] && dayC < 2) reason = "fire too early";
+                else if (am.flags[3] && dayC >= 2) reason = "fire run done";
             }
             else if (Mode == "pacifist")
             {
                 bool fiveOpen = Campaign.Missing(Campaign.FifthDays) && am.counters[5] == 0 && dayC < 5;
                 bool eightOpen = Campaign.Missing(Campaign.EighthDay) && !am.flags[5] && dayC < 7;
-                if (!fiveOpen && !eightOpen) reason = "Pazifist-Lauf fertig (Kills=" + am.counters[5] + ", Münze am Boden=" + am.flags[5] + ")";
+                if (!fiveOpen && !eightOpen) reason = "pacifist run done (kills=" + am.counters[5] + ", coin on ground=" + am.flags[5] + ")";
             }
             if (reason != null)
             {
-                Plugin.Log("Lauf beendet: " + reason + " -> neues Spiel");
+                Plugin.Log("Run finished: " + reason + " -> new game");
                 _newGameAt = Time.unscaledTime + 6f;   // let the unlock coroutine finish first
             }
         }
@@ -98,7 +98,7 @@ namespace KingdomBot
             // stuck guard: a recruitment tap must cost a coin; otherwise pause recruiting
             if (_coinsAtTap >= 0 && GameState.Player != null)
             {
-                if (GameState.Coins >= _coinsAtTap) { _tapFails++; if (_tapFails >= 3) { _noRecruitUntil = Time.time + 120f; _tapFails = 0; Plugin.Log("Anwerben klappt nicht - Pause"); } }
+                if (GameState.Coins >= _coinsAtTap) { _tapFails++; if (_tapFails >= 3) { _noRecruitUntil = Time.time + 120f; _tapFails = 0; Plugin.Log("Recruiting does not work - pausing"); } }
                 else _tapFails = 0;
                 _coinsAtTap = -1;
             }
@@ -107,7 +107,7 @@ namespace KingdomBot
             if (dNow != _lastDaySeen && Managers.achievements != null && Managers.achievements.flags != null)
             {
                 var am = Managers.achievements;
-                Plugin.Log(string.Format("== Tag {0} (Modus {1}) Flags: FreeWall={2} LitFire={3} Galloped={4} CoinOnGround={5} PortalsDestroyed={6} | Archers={7} Deer={8} Kills={9} Land={10}",
+                Plugin.Log(string.Format("== Day {0} (Modus {1}) Flags: FreeWall={2} LitFire={3} Galloped={4} CoinOnGround={5} PortalsDestroyed={6} | Archers={7} Deer={8} Kills={9} Land={10}",
                     dNow, Mode, am.flags[2], am.flags[3], am.flags[4], am.flags[5], am.flags[7], am.counters[3], am.counters[4], am.counters[5], am.counters[7]));
             }
             _lastDaySeen = dNow;
@@ -115,15 +115,15 @@ namespace KingdomBot
             {
                 _newGameAt = -1f; _lastDaySeen = -1;
                 Acc.Call(Managers.game, "Restart");
-                Status = "Neues Spiel"; Push("wait 3"); return;
+                Status = "New game"; Push("wait 3"); return;
             }
             var game = Managers.game;
             var p = GameState.Player;
-            if (game == null || p == null) { Status = "kein Spiel"; return; }
+            if (game == null || p == null) { Status = "no game"; return; }
             if ((int)game.gameState == 3)
             {
                 if (_gameOverAt < 0) _gameOverAt = Time.time;
-                if (AutoRestart && Time.time - _gameOverAt > 10f) { _gameOverAt = -1; Runs++; Status = "Neustart (Versuch " + (Runs + 1) + ")"; Acc.Call(game, "Restart"); Push("wait 5"); return; }
+                if (AutoRestart && Time.time - _gameOverAt > 10f) { _gameOverAt = -1; Runs++; Status = "Restart (attempt " + (Runs + 1) + ")"; Acc.Call(game, "Restart"); Push("wait 5"); return; }
                 Status = "Game Over"; Push("wait 1"); return;
             }
             _gameOverAt = -1;
@@ -132,10 +132,10 @@ namespace KingdomBot
                 // the intro waits for a real stick movement (read directly from Rewired) -> trigger it ourselves
                 var intro = Acc.Get<IntroSequence>(game, "_introSequence");
                 if (intro != null) Acc.Call(intro, "PlayerTriedToMove");
-                Status = "Intro überspringen"; Push("wait 1"); return;
+                Status = "Skip intro"; Push("wait 1"); return;
             }
-            if ((int)game.gameState != 2) { Status = "warte (" + game.gameState + ")"; Push("wait 1"); return; }
-            if (!p.hasCrown) { Status = "Krone verloren!"; Push("wait 1"); return; }
+            if ((int)game.gameState != 2) { Status = "waiting (" + game.gameState + ")"; Push("wait 1"); return; }
+            if (!p.hasCrown) { Status = "Crown lost!"; Push("wait 1"); return; }
 
             var k = Managers.kingdom;
             int day = GameState.Day;
@@ -154,14 +154,14 @@ namespace KingdomBot
             Enemy nearest = NearestEnemy(px);
             if (nearest != null && Mathf.Abs(nearest.transform.position.x - px) < 18f && !Between(px, leftSafe, rightSafe))
             {
-                Status = "Flucht vor Gegner"; _safeMode = true;
+                Status = "Fleeing enemy"; _safeMode = true;
                 Push("goto " + F(home)); return;
             }
             if (nearest != null && Mathf.Abs(nearest.transform.position.x - px) < 7f && !WallBetween(px, nearest.transform.position.x))
             {
                 float ex = nearest.transform.position.x;
                 float away = px + (px > ex ? 12f : -12f);
-                Status = "Ausweichen"; _safeMode = true;
+                Status = "Dodging"; _safeMode = true;
                 Push("walkto " + F(away) + " 1"); return;
             }
             // ON_THE_SECOND_DAY: castle level 2 while the achievement day counter is still 1 (until dawn of day 2)
@@ -170,11 +170,11 @@ namespace KingdomBot
             if (evening || (dawn && nearest != null && Mathf.Abs(nearest.transform.position.x - home) < 40f))
             {
                 _safeMode = true;
-                if (Mathf.Abs(px - home) > 3f) { Status = "Abend: nach Hause"; Push("goto " + F(home + 1.5f) + " 1"); return; }
+                if (Mathf.Abs(px - home) > 3f) { Status = "Evening: going home"; Push("goto " + F(home + 1.5f) + " 1"); return; }
                 // at night: grab coins that fall inside the walls, otherwise wait by the fire
                 var nc = NearestCoin(px, leftSafe + 1f, rightSafe - 1f);
-                if (nc != null && Mathf.Abs(nc.transform.position.x - px) < 8f) { Status = "Nacht: Münze"; Push("walkto " + F(nc.transform.position.x) + " 0.3"); return; }
-                Status = "Nacht: am Feuer"; Push("wait 2"); return;
+                if (nc != null && Mathf.Abs(nc.transform.position.x - px) < 8f) { Status = "Night: coin"; Push("walkto " + F(nc.transform.position.x) + " 0.3"); return; }
+                Status = "Night: at the fire"; Push("wait 2"); return;
             }
 
             // ---------- 2. campfire first, then chest & coins ----------
@@ -184,29 +184,29 @@ namespace KingdomBot
             {
                 // no kingdom yet: collect coins near the camp site, evade enemies, otherwise wait
                 var c0 = NearestCoin(px, fire.transform.position.x - 30f, fire.transform.position.x + 30f);
-                if (c0 != null && k.isDaytime) { Status = "Feuer-Lauf: Münzen sammeln"; Push("walkto " + F(c0.transform.position.x) + " 0.3 20"); return; }
+                if (c0 != null && k.isDaytime) { Status = "Fire run: collect coins"; Push("walkto " + F(c0.transform.position.x) + " 0.3 20"); return; }
                 var en = NearestEnemy(px);
                 if (en != null && Mathf.Abs(en.transform.position.x - px) < 14f)
                 {
                     float ex = en.transform.position.x;
-                    Status = "Feuer-Lauf: ausweichen"; _safeMode = true;
+                    Status = "Fire run: dodge"; _safeMode = true;
                     Push("walkto " + F(px + (px > ex ? 15f : -15f)) + " 1 6"); return;
                 }
-                Status = "Feuer-Lauf: warten bis Tag 3"; Push("walkto " + F(fire.transform.position.x) + " 2 10"); return;
+                Status = "Fire run: wait for day 3"; Push("walkto " + F(fire.transform.position.x) + " 2 10"); return;
             }
-            if (fire != null && coins >= fire.price) { Status = "Lagerfeuer entzünden"; PayAt(fire); return; }
+            if (fire != null && coins >= fire.price) { Status = "Light campfire"; PayAt(fire); return; }
             bool fireLit = fire == null && Find(payables0, x => x.name.StartsWith("Castle0")) == null;
             foreach (var ch in UnityEngine.Object.FindObjectsOfType<Chest>())
             {
                 if (!fireLit) break;
                 float cx = ch.transform.position.x;
-                if (!ch.isEmpty && !OnCooldown(ch.GetInstanceID()) && cx > leftSafe - 70f && cx < rightSafe + 70f && hour < k.dayEnd - 4f) { Cool(ch.GetInstanceID(), 1e7f); /* one try per chest and run */ Status = "Truhe"; Push("goto " + F(cx) + " 0.3"); Push("wait 2"); return; }
+                if (!ch.isEmpty && !OnCooldown(ch.GetInstanceID()) && cx > leftSafe - 70f && cx < rightSafe + 70f && hour < k.dayEnd - 4f) { Cool(ch.GetInstanceID(), 1e7f); /* one try per chest and run */ Status = "Chest"; Push("goto " + F(cx) + " 0.3"); Push("wait 2"); return; }
             }
             var coin = NearestCoin(px, leftSafe - 25f, rightSafe + 25f);
             if (coin != null && Mathf.Abs(coin.transform.position.x - px) < 30f)
             {
                 Cool(coin.GetInstanceID(), 1e7f); /* one attempt per coin - unreachable coins are ignored afterwards */
-                Status = "Münze einsammeln"; Push("goto " + F(coin.transform.position.x) + " 0.3 20"); return;
+                Status = "Pick up coin"; Push("goto " + F(coin.transform.position.x) + " 0.3 20"); return;
             }
 
             var payables = UnityEngine.Object.FindObjectsOfType<Payable>();
@@ -222,7 +222,7 @@ namespace KingdomBot
                     int side = lw == 0 ? -1 : 1;
                     if (lw == 0 && rw == 0) side = px < home ? -1 : 1;
                     var w0 = WallSpotOnSide(payables, home, side);
-                    if (w0 != null && coins >= w0.price) { Status = "Erste Mauer " + (side < 0 ? "links" : "rechts"); PayAt(w0); return; }
+                    if (w0 != null && coins >= w0.price) { Status = "First wall " + (side < 0 ? "left" : "right"); PayAt(w0); return; }
                 }
             }
 
@@ -244,9 +244,12 @@ namespace KingdomBot
                 var sh = py as PayableShop;
                 if (sh == null) continue;
                 toolsOnDisplay += sh.GetItemCount();
-                if (sh.name.Contains("Bow")) bowShop = sh; else if (sh.name.Contains("Hammer")) hammerShop = sh; else if (sh.name.Contains("Scythe")) scytheShop = sh;
+                if (sh.name.Contains("Bow")) bowShop = sh; else if (sh.name.Contains("hammer")) hammerShop = sh; else if (sh.name.Contains("Scythe")) scytheShop = sh;
             }
             int farmers = UnityEngine.Object.FindObjectsOfType<Farmer>().Length;
+
+            // ---------- 3b. assault phase: stone tech, castle up to shields, knights, charges ----------
+            if (AssaultStep(payables, day, hour, budget, archers, home, px)) return;
 
             // ---------- 4. tools for idle peasants (archers capped, workers for building/clearing) ----------
             if (peasants > toolsOnDisplay)
@@ -254,15 +257,15 @@ namespace KingdomBot
                 bool farmExists = false;
                 foreach (var fh in UnityEngine.Object.FindObjectsOfType<Farmhouse>()) if (fh.level > 0) farmExists = true;
                 PayableShop shop = null; string what = "";
-                if (archers < 1 && bowShop != null) { shop = bowShop; what = "Bogen"; }
-                else if (workers < 1 && hammerShop != null) { shop = hammerShop; what = "Hammer"; }
-                else if (archers < 2 && bowShop != null) { shop = bowShop; what = "Bogen"; }
-                else if (workers < WorkerTarget(day, archers, acrePhase) && hammerShop != null) { shop = hammerShop; what = "Hammer"; }
-                else if (scytheShop != null && farmExists && farmers < 3) { shop = scytheShop; what = "Sense"; }
-                else if (archers < archerCap && bowShop != null) { shop = bowShop; what = "Bogen"; }
+                if (archers < 1 && bowShop != null) { shop = bowShop; what = "bow"; }
+                else if (workers < 1 && hammerShop != null) { shop = hammerShop; what = "hammer"; }
+                else if (archers < 2 && bowShop != null) { shop = bowShop; what = "bow"; }
+                else if (workers < WorkerTarget(day, archers, acrePhase) && hammerShop != null) { shop = hammerShop; what = "hammer"; }
+                else if (scytheShop != null && farmExists && farmers < 3) { shop = scytheShop; what = "scythe"; }
+                else if (archers < archerCap && bowShop != null) { shop = bowShop; what = "bow"; }
                 if (shop != null && SafeCanPay(shop) && budget >= shop.price)
                 {
-                    Status = "Werkzeug kaufen: " + what;
+                    Status = "Buy tool: " + what;
                     PayAt(shop); return;
                 }
             }
@@ -272,7 +275,7 @@ namespace KingdomBot
             bool wallsOk = WallsOnSide(-1, home) > 0 && WallsOnSide(1, home) > 0;
             if (castle != null && !GiftPending() && day >= 2 && wallsOk && archers >= 8 && budget >= castle.price + 2)
             {
-                Status = "Burg ausbauen (" + castle.name.Replace("(Clone)", "") + ", " + castle.price + ")";
+                Status = "Castle upgrade (" + castle.name.Replace("(Clone)", "") + ", " + castle.price + ")";
                 PayAt(castle); return;
             }
 
@@ -281,23 +284,23 @@ namespace KingdomBot
             if (acrePhase && workers > 0 && budget >= 1 && archers >= 2)
             {
                 var tree = EdgeTree(payables, k);
-                if (tree != null) { Status = "Baum fällen (Lücke " + gap.ToString("0") + ")"; PayAt(tree); return; }
+                if (tree != null) { Status = "Chop tree (gap " + gap.ToString("0") + ")"; PayAt(tree); return; }
             }
 
             // ---------- 7. strengthen walls, then towers ----------
             if (archers >= 8 && budget >= 3)
             {
                 var up = Find(payables, x => x is PayableUpgrade && IsBuiltWall(x) && SafeCanPay(x) && x.price <= budget, home);
-                if (up != null) { Status = "Mauer verstärken (" + up.price + ")"; PayAt(up); return; }
+                if (up != null) { Status = "Upgrade wall (" + up.price + ")"; PayAt(up); return; }
                 var tower = Find(payables, x => x is PayableUpgrade && x.name.StartsWith("Tower") && SafeCanPay(x) && x.price <= budget && Between(x.transform.position.x, leftSafe - 1f, rightSafe + 1f), home);
-                if (tower != null) { Status = "Turm bauen (" + tower.price + ")"; PayAt(tower); return; }
+                if (tower != null) { Status = "Build tower (" + tower.price + ")"; PayAt(tower); return; }
             }
 
             // ---------- 8. more walls further out ----------
             var wall = InnerWallSpot(payables, home);
             if (wall != null && budget >= wall.price + 1 && archers >= 6)
             {
-                Status = "Mauer bauen";
+                Status = "Build wall";
                 PayAt(wall); return;
             }
 
@@ -310,7 +313,7 @@ namespace KingdomBot
                 var b = NearestBeggar(px, Mathf.Min(leftSafe - 35f, home - reach), Mathf.Max(rightSafe + 35f, home + reach));
                 if (b != null)
                 {
-                    Status = "Bettler anwerben";
+                    Status = "Recruit beggar";
                     float bx = b.transform.position.x;
                     Cool(b.GetInstanceID(), 8f);
                     _lastTap = Time.time; _coinsAtTap = coins;
@@ -322,16 +325,16 @@ namespace KingdomBot
             if (archers >= 6 && budget >= 6)
             {
                 var farm = Find(payables, x => x is PayableUpgrade && x.name.StartsWith("Farmhouse") && SafeCanPay(x) && Between(x.transform.position.x, leftSafe + 1f, rightSafe - 1f), home);
-                if (farm != null) { Status = "Bauernhof (" + farm.price + ")"; PayAt(farm); return; }
+                if (farm != null) { Status = "Farm (" + farm.price + ")"; PayAt(farm); return; }
             }
             if (workers > 0 && budget >= 3 && !acrePhase && gap < 200f)
             {
                 var tree = EdgeTree(payables, k);
-                if (tree != null) { Status = "Baum fällen (Lücke " + gap.ToString("0") + ")"; PayAt(tree); return; }
+                if (tree != null) { Status = "Chop tree (gap " + gap.ToString("0") + ")"; PayAt(tree); return; }
             }
 
             // ---------- 9. patrol to collect taxes ----------
-            Status = "Patrouille (Steuern)";
+            Status = "Patrol (collect taxes)";
             float target = px < home ? rightSafe - 1f : leftSafe + 1f;
             Push("walkto " + F(target) + " 1");
         }
@@ -339,34 +342,54 @@ namespace KingdomBot
         // ---------------- pacifist run: FOR_FIVE_DAYS (no kills until day 5) + ON_THE_EIGTH_DAY (no dropped coin until day 7) ----------------
         void ThinkPacifist()
         {
+            // Strategy: never drop a coin, never recruit (no archers = no kills). Defence comes only from the castle:
+            // castle level 2 builds free walls on both sides. Payments into payables are fine (coins never touch the ground).
             var k = Managers.kingdom;
-            float px = GameState.PX, hour = GameState.Hour;
+            float px = GameState.PX, home = k.campfirePosition;
+            int coins = GameState.Coins;
+            var payables = UnityEngine.Object.FindObjectsOfType<Payable>();
             var enemies = UnityEngine.Object.FindObjectsOfType<Enemy>();
             float nearL = float.MaxValue, nearR = float.MaxValue;
             foreach (var e in enemies)
             {
                 float d = e.transform.position.x - px;
+                if (WallBetween(px, e.transform.position.x)) continue;   // walled off -> harmless
                 if (d < 0) nearL = Mathf.Min(nearL, -d); else nearR = Mathf.Min(nearR, d);
             }
             float nearest = Mathf.Min(nearL, nearR);
             _safeMode = true;
-            if (nearest < 22f)
+            float l = WallEdge(-1, home), r = WallEdge(1, home);
+            bool walled = WallsOnSide(-1, home) > 0 && WallsOnSide(1, home) > 0;
+
+            // 1. danger (no wall in between): dodge, staying inside the walls if there are any
+            if (nearest < 18f)
             {
-                // run away from the closer side, but never into the other group; stay inside the world/portals
-                float lo = PortalLimit(-1), hi = PortalLimit(1);
+                float lo = walled ? l + 1f : PortalLimit(-1), hi = walled ? r - 1f : PortalLimit(1);
                 float target;
-                if (nearL < nearR) target = Mathf.Min(px + Mathf.Min(14f, nearR - 8f), hi);
-                else target = Mathf.Max(px - Mathf.Min(14f, nearL - 8f), lo);
-                if (Mathf.Abs(target - px) < 1.5f) target = nearL < nearR ? hi : lo;   // squeezed: break out towards the far side
-                Status = "Pazifist: ausweichen (L " + (nearL < 999 ? nearL.ToString("0") : "-") + " / R " + (nearR < 999 ? nearR.ToString("0") : "-") + ")";
+                if (nearL < nearR) target = Mathf.Min(px + Mathf.Min(14f, nearR - 6f), hi);
+                else target = Mathf.Max(px - Mathf.Min(14f, nearL - 6f), lo);
+                if (Mathf.Abs(target - px) < 1.5f) target = nearL < nearR ? hi : lo;
+                Status = "Pacifist: dodge (L " + (nearL < 999 ? nearL.ToString("0") : "-") + " / R " + (nearR < 999 ? nearR.ToString("0") : "-") + ")";
                 Push("goto " + F(target) + " 1 2"); return;
             }
-            // daytime: pick up coins that were NOT dropped by us, otherwise wait in the middle of the map
-            var c = NearestCoin(px, px - 30f, px + 30f);
-            if (c != null && !c.droppedByPlayer && k.isDaytime) { Cool(c.GetInstanceID(), 1e7f); Status = "Pazifist: Münze"; Push("walkto " + F(c.transform.position.x) + " 0.3 10"); return; }
-            float mid = (PortalLimit(-1) + PortalLimit(1)) / 2f;
-            Status = "Pazifist: warten (Tag " + GameState.Day + ")";
-            if (Mathf.Abs(px - mid) > 6f) Push("walkto " + F(mid) + " 3 5"); else Push("wait 1");
+            // 2. campfire, castle upgrades (= free walls at level 2), daily chest
+            var fire = Find(payables, x => x is PayableUpgrade && x.name.StartsWith("Castle0") && SafeCanPay(x));
+            if (fire != null && coins >= fire.price) { Status = "Pacifist: light fire"; PayAt(fire); return; }
+            var castle = Find(payables, x => x is PayableUpgrade && x.name.StartsWith("Castle") && !x.name.StartsWith("Castle0") && SafeCanPay(x));
+            if (castle != null && coins >= castle.price) { Status = "Pacifist: castle " + castle.name.Replace("(Clone)", ""); PayAt(castle); return; }
+            if (k.isDaytime)
+            {
+                foreach (var ch in UnityEngine.Object.FindObjectsOfType<Chest>())
+                {
+                    float cx = ch.transform.position.x;
+                    if (!ch.isEmpty && !OnCooldown(ch.GetInstanceID()) && Mathf.Abs(cx - home) < 40f) { Cool(ch.GetInstanceID(), 120f); Status = "Pacifist: chest"; Push("goto " + F(cx) + " 0.3 10"); Push("wait 1"); return; }
+                }
+                var c = NearestCoin(px, home - 35f, home + 35f);
+                if (c != null && !c.droppedByPlayer) { Cool(c.GetInstanceID(), 1e7f); Status = "Pacifist: coin"; Push("walkto " + F(c.transform.position.x) + " 0.3 10"); return; }
+            }
+            // 3. otherwise wait at the castle
+            Status = "Pacifist: waiting at the castle (day " + GameState.Day + (walled ? ", walled" : "") + ")";
+            if (Mathf.Abs(px - home) > 2f) Push("walkto " + F(home + 0.5f) + " 1 6"); else Push("wait 1");
         }
 
         /// <summary>Furthest safe x on one side: a bit inside the nearest inner portal (enemies spawn there).</summary>
@@ -381,6 +404,41 @@ namespace KingdomBot
             }
             if (Mathf.Abs(best) > 1e5f) best = px + side * 60f;
             return best - side * 15f;
+        }
+
+        /// <summary>Portal assault (master mode): returns true if it queued an action.</summary>
+        bool AssaultStep(Payable[] payables, int day, float hour, int budget, int archers, float home, float px)
+        {
+            if (Mode != "master" || day < 5) return false;
+            var k = Managers.kingdom; var am = Managers.achievements;
+            bool finalWave = Managers.enemies != null && Managers.enemies.finalWaveSpawned;
+            bool morning = k.isDaytime && hour < k.dayEnd - 9f;
+            bool wallsOk = WallsOnSide(-1, home) > 0 && WallsOnSide(1, home) > 0;
+
+            // castle first from day 8 (level 5 = shield shops)
+            if (day >= 8 && wallsOk && archers >= 6)
+            {
+                var castle = Find(payables, x => x is PayableUpgrade && x.name.StartsWith("Castle") && SafeCanPay(x));
+                if (castle != null && budget >= castle.price) { Status = "Assault prep: castle " + castle.name.Replace("(Clone)", "") + " (" + castle.price + ")"; PayAt(castle); return true; }
+            }
+            // stone tech from the mason shrine (morning trip)
+            if (Managers.techUpgrades != null && !Managers.techUpgrades.stoneBuilding && archers >= 8 && morning)
+            {
+                var shrine = Find(payables, x => x is PayableUpgrade && x.name.StartsWith("Mason") && SafeCanPay(x));
+                if (shrine != null && budget >= shrine.price && Mathf.Abs(shrine.transform.position.x - home) < 140f)
+                { Status = "Assault prep: mason shrine (stone)"; Cool(shrine.GetInstanceID(), 30f); Push("goto " + F(shrine.transform.position.x) + " 0.3 40"); Push("payid " + shrine.GetInstanceID() + " " + F(shrine.transform.position.x)); Push("goto " + F(home) + " 1 40"); return true; }
+            }
+            if (finalWave) return false;   // all inner portals gone: only defend now
+            // shields -> knights
+            var shield = Find(payables, x => x is PayableShield && SafeCanPay(x), home);
+            if (shield != null && budget >= shield.price) { Status = "Assault: buy shield (" + shield.price + ")"; PayAt(shield); return true; }
+            // charge: pay the border banner while knights with archers are ready
+            if (morning)
+            {
+                var border = Find(payables, x => x is PayableBorder && SafeCanPay(x), px);
+                if (border != null && budget >= border.price) { Status = "Assault: knights CHARGE (" + border.name.Replace("(Clone)", "") + ")"; Cool(border.GetInstanceID(), 60f); PayAt(border); return true; }
+            }
+            return false;
         }
 
         bool GiftPending()
@@ -400,7 +458,7 @@ namespace KingdomBot
             if (c == null || coins < c.price) return false;
             if (Mathf.Abs(c.transform.position.x - px) > 25f) return false;   // only when near home (night safe)
             _safeMode = true;
-            Status = "Burg ausbauen für Geschenk (" + c.name + ")";
+            Status = "Castle upgrade for gift (" + c.name + ")";
             PayAt(c); return true;
         }
 
@@ -428,9 +486,9 @@ namespace KingdomBot
             float px = GameState.PX, home = k.campfirePosition, hour = GameState.Hour; int day = GameState.Day;
             bool evening = hour >= k.dayEnd - 1.5f || (!k.isDaytime && !(day == 0 && hour < 12f));
             float l = WallEdge(-1, home), r = WallEdge(1, home);
-            if (evening && (px < l - 0.5f || px > r + 0.5f)) { Status = "Abbruch: Abend"; return true; }
+            if (evening && (px < l - 0.5f || px > r + 0.5f)) { Status = "Interrupt: dusk"; return true; }
             var e = NearestEnemy(px);
-            if (e != null && Mathf.Abs(e.transform.position.x - px) < 9f && !WallBetween(px, e.transform.position.x)) { Status = "Abbruch: Gegner"; return true; }
+            if (e != null && Mathf.Abs(e.transform.position.x - px) < 9f && !WallBetween(px, e.transform.position.x)) { Status = "Interrupt: enemy"; return true; }
             return false;
         }
 

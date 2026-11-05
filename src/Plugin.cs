@@ -107,6 +107,13 @@ namespace KingdomBot
                 if (l == "bot off") { BotActive = false; Queue.Clear(); Ctl.Reset(); continue; }
                 if (l == "auto on") { AutoBrain = true; continue; }
                 if (l == "auto off") { AutoBrain = false; continue; }
+                if (l == "savequit")
+                {
+                    // same as the menu's "save & quit": keeps the current run when the bot is updated
+                    try { if (Managers.saves != null && GameState.Player != null && Managers.game != null && (int)Managers.game.gameState == 2) Managers.saves.Save("AUTO"); Log("Saved run (day " + GameState.Day + ")"); }
+                    catch (Exception e) { Log("save failed: " + e.Message); }
+                    Application.Quit(); continue;
+                }
                 if (l == "newgame") { try { Acc.Call(Managers.game, "Restart"); Log("New game requested"); } catch (Exception e) { Log("newgame failed: " + e.Message); } continue; }
                 if (l.StartsWith("mode ")) { Brain.ConfigMode = l.Substring(5).Trim(); Brain.Mode = Brain.ConfigMode == "auto" ? Campaign.PickMode(Brain.PacifistEnabled) : Brain.ConfigMode; Log("Mode: " + Brain.ConfigMode + " -> " + Brain.Mode); continue; }
                 if (l == "achievements") { Log(Campaign.Summary()); continue; }
@@ -118,9 +125,9 @@ namespace KingdomBot
 
         public void DrawGUI()
         {
-            if (!BotActive && !AutoBrain) { GUI.Label(new Rect(10, 10, 600, 22), "KingdomBot: aus (F8)"); return; }
+            if (!BotActive && !AutoBrain) { GUI.Label(new Rect(10, 10, 600, 22), "KingdomBot: off (F8)"); return; }
             GUI.color = Color.yellow;
-            GUI.Label(new Rect(10, 10, 1200, 22), "KingdomBot " + (BotActive ? "AKTIV" : "pausiert") + (AutoBrain ? " [AUTO]" : "") + " " + Speed + "x  Modus " + Brain.Mode + (Brain.ConfigMode == "auto" ? " (auto)" : "") + "  Versuch " + (Brain.Runs + 1) + "  " + _status);
+            GUI.Label(new Rect(10, 10, 1200, 22), "KingdomBot " + (BotActive ? "ACTIVE" : "paused") + (AutoBrain ? " [AUTO]" : "") + " " + Speed + "x  mode " + Brain.Mode + (Brain.ConfigMode == "auto" ? " (auto)" : "") + "  attempt " + (Brain.Runs + 1) + "  " + _status);
         }
     }
 
@@ -178,6 +185,26 @@ namespace KingdomBot
             Acc.Call(p, "UpdateActionState", Dir, sprintStart, sprintStop);
             Acc.Call(p, "UpdatePayState", Pay, payDown);
             _payPrev = Pay; _sprintPrev = Sprint;
+        }
+    }
+
+    /// <summary>Diagnostics: log who sets the achievement flags (e.g. "coin dropped on ground").</summary>
+    [HarmonyPatch(typeof(AchievementManager), "SetFlag")]
+    static class Patch_SetFlag
+    {
+        static void Prefix(AchievementManager __instance, object flag)
+        {
+            try
+            {
+                int f = Convert.ToInt32(flag);
+                if (__instance.flags != null && f < __instance.flags.Length && !__instance.flags[f])
+                {
+                    var p = GameState.Player;
+                    Plugin.Log("FLAG " + flag + " set (day " + GameState.Day + ", h" + GameState.Hour.ToString("0.0") + ", x" + (p != null ? GameState.PX.ToString("0") : "?")
+                        + ", queue " + Plugin.Instance.Queue.Describe() + ") " + Environment.StackTrace);
+                }
+            }
+            catch { }
         }
     }
 

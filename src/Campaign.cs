@@ -66,13 +66,15 @@ namespace KingdomBot
             var miss = new List<string>();
             foreach (var kv in _cache) if (!kv.Value) miss.Add(kv.Key);
             miss.Sort();
-            return _cache.Count == 0 ? "Steam: unbekannt" : (_cache.Count - miss.Count) + "/" + _cache.Count + " | fehlt: " + string.Join(", ", miss.ToArray());
+            return _cache.Count == 0 ? "Steam: unknown" : (_cache.Count - miss.Count) + "/" + _cache.Count + " | missing: " + string.Join(", ", miss.ToArray());
         }
 
-        /// <summary>Mode for the next run in "auto". Short special runs first, the long master run last.</summary>
+        /// <summary>Mode for the next run in "auto".</summary>
         public static string PickMode(bool pacifistEnabled)
         {
             if (Missing(ThirdDay)) return "fire3";
+            // master covers day 100, the portal assault (Safe in X, Tenth Day) and the win
+            if (Missing("SURVIVED_UNTIL_DAY_100") || Missing("SAFE_IN_40") || Missing(TenthDay)) return "master";
             if (pacifistEnabled && (Missing(FifthDays) || Missing(EighthDay))) return "pacifist";
             return "master";
         }

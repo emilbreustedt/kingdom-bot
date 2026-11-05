@@ -21,7 +21,7 @@ namespace KingdomBot
         public readonly CommandQueue Queue = new CommandQueue();
         public Brain Brain;
 
-        float _nextDump, _nextCmdPoll, _nextGuard;
+        float _nextDump, _nextCmdPoll, _nextGuard, _nextIntroPoke;
         string _status = "";
 
         void Awake()
@@ -53,6 +53,25 @@ namespace KingdomBot
             ApplySpeed();
 
             if (Time.unscaledTime >= _nextCmdPoll) { _nextCmdPoll = Time.unscaledTime + 0.5f; PollCommandFile(); }
+
+            // intro (also after a new game): queued commands can never finish there -> clear them and skip the intro directly
+            var gm = Managers.game;
+            if (gm != null && (int)gm.gameState == 1 && BotActive && AutoBrain)
+            {
+                if (!Queue.Idle) Queue.Clear();
+                Ctl.Reset();
+                if (Time.unscaledTime >= _nextIntroPoke)
+                {
+                    _nextIntroPoke = Time.unscaledTime + 1f;
+                    // same as holding the skip button: ends intro AND tutorial (the tutorial unlocks shops only step by step)
+                    try { Acc.Call(gm, "AbortIntroAndTutorial"); Log("Intro + tutorial skipped"); }
+                    catch (Exception e)
+                    {
+                        Log("AbortIntroAndTutorial failed: " + e.Message);
+                        try { var intro = Acc.Get<IntroSequence>(gm, "_introSequence"); if (intro != null) Acc.Call(intro, "PlayerTriedToMove"); } catch { }
+                    }
+                }
+            }
 
             var player = GameState.Player;
             if (player != null)
@@ -114,13 +133,38 @@ namespace KingdomBot
                     catch (Exception e) { Log("save failed: " + e.Message); }
                     Application.Quit(); continue;
                 }
-                if (l == "newgame") { try { Acc.Call(Managers.game, "Restart"); Log("New game requested"); } catch (Exception e) { Log("newgame failed: " + e.Message); } continue; }
+                if (l == "newgame") { try { Queue.Clear(); Ctl.Reset(); Acc.Call(Managers.game, "Restart"); Log("New game requested"); } catch (Exception e) { Log("newgame failed: " + e.Message); } continue; }
                 if (l.StartsWith("mode ")) { Brain.ConfigMode = l.Substring(5).Trim(); Brain.Mode = Brain.ConfigMode == "auto" ? Campaign.PickMode(Brain.PacifistEnabled) : Brain.ConfigMode; Log("Mode: " + Brain.ConfigMode + " -> " + Brain.Mode); continue; }
                 if (l == "achievements") { Log(Campaign.Summary()); continue; }
+                if (l == "debug") { DebugDump(); continue; }
                 if (l == "clear") { Queue.Clear(); Ctl.Reset(); continue; }
                 if (l.StartsWith("speed ")) { Speed = float.Parse(l.Substring(6), System.Globalization.CultureInfo.InvariantCulture); continue; }
                 Queue.Enqueue(l);
             }
+        }
+
+        void DebugDump()
+        {
+            try
+            {
+                foreach (var sh in UnityEngine.Object.FindObjectsOfType<PayableShop>())
+                    Log("SHOP " + sh.name + " x" + sh.transform.position.x.ToString("0.0") + " items=" + sh.GetItemCount() + "/" + sh.maxItems
+                        + " allow=" + Acc.Get<bool>(sh, "_allowPayment") + " canPay=" + sh.CanPay() + " enabled=" + sh.isActiveAndEnabled);
+                foreach (var pe in UnityEngine.Object.FindObjectsOfType<Peasant>())
+                {
+                    var fsm = Acc.Get<object>(pe, "_fsm");
+                    object cur = null; try { cur = fsm.GetType().GetField("current").GetValue(fsm); } catch { }
+                    var tgt = Acc.Get<GameObject>(pe, "_target");
+                    Log("PEASANT x" + pe.transform.position.x.ToString("0.0") + " state=" + cur + " target=" + (tgt != null ? tgt.name : "-") + " stunned=" + Acc.Get<bool>(pe, "_stunned"));
+                }
+                foreach (var d in UnityEngine.Object.FindObjectsOfType<DroppableTool>())
+                    Log("TOOL " + d.name + " x" + d.transform.position.x.ToString("0.0") + " picked=" + d.pickedUp + " fake=" + d.fake + " active=" + d.gameObject.activeInHierarchy);
+                var pm = Managers.payables;
+                if (pm != null) Log("PAYABLES enabledByDefault=" + Acc.Get<bool>(pm, "_enabledByDefault"));
+                var tm = Managers.tutorial;
+                if (tm != null) Log("TUTORIAL " + string.Join(", ", Array.ConvertAll(tm.GetType().GetFields(System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Public), f => { object v = null; try { v = f.GetValue(tm); } catch { } return f.Name + "=" + v; })));
+            }
+            catch (Exception e) { Log("debug failed: " + e); }
         }
 
         public void DrawGUI()
@@ -236,7 +280,7 @@ namespace KingdomBot
     public class CommandQueue
     {
         readonly Queue<string> _q = new Queue<string>();
-        string _cur; float _t0; int _n; bool _started;
+        string _cur; float _t0, _u0; int _n; bool _started;
         int _lastCoinIdx = -1, _pressFrames;
 
         public bool Idle { get { return _cur == null && _q.Count == 0; } }
@@ -252,7 +296,7 @@ namespace KingdomBot
             if (_cur == null)
             {
                 if (_q.Count == 0) { c.Dir = 0; c.Sprint = false; c.Pay = false; return; }
-                _cur = _q.Dequeue(); _t0 = Time.time; _n = 0; _started = false; _lastCoinIdx = -1; _pressFrames = 0;
+                _cur = _q.Dequeue(); _t0 = Time.time; _u0 = Time.unscaledTime; _n = 0; _started = false; _lastCoinIdx = -1; _pressFrames = 0;
             }
             var parts = _cur.Split(' ');
             var p = GameState.Player;
@@ -329,7 +373,7 @@ namespace KingdomBot
                     Application.CaptureScreenshot(Path.Combine(Plugin.Dir, "shot.png")); done = true; break;
                 case "wait":
                     c.Dir = 0; c.Sprint = false; c.Pay = false;
-                    if (Time.time - _t0 >= F(parts[1])) done = true;
+                    if (Time.time - _t0 >= F(parts[1]) || Time.unscaledTime - _u0 >= F(parts[1])) done = true;   /* also ends if game time stands still */
                     break;
                 default:
                     Plugin.Log("Unknown command: " + _cur); done = true; break;

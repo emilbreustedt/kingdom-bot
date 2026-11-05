@@ -114,6 +114,7 @@ namespace KingdomBot
             if (_newGameAt > 0f && Time.unscaledTime >= _newGameAt && Managers.game != null)
             {
                 _newGameAt = -1f; _lastDaySeen = -1;
+                _pl.Queue.Clear();
                 Acc.Call(Managers.game, "Restart");
                 Status = "New game"; Push("wait 3"); return;
             }
@@ -122,16 +123,15 @@ namespace KingdomBot
             if (game == null || p == null) { Status = "no game"; return; }
             if ((int)game.gameState == 3)
             {
-                if (_gameOverAt < 0) _gameOverAt = Time.time;
-                if (AutoRestart && Time.time - _gameOverAt > 10f) { _gameOverAt = -1; Runs++; Status = "Restart (attempt " + (Runs + 1) + ")"; Acc.Call(game, "Restart"); Push("wait 5"); return; }
+                if (_gameOverAt < 0) _gameOverAt = Time.unscaledTime;
+                if (AutoRestart && Time.unscaledTime - _gameOverAt > 10f) { _gameOverAt = -1; Runs++; Status = "Restart (attempt " + (Runs + 1) + ")"; _pl.Queue.Clear(); Acc.Call(game, "Restart"); return; }
                 Status = "Game Over"; Push("wait 1"); return;
             }
             _gameOverAt = -1;
             if ((int)game.gameState == 1)
             {
                 // the intro waits for a real stick movement (read directly from Rewired) -> trigger it ourselves
-                var intro = Acc.Get<IntroSequence>(game, "_introSequence");
-                if (intro != null) Acc.Call(intro, "PlayerTriedToMove");
+                Acc.Call(game, "AbortIntroAndTutorial");
                 Status = "Skip intro"; Push("wait 1"); return;
             }
             if ((int)game.gameState != 2) { Status = "waiting (" + game.gameState + ")"; Push("wait 1"); return; }
@@ -352,6 +352,7 @@ namespace KingdomBot
             float nearL = float.MaxValue, nearR = float.MaxValue;
             foreach (var e in enemies)
             {
+                if (!IsLiveEnemy(e)) continue;
                 float d = e.transform.position.x - px;
                 if (WallBetween(px, e.transform.position.x)) continue;   // walled off -> harmless
                 if (d < 0) nearL = Mathf.Min(nearL, -d); else nearR = Mathf.Min(nearR, d);
@@ -416,7 +417,7 @@ namespace KingdomBot
             bool wallsOk = WallsOnSide(-1, home) > 0 && WallsOnSide(1, home) > 0;
 
             // castle first from day 8 (level 5 = shield shops)
-            if (day >= 8 && wallsOk && archers >= 6)
+            if (day >= 8 && archers >= 6)
             {
                 var castle = Find(payables, x => x is PayableUpgrade && x.name.StartsWith("Castle") && SafeCanPay(x));
                 if (castle != null && budget >= castle.price) { Status = "Assault prep: castle " + castle.name.Replace("(Clone)", "") + " (" + castle.price + ")"; PayAt(castle); return true; }
@@ -619,11 +620,22 @@ namespace KingdomBot
             return null;
         }
 
+        // enemies that have not moved for a while are ignored (frozen leftovers after loading a save)
+        static readonly Dictionary<int, Vector2> _enemyTrack = new Dictionary<int, Vector2>();   // id -> (last x, time it last moved)
+        public static bool IsLiveEnemy(Enemy e)
+        {
+            if (e == null || !e.isActiveAndEnabled) return false;
+            int id = e.GetInstanceID(); float x = e.transform.position.x; Vector2 t;
+            if (!_enemyTrack.TryGetValue(id, out t) || Mathf.Abs(t.x - x) > 0.2f) { _enemyTrack[id] = new Vector2(x, Time.time); return true; }
+            return Time.time - t.y < 20f;
+        }
+
         Enemy NearestEnemy(float px)
         {
             Enemy best = null; float bd = float.MaxValue;
             foreach (var e in UnityEngine.Object.FindObjectsOfType<Enemy>())
             {
+                if (!IsLiveEnemy(e)) continue;
                 float d = Mathf.Abs(e.transform.position.x - px);
                 if (d < bd) { bd = d; best = e; }
             }

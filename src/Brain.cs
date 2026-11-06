@@ -1155,7 +1155,7 @@ namespace KingdomBot
 
             // forward launch point (forum tip): knights die on the long way to far portals -> move the outer wall (and
             // with it the banner) towards the nearest intact portal on a side once the gap is large
-            if (assault && !finalWave && UnityEngine.Object.FindObjectsOfType<Knight>().Length >= 1 && hour >= 7f && hour < k.dayEnd - 8f)
+            if (assault && !finalWave && UnityEngine.Object.FindObjectsOfType<Knight>().Length >= 1 && hour >= 12f && hour < k.dayEnd - 5f)   // afternoons: mornings are for charges
             {
                 for (int side = -1; side <= 1; side += 2)
                 {

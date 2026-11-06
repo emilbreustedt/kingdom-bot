@@ -967,7 +967,7 @@ namespace KingdomBot
                 var sh = Find(payables, x => x is PayableShield && SafeCanPay(x), home);
                 if (sh != null) { item = sh; what = "shield"; }
             }
-            if (item == null || coins >= item.price + 2) return false;     // nothing to save for / affordable: AssaultStep buys it
+            if (item == null || coins >= item.price + 3) return false;     // nothing to save for / affordable: AssaultStep buys it
             // keep the army growing while saving (same as the wall schedule)
             int archersNow = UnityEngine.Object.FindObjectsOfType<Archer>().Length;
             var payablesAll = payables;
@@ -984,7 +984,7 @@ namespace KingdomBot
             }
             var c = NearestCoin(px, home - 40f, home + 40f);
             if (c != null) { Cool(c.GetInstanceID(), 1e7f); Status = "Saving for " + what + ": coin"; Push("goto " + F(c.transform.position.x) + " 0.3 15"); return true; }
-            Status = "Saving for " + what + " (" + coins + "/" + (item.price + 2) + ")";
+            Status = "Saving for " + what + " (" + coins + "/" + (item.price + 3) + ")";
             float l = WallEdge(-1, home), r = WallEdge(1, home);
             Push("walkto " + F(px < home ? r - 1f : l + 1f) + " 1 20");
             return true;
@@ -1006,7 +1006,7 @@ namespace KingdomBot
             if (assault && day >= 8 && archers >= 6)
             {
                 var castle = Find(payables, x => x is PayableUpgrade && x.name.StartsWith("Castle") && SafeCanPay(x) && CastleAllowed(x.name));
-                if (castle != null && budget >= castle.price) { Status = "Assault prep: castle " + castle.name.Replace("(Clone)", "") + " (" + castle.price + ")"; PayAt(castle); return true; }
+                if (castle != null && budget >= castle.price + 3) { Status = "Assault prep: castle " + castle.name.Replace("(Clone)", "") + " (" + castle.price + ")"; PayAt(castle); return true; }
             }
             // stone tech from the mason shrine (morning trip)
             if (Managers.techUpgrades != null && !Managers.techUpgrades.stoneBuilding && archers >= 8 && morning && !_armyFirst)
@@ -1047,13 +1047,13 @@ namespace KingdomBot
             if (UnityEngine.Object.FindObjectsOfType<Worker>().Length >= 2)
             {
                 var ws = Find(payables, x => x is PayableWorkshop && SafeCanPay(x), home);
-                if (ws != null && budget >= ws.price + 2) { Status = "Buy catapult (" + ws.price + ")"; PayAt(ws); return true; }
+                if (ws != null && budget >= ws.price + 3) { Status = "Buy catapult (" + ws.price + ")"; PayAt(ws); return true; }
             }
             if (finalWave || !assault) return false;   // survive mode / all inner portals gone: only defend
             if (AssaultSaving(payables, day, hour, home, px)) return true;
             // shields -> knights
             var shield = Find(payables, x => x is PayableShield && SafeCanPay(x), home);
-            if (shield != null && budget >= shield.price) { Status = "Assault: buy shield (" + shield.price + ")"; PayAt(shield); return true; }
+            if (shield != null && budget >= shield.price + 3) { Status = "Assault: buy shield (" + shield.price + ")"; PayAt(shield); return true; }
             // arm the knights: coins in a knight's purse are knocked out before he loses his shield
             var knights = UnityEngine.Object.FindObjectsOfType<Knight>();
             Knight poor = null; int poorCoins = 99;

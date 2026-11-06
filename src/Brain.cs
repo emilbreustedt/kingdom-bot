@@ -166,6 +166,17 @@ namespace KingdomBot
                 int begs = UnityEngine.Object.FindObjectsOfType<Beggar>().Length, peas = UnityEngine.Object.FindObjectsOfType<Peasant>().Length;
                 int arcs = UnityEngine.Object.FindObjectsOfType<Archer>().Length, wrks = UnityEngine.Object.FindObjectsOfType<Worker>().Length, kns = UnityEngine.Object.FindObjectsOfType<Knight>().Length;
                 Plugin.Log(string.Format("== POP day {0}: beggars {1} peasants {2} archers {3} (made {4}) workers {5} knights {6} coins {7}", dNow, begs, peas, arcs, am.counters[3], wrks, kns, GameState.Player != null ? GameState.Coins : -1));
+                // destroyed portals that do not crumble keep "PortalsDestroyed" from being set: log their state
+                foreach (var po in UnityEngine.Object.FindObjectsOfType<Portal>())
+                {
+                    var dm = po.GetComponent<Damageable>();
+                    if (dm == null || dm.hitPoints > 0) continue;
+                    var q = Acc.Get<object>(po, "_spawnQueue") as System.Collections.ICollection;
+                    Plugin.Log("DEAD PORTAL x" + po.transform.position.x.ToString("0") + " outer=" + po.outerSpawner + " opened=" + Acc.Get<bool>(po, "_opened")
+                        + " crumbleAfterSpawn=" + Acc.Get<bool>(po, "_crumbleAfterSpawn") + " closeAfterSpawn=" + Acc.Get<bool>(po, "_closeAfterSpawn")
+                        + " queue=" + (q != null ? q.Count.ToString() : "?") + " isDead=" + dm.isDead + " active=" + po.isActiveAndEnabled
+                        + " finalWave=" + (Managers.enemies != null && Managers.enemies.finalWaveSpawned));
+                }
                 Plugin.Log(string.Format("== Day {0} (mode {1}) Flags: FreeWall={2} LitFire={3} Galloped={4} CoinOnGround={5} PortalsDestroyed={6} | Archers={7} Deer={8} Kills={9} Land={10}",
                     dNow, Mode, am.flags[2], am.flags[3], am.flags[4], am.flags[5], am.flags[7], am.counters[3], am.counters[4], am.counters[5], am.counters[7]));
             }

@@ -199,7 +199,10 @@ namespace KingdomBot
                 foreach (var po in UnityEngine.Object.FindObjectsOfType<Portal>())
                 {
                     var d = po.GetComponent<Damageable>();
-                    Log("PORTAL x" + po.transform.position.x.ToString("0") + " outer=" + po.outerSpawner + " hp=" + (d != null ? d.hitPoints + "/" + d.initialHitPoints + " useHp=" + d.useHitPoints + " damagedBy=" + d.damagedBy + " invulnerable=" + d.invulnerable : "no damageable") + " defenseRange=" + po.defenseTriggerRange);
+                    Log("PORTAL x" + po.transform.position.x.ToString("0") + " outer=" + po.outerSpawner + " hp=" + (d != null ? d.hitPoints + "/" + d.initialHitPoints + " useHp=" + d.useHitPoints + " damagedBy=" + d.damagedBy + " invulnerable=" + d.invulnerable : "no damageable") + " defenseRange=" + po.defenseTriggerRange
+                        + " opened=" + Acc.Get<bool>(po, "_opened") + " crumbleAfterSpawn=" + Acc.Get<bool>(po, "_crumbleAfterSpawn") + " closeAfterSpawn=" + Acc.Get<bool>(po, "_closeAfterSpawn")
+                        + " queue=" + ((Acc.Get<object>(po, "_spawnQueue") as System.Collections.ICollection) != null ? (Acc.Get<object>(po, "_spawnQueue") as System.Collections.ICollection).Count.ToString() : "?")
+                        + " nextAt=" + Acc.Get<float>(po, "_spawnNextAt").ToString("0.0") + " now=" + Time.time.ToString("0.0") + " active=" + po.isActiveAndEnabled);
                 }
                 foreach (var fh in UnityEngine.Object.FindObjectsOfType<Farmhouse>())
                     Log("FARMHOUSE x" + fh.transform.position.x.ToString("0.0") + " level=" + fh.level + " name=" + fh.name);

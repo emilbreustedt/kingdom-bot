@@ -179,6 +179,7 @@ namespace KingdomBot
                 bool ready = (d >= 12 && arch >= 15) || d >= 20;
                 if (ready && !night && !danger && AssaultStep(UnityEngine.Object.FindObjectsOfType<Payable>(), d, hr, bud, arch, hm, pxx)) return;
             }
+            if ((Mode == "survive" || Mode == "master") && GameState.Player != null && (int)Managers.game.gameState == 2 && EconomyStep()) return;
             if (Mode == "survive" || Mode == "master")
             {
                 if (_legacy == null) _legacy = new LegacyBrain(_pl);
@@ -516,6 +517,34 @@ namespace KingdomBot
             }
             if (Mathf.Abs(best) > 1e5f) best = px + side * 60f;
             return best - side * 15f;
+        }
+
+        /// <summary>Farms = the main mid-game income. Build a farmhouse near the camp and staff it with farmers.</summary>
+        bool EconomyStep()
+        {
+            var k = Managers.kingdom;
+            int day = GameState.Day; float hour = GameState.Hour, px = GameState.PX, home = k.campfirePosition;
+            if (day < 3 || !k.isDaytime || hour > k.dayEnd - 5f) return false;
+            var en = NearestEnemy(px);
+            if (en != null && Mathf.Abs(en.transform.position.x - px) < 15f) return false;
+            int coins = GameState.Coins;
+            var payables = UnityEngine.Object.FindObjectsOfType<Payable>();
+            PayableShop scythe = null; int onDisplay = 0;
+            foreach (var py in payables) { var sh = py as PayableShop; if (sh == null) continue; onDisplay += sh.GetItemCount(); if (sh.name.Contains("Scythe")) scythe = sh; }
+            if (scythe == null) return false;                               // castle level 2+ needed
+            bool farmBuilt = false;
+            foreach (var fh in UnityEngine.Object.FindObjectsOfType<Farmhouse>()) if (fh.level > 0 && Mathf.Abs(fh.transform.position.x - home) < 45f) farmBuilt = true;
+            if (!farmBuilt)
+            {
+                var farm = Find(payables, x => x is PayableUpgrade && x.name.StartsWith("Farmhouse") && SafeCanPay(x) && Mathf.Abs(x.transform.position.x - home) < 40f, home);
+                if (farm != null && coins >= farm.price + 1) { Status = "Economy: build farm (" + farm.price + ")"; PayAt(farm); return true; }
+                return false;
+            }
+            int farmers = UnityEngine.Object.FindObjectsOfType<Farmer>().Length;
+            int peasants = UnityEngine.Object.FindObjectsOfType<Peasant>().Length;
+            if (farmers < 2 && peasants > onDisplay && SafeCanPay(scythe) && coins >= scythe.price + 1)
+            { Status = "Economy: buy scythe (farmers " + farmers + ")"; PayAt(scythe); return true; }
+            return false;
         }
 
         /// <summary>Portal assault (master mode): returns true if it queued an action.</summary>

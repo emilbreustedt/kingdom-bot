@@ -113,8 +113,15 @@ Notes from reverse engineering (Kingdom: Classic 1.x):
 
 ## Status
 
-Best run so far: day 98 (unlocked every *Survive past day X* up to XCV). Gift, Third Day, Ninth Day work reliably.
-Portal assault and the special runs (Acre, Feast, First Day Army, pacifist) are work in progress.
+**Kingdom: Classic** — 24/34 achievements on the author's account, most of them earned by the bot:
+Second Day Gift, Third Day Fire, Ninth Day, Cleared an Acre, Day V … Day XCV (best run: day 98).
+Portal assault works end to end (stone tech → castle level 5 → knights → border charges; portals do get destroyed),
+but the late-game economy is still too weak for *Safe in X* and *Day C*. Pacifist, First Day Army (needs ~25 coins on
+day one — maps rarely have them) and Fourth Day Feast are open.
+
+**Kingdom: New Lands** (`newlands/`) — the Classic strategy runs via a small compatibility layer (`Compat.cs`);
+first achievements earned: Day V/X/XV, Five Days, Ninth Day, Second Day Gift. Boat escape (wreck → wharf → beach,
+land transition via the map) is implemented but not completed yet. See `docs/new-lands.md`.
 
 ## License
 

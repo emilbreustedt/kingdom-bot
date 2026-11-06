@@ -803,7 +803,7 @@ namespace KingdomBot
                 int peasants = UnityEngine.Object.FindObjectsOfType<Peasant>().Length, onDisplay = 0; PayableShop bow = null;
                 foreach (var py in payables) { var sh = py as PayableShop; if (sh == null) continue; onDisplay += sh.GetItemCount(); if (sh.name.Contains("Bow")) bow = sh; }
                 if (peasants > onDisplay && ShieldsWaiting() == 0 && bow != null && SafeCanPay(bow) && coins >= bow.price) { Status = "Army while saving: buy bow"; PayAt(bow); return true; }
-                if (peasants + onDisplay < 2 && coins >= 3)
+                if (peasants < onDisplay + 2 && peasants < 4 && coins >= 3)
                 {
                     var b = NearestBeggar(px, home - 150f, home + 150f);
                     if (b != null) { Cool(b.GetInstanceID(), 10f); Status = "Army while saving: recruit"; Push("walkto " + F(b.transform.position.x) + " 0.3 25"); Push("handtap " + b.GetInstanceID()); Push("wait 1.5"); return true; }
@@ -971,7 +971,7 @@ namespace KingdomBot
                 int peasants = UnityEngine.Object.FindObjectsOfType<Peasant>().Length, onDisplay = 0; PayableShop bow = null;
                 foreach (var py in payablesAll) { var shp = py as PayableShop; if (shp == null) continue; onDisplay += shp.GetItemCount(); if (shp.name.Contains("Bow")) bow = shp; }
                 if (peasants > onDisplay && ShieldsWaiting() == 0 && bow != null && SafeCanPay(bow) && coins >= bow.price) { Status = "Army while saving: buy bow"; PayAt(bow); return true; }
-                if (peasants + onDisplay < 2 && coins >= 3)
+                if (peasants < onDisplay + 2 && peasants < 4 && coins >= 3)
                 {
                     var b = NearestBeggar(px, home - 150f, home + 150f);
                     if (b != null) { Cool(b.GetInstanceID(), 10f); Status = "Army while saving: recruit"; Push("walkto " + F(b.transform.position.x) + " 0.3 25"); Push("handtap " + b.GetInstanceID()); Push("wait 1.5"); return true; }

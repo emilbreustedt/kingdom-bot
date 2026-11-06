@@ -753,7 +753,7 @@ namespace KingdomBot
             // 0. farms = the only income that scales; they come first from day 6
             if (day >= 6) { var farm = FarmTarget(payables, home); if (farm != null) { item = farm; what = farm.name.StartsWith("Tree") ? "farmland (cut tree)" : "farm"; } }
             // 0b. a farm outside the walls loses its farmers every night: next wall goes up beyond the farm
-            if (item == null) { var fw = FarmWall(payables, home); if (fw != null) { item = fw; what = "wall beyond the farm"; } }
+            if (item == null) { var fw = FarmWall(payables, home); if (fw != null) { item = fw; what = fw.name.StartsWith("Tree") ? "farm wall (cut tree)" : "wall beyond the farm"; } }
             // 1. stone tech first (wall levels 3+ need it)
             if (item == null && Managers.techUpgrades != null && !Managers.techUpgrades.stoneBuilding)
             {
@@ -1212,6 +1212,15 @@ namespace KingdomBot
                     if (!(p is PayableUpgrade) || !p.name.StartsWith("Wall") || IsBuiltWall(p) || OnCooldown(p.GetInstanceID()) || !SafeCanPay(p)) continue;
                     float rel = (p.transform.position.x - home) * side;
                     if (rel < farRel + 6f || rel > farRel + 35f) continue;
+                    if (rel < bd) { bd = rel; best = p; }
+                }
+                if (best != null) return best;
+                // wall spots beyond the farm are still in the forest: cut the nearest tree beyond the farm
+                foreach (var p in payables)
+                {
+                    if (!p.name.StartsWith("Tree") || OnCooldown(p.GetInstanceID()) || !SafeCanPay(p)) continue;
+                    float rel = (p.transform.position.x - home) * side;
+                    if (rel < farRel || rel > farRel + 40f) continue;
                     if (rel < bd) { bd = rel; best = p; }
                 }
                 if (best != null) return best;

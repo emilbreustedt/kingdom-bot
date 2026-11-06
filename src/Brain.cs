@@ -115,7 +115,7 @@ namespace KingdomBot
             if (RunType == "main")
             {
                 // assault phase: after day 40 no "Safe in X" is reachable any more (Day C is already done) -> next attempt
-                if (Mode == "master" && dayC > 40 && Campaign.Missing("SAFE_IN_40") && !Campaign.Missing("SURVIVED_UNTIL_DAY_100"))
+                if (Mode == "master" && dayC > MasterRunEndDay && Campaign.Missing("SAFE_IN_40") && !Campaign.Missing("SURVIVED_UNTIL_DAY_100"))
                 {
                     Plugin.Log("Run finished (assault, day " + dayC + ", portals left) -> new game");
                     _newGameAt = Time.unscaledTime + 6f;
@@ -920,6 +920,7 @@ namespace KingdomBot
             else { Push("walkto " + F(b.transform.position.x) + " 0.8 25"); Push("tap 1"); Push("wait 2.5"); }
         }
         public int AssaultArmyCap = 25;
+        public int MasterRunEndDay = 60;   // TEMP diagnostics: watch knights vs portals after day 40 (normal: 40)
         public int BurstCoins = 45;   // castle 4 (8) + castle 5 (9) + 2 shields (12) + recruits (2) + banner (4) + purse (3) + slack
 
         /// <summary>Coins the record strategy must leave alone while the assault saves for castle 4/5 and shields.</summary>

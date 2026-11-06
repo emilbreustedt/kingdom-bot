@@ -789,8 +789,7 @@ namespace KingdomBot
                     }
                 }
             }
-            if (item == null) return false;
-            if (coins >= item.price + 4)   // keep a small purse: coins are knocked out before the crown
+            if (item != null && coins >= item.price + 4)   // keep a small purse: coins are knocked out before the crown
             {
                 Status = "Defence: " + what + " (" + item.price + ")";
                 if (item.name.StartsWith("Mason")) { Cool(item.GetInstanceID(), 30f); Push("goto " + F(PayX(item)) + " 0.3 40"); Push("payid " + item.GetInstanceID() + " " + F(PayX(item))); Push("goto " + F(home) + " 1 40"); }
@@ -810,6 +809,7 @@ namespace KingdomBot
                     if (b != null) { Cool(b.GetInstanceID(), 10f); Status = "Army while saving: recruit"; Push("walkto " + F(b.transform.position.x) + " 0.3 25"); Push("handtap " + b.GetInstanceID()); Push("wait 1.5"); return true; }
                 }
             }
+            if (item == null) return false;                 // nothing to save for: the rest of the brain spends
             // save: collect coins and taxes instead of spending
             var c = NearestCoin(px, home - 40f, home + 40f);
             if (c != null) { Cool(c.GetInstanceID(), 1e7f); Status = "Saving for " + what + ": coin"; Push("goto " + F(c.transform.position.x) + " 0.3 15"); return true; }

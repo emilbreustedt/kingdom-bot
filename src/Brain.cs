@@ -224,6 +224,8 @@ namespace KingdomBot
             // survival: stone walls decide late survival (L3/L4 = 200/300 HP vs 50 HP). Follow a wall schedule and save for
             // the next step during the day if needed; otherwise the record strategy plays as usual.
             if ((Mode == "survive" || Mode == "master") && GameState.Player != null && (int)Managers.game.gameState == 2 && AvoidIntruder()) return;
+            // income: farms + merchant (archers barely hunt in the late game - waves keep the kingdom "unsafe")
+            if ((Mode == "survive" || Mode == "master") && GameState.Player != null && (int)Managers.game.gameState == 2 && GameState.Day >= 6 && EconomyStep()) return;
             if ((Mode == "survive" || Mode == "master") && GameState.Player != null && (int)Managers.game.gameState == 2 && WallSchedule()) return;
             if (Mode == "survive" || Mode == "master" || Mode == "feast")
             {

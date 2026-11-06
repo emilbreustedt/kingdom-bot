@@ -863,7 +863,7 @@ namespace KingdomBot
             var payables = UnityEngine.Object.FindObjectsOfType<Payable>();
             // merchant: one payment = a whole shop restocked for free (forum tip: pay him on every visit)
             var merchant = Find(payables, x => x is Merchant && SafeCanPay(x) && Mathf.Abs(x.transform.position.x - home) < 60f, px);
-            if (merchant != null && coins >= merchant.price + 2) { Status = "Economy: pay the merchant (" + merchant.price + ")"; PayAt(merchant); return true; }
+            if (merchant != null && UseMerchant && coins >= merchant.price + 2) { Status = "Economy: pay the merchant (" + merchant.price + ")"; PayAt(merchant); return true; }
             PayableShop scythe = null; int onDisplay = 0;
             foreach (var py in payables) { var sh = py as PayableShop; if (sh == null) continue; onDisplay += sh.GetItemCount(); if (sh.name.Contains("Scythe")) scythe = sh; }
             if (scythe == null) return false;                               // castle level 2+ needed
@@ -885,6 +885,7 @@ namespace KingdomBot
         }
 
         public int KnightArmor = 4;
+        public bool UseMerchant = false;   // 4 coins every other day = ~half of the late-game income; not worth it
         public int KnightTarget = 4;
 
         /// <summary>

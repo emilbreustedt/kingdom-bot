@@ -869,7 +869,10 @@ namespace KingdomBot
             if (archersNow < Mathf.Min(3 * day + 6, armyCap) && hour < k.dayEnd - 5f)
             {
                 int peasants = UnityEngine.Object.FindObjectsOfType<Peasant>().Length, onDisplay = 0; PayableShop bow = null;
-                foreach (var py in payables) { var sh = py as PayableShop; if (sh == null) continue; onDisplay += sh.GetItemCount(); if (sh.name.Contains("Bow")) bow = sh; }
+                PayableShop hammer = null;
+                foreach (var py in payables) { var sh = py as PayableShop; if (sh == null) continue; onDisplay += sh.GetItemCount(); if (sh.name.Contains("Bow")) bow = sh; if (sh.name.Contains("Hammer")) hammer = sh; }
+                int workersNow = UnityEngine.Object.FindObjectsOfType<Worker>().Length;
+                if (peasants > onDisplay && ShieldsWaiting() == 0 && hammer != null && workersNow < (day >= 6 ? 3 : 2) && SafeCanPay(hammer) && armyCoins >= hammer.price) { Status = "Army while saving: buy hammer"; PayAt(hammer); return true; }   // walls need builders
                 if (peasants > onDisplay && ShieldsWaiting() == 0 && bow != null && SafeCanPay(bow) && armyCoins >= bow.price) { Status = "Army while saving: buy bow"; PayAt(bow); return true; }
                 if (peasants < onDisplay + 2 && peasants < 4 && armyCoins >= 3)
                 {

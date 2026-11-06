@@ -208,6 +208,8 @@ namespace KingdomBot
                 if (ready && !night && !danger && AssaultStep(UnityEngine.Object.FindObjectsOfType<Payable>(), d, hr, bud, arch, hm, pxx)) return;
             }
             if (Mode == "master" && GameState.Player != null && (int)Managers.game.gameState == 2 && (EconomyStep() || DefenseStep())) return;
+            // survival: the record strategy hoards coins late (40+); only that surplus goes into stone + outer wall upgrades
+            if (Mode == "survive" && GameState.Player != null && (int)Managers.game.gameState == 2 && GameState.Coins >= 20 && DefenseStep()) return;
             if (Mode == "survive" || Mode == "master" || Mode == "feast")
             {
                 if (_legacy == null) _legacy = new LegacyBrain(_pl);

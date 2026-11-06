@@ -297,7 +297,7 @@ namespace KingdomBot
 
         public bool Idle { get { return _cur == null && _q.Count == 0; } }
         /// <summary>true while creeping onto a payable (game speed is lowered for precision)</summary>
-        public bool Positioning { get { return _cur != null && _cur.StartsWith("payid") && !_started; } }
+        public bool Positioning { get { return _cur != null && ((_cur.StartsWith("payid") && !_started) || _cur.StartsWith("handtap")); } }
         public void Clear() { _q.Clear(); _cur = null; }
         public void Enqueue(string c) { _q.Enqueue(c); }
         public string Describe() { return (_cur ?? "-") + (_q.Count > 0 ? " (+" + _q.Count + ")" : ""); }
@@ -351,7 +351,9 @@ namespace KingdomBot
                     if (!_started)
                     {
                         // only press once the intended payable is selected (selection updates every frame)
-                        if (sel != null && sel.GetInstanceID() == id) { _started = true; _t0 = Time.time; c.Dir = 0; c.Pay = true; }
+                        // press only if the target can really be paid now - pressing on an unpayable target drops a coin
+                        bool payable = false; try { payable = sel != null && sel.CanPay() && GameState.Coins > 0; } catch { }
+                        if (sel != null && sel.GetInstanceID() == id && payable) { _started = true; _t0 = Time.time; c.Dir = 0; c.Pay = true; }
                         else if (Time.time - _t0 > 4f) { Plugin.Log("payid: target not selected (" + (sel != null ? sel.name : "none") + ")"); done = true; }
                         else if (parts.Length > 2)
                         {
@@ -365,9 +367,26 @@ namespace KingdomBot
                         break;
                     }
                     int ps = Acc.PayState(p);
+                    // never release in the "Holding" phase (state 1): releasing there drops a coin on the ground
+                    if (ps == 1 && Time.time - _t0 < 6f) { c.Pay = true; break; }
                     if (sel != null && sel.GetInstanceID() != id && ps != 3) { Plugin.Log("payid: wrong selection " + sel.name); c.Pay = false; done = true; break; }
                     if (sel == null && Time.time - _t0 > 0.6f && ps != 3) { c.Pay = false; done = true; break; }
                     if (ps == 3 || (ps == 0 && Time.time - _t0 > 1f) || Time.time - _t0 > 12f) { c.Pay = false; done = true; }
+                    break;
+                }
+                case "handtap":   // handtap <beggarId>: drop one coin only while standing right over that beggar (coin never touches the ground)
+                {
+                    c.Sprint = false; c.Pay = false;
+                    int bid = int.Parse(parts[1]);
+                    Beggar target = null;
+                    foreach (var b in UnityEngine.Object.FindObjectsOfType<Beggar>()) if (b.GetInstanceID() == bid) { target = b; break; }
+                    if (target == null || Time.time - _t0 > 8f) { c.Dir = 0; done = true; break; }
+                    float dx = target.transform.position.x - px;
+                    if (Mathf.Abs(dx) > 0.2f) { c.Dir = dx > 0 ? 1 : -1; if ((Time.frameCount & 1) == 1) c.Dir = 0; break; }
+                    c.Dir = 0;
+                    if (!_started) { _started = true; _pressFrames = 1; }
+                    c.Pay = _pressFrames-- > 0;
+                    if (_pressFrames < -3) done = true;
                     break;
                 }
                 case "tap":    // drop N coins (short taps)

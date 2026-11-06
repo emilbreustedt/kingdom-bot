@@ -89,8 +89,8 @@ namespace KingdomBot
             }
             else if (Mode == "pacifist")
             {
-                bool fiveOpen = Campaign.Missing(Campaign.FifthDays) && am.counters[5] == 0 && dayC < 5;
-                bool eightOpen = Campaign.Missing(Campaign.EighthDay) && !am.flags[5] && dayC < 7;
+                bool fiveOpen = Campaign.Missing(Campaign.FifthDays) && am.counters[5] == 0 && dayC < 6;
+                bool eightOpen = Campaign.Missing(Campaign.EighthDay) && !am.flags[5] && dayC < 8;
                 if (!fiveOpen && !eightOpen) reason = "pacifist run done (kills=" + am.counters[5] + ", coin on ground=" + am.flags[5] + ")";
             }
             if (reason != null)
@@ -400,55 +400,81 @@ namespace KingdomBot
         // ---------------- pacifist run: FOR_FIVE_DAYS (no kills until day 5) + ON_THE_EIGTH_DAY (no dropped coin until day 7) ----------------
         void ThinkPacifist()
         {
-            // Strategy: never drop a coin, never recruit (no archers = no kills). Defence comes only from the castle:
-            // castle level 2 builds free walls on both sides. Payments into payables are fine (coins never touch the ground).
-            var k = Managers.kingdom;
-            float px = GameState.PX, home = k.campfirePosition;
-            int coins = GameState.Coins;
+            // FOR_FIVE_DAYS: no kill until day counter 5 -> no bows before that (walls + workers only)
+            // ON_THE_EIGTH_DAY: no player coin may touch the ground until day counter 7 -> recruit only by handing the
+            //   coin straight to a beggar (stand right over him), never get hit (coins knocked out of the purse count too)
+            var k = Managers.kingdom; var am = Managers.achievements;
+            float px = GameState.PX, home = k.campfirePosition, hour = GameState.Hour;
+            int coins = GameState.Coins, dayC = am != null ? am.counters[1] : GameState.Day;
+            bool noKillPhase = dayC < 5 && Campaign.Missing(Campaign.FifthDays);
             var payables = UnityEngine.Object.FindObjectsOfType<Payable>();
-            var enemies = UnityEngine.Object.FindObjectsOfType<Enemy>();
-            float nearL = float.MaxValue, nearR = float.MaxValue;
-            foreach (var e in enemies)
-            {
-                if (!IsLiveEnemy(e)) continue;
-                float d = e.transform.position.x - px;
-                if (WallBetween(px, e.transform.position.x)) continue;   // walled off -> harmless
-                if (d < 0) nearL = Mathf.Min(nearL, -d); else nearR = Mathf.Min(nearR, d);
-            }
-            float nearest = Mathf.Min(nearL, nearR);
-            _safeMode = true;
             float l = WallEdge(-1, home), r = WallEdge(1, home);
             bool walled = WallsOnSide(-1, home) > 0 && WallsOnSide(1, home) > 0;
+            bool night = !k.isDaytime || hour >= k.dayEnd - 1.5f;
+            _safeMode = true;
 
-            // 1. danger (no wall in between): dodge, staying inside the walls if there are any
-            if (nearest < 18f)
+            // 1. danger: enemy without a wall in between -> move away (inside the walls if possible)
+            var e = NearestEnemy(px);
+            if (e != null && Mathf.Abs(e.transform.position.x - px) < 14f && !WallBetween(px, e.transform.position.x))
             {
+                float ex = e.transform.position.x;
                 float lo = walled ? l + 1f : PortalLimit(-1), hi = walled ? r - 1f : PortalLimit(1);
-                float target;
-                if (nearL < nearR) target = Mathf.Min(px + Mathf.Min(14f, nearR - 6f), hi);
-                else target = Mathf.Max(px - Mathf.Min(14f, nearL - 6f), lo);
-                if (Mathf.Abs(target - px) < 1.5f) target = nearL < nearR ? hi : lo;
-                Status = "Pacifist: dodge (L " + (nearL < 999 ? nearL.ToString("0") : "-") + " / R " + (nearR < 999 ? nearR.ToString("0") : "-") + ")";
-                Push("goto " + F(target) + " 1 2"); return;
+                float target = Mathf.Clamp(px + (px > ex ? 12f : -12f), lo, hi);
+                Status = "Pacifist: dodge"; Push("goto " + F(target) + " 1 2"); return;
             }
-            // 2. campfire, castle upgrades (= free walls at level 2), daily chest
+            // 2. night: stay by the fire behind the walls
+            if (night) { Status = "Pacifist: night at the fire"; if (Mathf.Abs(px - home) > 2f) Push("goto " + F(home) + " 1 6"); else Push("wait 1"); return; }
+
+            // 3. fire, coins/chests (not dropped by us)
             var fire = Find(payables, x => x is PayableUpgrade && x.name.StartsWith("Castle0") && SafeCanPay(x));
             if (fire != null && coins >= fire.price) { Status = "Pacifist: light fire"; PayAt(fire); return; }
-            var castle = Find(payables, x => x is PayableUpgrade && x.name.StartsWith("Castle") && !x.name.StartsWith("Castle0") && SafeCanPay(x));
-            if (castle != null && coins >= castle.price) { Status = "Pacifist: castle " + castle.name.Replace("(Clone)", ""); PayAt(castle); return; }
-            if (k.isDaytime)
+            foreach (var ch in UnityEngine.Object.FindObjectsOfType<Chest>())
             {
-                foreach (var ch in UnityEngine.Object.FindObjectsOfType<Chest>())
-                {
-                    float cx = ch.transform.position.x;
-                    if (!ch.isEmpty && !OnCooldown(ch.GetInstanceID()) && Mathf.Abs(cx - home) < 40f) { Cool(ch.GetInstanceID(), 120f); Status = "Pacifist: chest"; Push("goto " + F(cx) + " 0.3 10"); Push("wait 1"); return; }
-                }
-                var c = NearestCoin(px, home - 35f, home + 35f);
-                if (c != null && !c.droppedByPlayer) { Cool(c.GetInstanceID(), 1e7f); Status = "Pacifist: coin"; Push("walkto " + F(c.transform.position.x) + " 0.3 10"); return; }
+                float cx = ch.transform.position.x;
+                if (!ch.isEmpty && !OnCooldown(ch.GetInstanceID()) && Mathf.Abs(cx - home) < 40f) { Cool(ch.GetInstanceID(), 120f); Status = "Pacifist: chest"; Push("goto " + F(cx) + " 0.3 10"); Push("wait 1"); return; }
             }
-            // 3. otherwise wait at the castle
-            Status = "Pacifist: waiting at the castle (day " + GameState.Day + (walled ? ", walled" : "") + ")";
-            if (Mathf.Abs(px - home) > 2f) Push("walkto " + F(home + 0.5f) + " 1 6"); else Push("wait 1");
+            var coin = NearestCoin(px, home - 40f, home + 40f);
+            if (coin != null && !coin.droppedByPlayer) { Cool(coin.GetInstanceID(), 1e7f); Status = "Pacifist: coin"; Push("walkto " + F(coin.transform.position.x) + " 0.3 10"); return; }
+
+            int peasants = UnityEngine.Object.FindObjectsOfType<Peasant>().Length;
+            int workers = UnityEngine.Object.FindObjectsOfType<Worker>().Length, archers = UnityEngine.Object.FindObjectsOfType<Archer>().Length;
+            int onDisplay = 0; PayableShop bow = null, hammer = null;
+            foreach (var py in payables) { var sh = py as PayableShop; if (sh == null) continue; onDisplay += sh.GetItemCount(); if (sh.name.Contains("Bow")) bow = sh; else if (sh.name.Contains("Hammer")) hammer = sh; }
+
+            // 4. tools: hammers (walls) - bows only after the no-kill phase
+            if (peasants > onDisplay)
+            {
+                PayableShop shop = (workers < 3 || noKillPhase) ? hammer : bow;
+                if (shop != null && SafeCanPay(shop) && coins >= shop.price) { Status = "Pacifist: buy " + (shop == hammer ? "hammer" : "bow"); PayAt(shop); return; }
+            }
+            // 5. castle upgrades (bigger daily chest = the only income without archers), walls x2 per side, upgrades
+            var castleUp = Find(payables, x => x is PayableUpgrade && x.name.StartsWith("Castle") && !x.name.StartsWith("Castle0") && SafeCanPay(x));
+            if (castleUp != null && walled && coins >= castleUp.price + 1) { Status = "Pacifist: castle " + castleUp.name.Replace("(Clone)", ""); PayAt(castleUp); return; }
+            if (workers > 0)
+            {
+                for (int need = 1; need <= 2; need++)
+                for (int side = -1; side <= 1; side += 2)
+                {
+                    if (WallsOnSide(side, home) >= need) continue;
+                    var w = WallSpotOnSide(payables, home, side);
+                    if (w != null && coins >= w.price) { Status = "Pacifist: wall " + (side < 0 ? "left" : "right"); PayAt(w); return; }
+                }
+                var up = Find(payables, x => x is PayableUpgrade && IsBuiltWall(x) && SafeCanPay(x) && x.price <= coins - 2, home);
+                if (up != null) { Status = "Pacifist: upgrade wall"; PayAt(up); return; }
+            }
+            // 6. recruit by hand-over (never let the coin touch the ground)
+            if (coins >= 2 && peasants + workers + archers < (noKillPhase ? 3 : 12) && hour < k.dayEnd - 5f)
+            {
+                var b = NearestBeggar(px, home - 70f, home + 70f);
+                if (b != null)
+                {
+                    Cool(b.GetInstanceID(), 10f); _lastTap = Time.time;
+                    Status = "Pacifist: hand coin to beggar";
+                    Push("walkto " + F(b.transform.position.x) + " 0.3 25"); Push("handtap " + b.GetInstanceID()); Push("wait 2"); return;
+                }
+            }
+            Status = "Pacifist: waiting (day counter " + dayC + ", kills " + (am != null ? am.counters[5] : -1) + ", dropped " + (am != null && am.flags[5]) + ")";
+            if (Mathf.Abs(px - home) > 3f) Push("walkto " + F(home) + " 1 6"); else Push("wait 1");
         }
 
         // ---------------- army1: ON_THE_FIRST_DAY (8 archers before the first dawn) ----------------

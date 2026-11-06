@@ -1045,8 +1045,15 @@ namespace KingdomBot
         static int ShieldsWaiting()
         {
             int n = 0;
+            var shops = UnityEngine.Object.FindObjectsOfType<PayableShield>();
             foreach (var ds in UnityEngine.Object.FindObjectsOfType<DroppableShield>())
-                if (ds != null && ds.GetComponentInParent<Character>() == null) n++;
+            {
+                if (ds == null || ds.GetComponentInParent<Character>() != null) continue;
+                // only shields at a shield shop count: one dropped by a dead knight far outside blocked bow purchases forever
+                bool atShop = false;
+                foreach (var sh in shops) if (Mathf.Abs(sh.transform.position.x - ds.transform.position.x) < 10f) atShop = true;
+                if (atShop) n++;
+            }
             return n;
         }
 

@@ -1056,7 +1056,7 @@ namespace KingdomBot
             }
             return alive == 0;
         }
-        int _bossNightDay = -10;
+        int _bossNightDay = -10, _chargeDiagDay = -1;
 
         /// <summary>No live enemy outside the walls within 60 units of either wall (a charge would run into it).</summary>
         static bool FieldClear(float home, int side)
@@ -1332,6 +1332,14 @@ namespace KingdomBot
             foreach (var kn in knights) { try { if ((bool)Acc.Call(kn, "CanCharge")) armed = true; } catch { } }
             // charge: pay the border banner while knights with archers are ready (and armed)
             bool recovery = _bossNightDay == day - 1;
+            if (morning && hour >= 7f && knights.Length > 0 && _chargeDiagDay != day)
+            {
+                _chargeDiagDay = day;
+                var bl = new System.Text.StringBuilder();
+                foreach (var bo in UnityEngine.Object.FindObjectsOfType<PayableBorder>()) bl.Append(" " + bo.transform.position.x.ToString("0") + (SafeCanPay(bo) ? "" : "!"));
+                Plugin.Log("CHARGE CHECK d" + day + " h" + hour.ToString("0.0") + ": knights " + knights.Length + " armed(CanCharge)=" + armed + " archers " + archers + "/" + MinChargeArchers
+                    + " recovery=" + recovery + " clearL=" + FieldClear(home, -1) + " clearR=" + FieldClear(home, 1) + " budget " + budget + " banners" + bl);
+            }
             if (morning && hour >= 7f && armed && archers >= MinChargeArchers && (recovery || FieldClear(home, -1) || FieldClear(home, 1)))
             {
                 // banner on the side of the nearest intact inner portal (each charge goes to that side's portal)

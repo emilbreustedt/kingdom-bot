@@ -936,7 +936,7 @@ namespace KingdomBot
             else { Push("walkto " + F(b.transform.position.x) + " 0.8 25"); Push("tap 1"); Push("wait 2.5"); }
         }
         public int AssaultArmyCap = 25;
-        public int MasterRunEndDay = 60;   // TEMP: after day 40 the final wave / Won flag is studied with test coins (nothing can be earned then)
+        public int MasterRunEndDay = 40;   // after day 40 no "Safe in X" is reachable (runs with all portals destroyed continue)
         public int MinChargeArchers = 16;
         public float ForwardGap = 90f;     // outer wall -> nearest intact portal distance that triggers a forward wall
 

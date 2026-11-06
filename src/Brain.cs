@@ -1177,7 +1177,6 @@ namespace KingdomBot
                     float pd = Mathf.Abs(po.transform.position.x - home);
                     int ps = po.transform.position.x < home ? -1 : 1;
                     if (!FieldClear(home, ps)) continue;             // enemies (e.g. boulder throwers) in front of that wall: other side
-                    if (Acc.Get<bool>(po, "_opened")) continue;      // an open portal destroyed while spawning never crumbles (PortalsDestroyed stays unset)
                     if (pd < bestPd) { bestPd = pd; pside = ps; }
                 }
                 if (pside == 0) return false;

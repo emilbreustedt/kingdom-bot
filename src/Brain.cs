@@ -1100,7 +1100,7 @@ namespace KingdomBot
             if (UnityEngine.Object.FindObjectsOfType<Worker>().Length >= 2)
             {
                 var ws = Find(payables, x => x is PayableWorkshop && SafeCanPay(x), home);
-                if (ws != null && budget >= ws.price + 3) { Status = "Buy catapult (" + ws.price + ")"; PayAt(ws); return true; }
+                if (ws != null && budget - AssaultReserve(true) >= ws.price + 3) { Status = "Buy catapult (" + ws.price + ")"; PayAt(ws); return true; }
             }
             if (finalWave || !assault) return false;   // survive mode / all inner portals gone: only defend
             // arm the knights: coins in a knight's purse are knocked out before he loses his shield

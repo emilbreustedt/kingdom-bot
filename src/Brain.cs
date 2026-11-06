@@ -1123,8 +1123,10 @@ namespace KingdomBot
             var knights = UnityEngine.Object.FindObjectsOfType<Knight>();
             // ready to charge: at least 2 knights, each with a coin of armour (waiting for 4 fully armed knights took
             // until the next boss night, which killed them before any charge)
-            bool armed = knights.Length >= 2;
-            foreach (var kn in knights) { int kc = 0; try { kc = Acc.Wallet(kn).coins; } catch { } if (kc < 1) armed = false; }
+            // charge every morning as soon as a knight is ready (the game's own CanCharge: escort archers assembled).
+            // Coins in the purse are a bonus, not a requirement - after a charge they are gone and refilling rarely works.
+            bool armed = false;
+            foreach (var kn in knights) { try { if ((bool)Acc.Call(kn, "CanCharge")) armed = true; } catch { } }
             // charge: pay the border banner while knights with archers are ready (and armed)
             if (morning && armed)
             {

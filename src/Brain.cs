@@ -937,6 +937,7 @@ namespace KingdomBot
         public int AssaultArmyCap = 25;
         public int MasterRunEndDay = 60;   // TEMP: after day 40 the final wave / Won flag is studied with test coins (nothing can be earned then)
         public int MinChargeArchers = 16;
+        public float ForwardGap = 90f;     // outer wall -> nearest intact portal distance that triggers a forward wall
 
         /// <summary>The game's PortalsDestroyed flag (all inner portals gone): the run continues to the final wave / win.</summary>
         static bool PortalsAllDestroyed()
@@ -1151,6 +1152,39 @@ namespace KingdomBot
                 }
             }
 
+            // forward launch point (forum tip): knights die on the long way to far portals -> move the outer wall (and
+            // with it the banner) towards the nearest intact portal on a side once the gap is large
+            if (assault && !finalWave && UnityEngine.Object.FindObjectsOfType<Knight>().Length >= 1 && hour >= 7f && hour < k.dayEnd - 8f)
+            {
+                for (int side = -1; side <= 1; side += 2)
+                {
+                    float portalRel = float.MaxValue;
+                    foreach (var po in UnityEngine.Object.FindObjectsOfType<Portal>())
+                    {
+                        var dm = po.GetComponent<Damageable>();
+                        if (po.outerSpawner || (dm != null && dm.hitPoints <= 0)) continue;
+                        float r = (po.transform.position.x - home) * side;
+                        if (r > 0 && r < portalRel) portalRel = r;
+                    }
+                    float outerRel = (WallEdge(side, home) - home) * side;
+                    if (portalRel == float.MaxValue || portalRel - outerRel < ForwardGap) continue;
+                    Payable spot = null, tree = null; float sd = float.MaxValue, td = float.MaxValue;
+                    foreach (var p in payables)
+                    {
+                        if (OnCooldown(p.GetInstanceID()) || !SafeCanPay(p)) continue;
+                        float r = (p.transform.position.x - home) * side;
+                        if (r <= outerRel + 8f || r >= portalRel - 60f) continue;
+                        if (p is PayableUpgrade && p.name.StartsWith("Wall") && !IsBuiltWall(p) && r < sd) { sd = r; spot = p; }
+                        else if (p.name.StartsWith("Tree") && r < td) { td = r; tree = p; }
+                    }
+                    var pick = spot ?? tree;
+                    if (pick != null && budget - AssaultReserve(false) >= pick.price + 2)
+                    {
+                        Status = "Forward wall " + (side < 0 ? "left" : "right") + (spot != null ? "" : ": cut tree") + " (portal gap " + (portalRel - outerRel).ToString("0") + ")";
+                        Cool(pick.GetInstanceID(), 90f); PayAt(pick); return true;
+                    }
+                }
+            }
             if (assault && !finalWave && AssaultSaving(payables, day, hour, home, px)) return true;
             // catapults (workshop, castle level 3+): defensive artillery at the border, pushed there by workers
             if (UnityEngine.Object.FindObjectsOfType<Worker>().Length >= 2)

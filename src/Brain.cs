@@ -921,7 +921,7 @@ namespace KingdomBot
         }
         public int AssaultArmyCap = 25;
         public int MasterRunEndDay = 60;   // TEMP diagnostics: watch knights vs portals after day 40 (normal: 40)
-        public int BurstCoins = 45;   // castle 4 (8) + castle 5 (9) + 2 shields (12) + recruits (2) + banner (4) + purse (3) + slack
+        public int BurstCoins = 38;   // castle 4 (8) + castle 5 (9) + 2 shields (12) + banner (4) + purse (3) + 2; late-game income ~= upkeep, the bank plateaus ~40
 
         /// <summary>Coins the record strategy must leave alone while the assault saves for castle 4/5 and shields.</summary>
         public static int ShieldsWaitingPublic() { return ShieldsWaiting(); }

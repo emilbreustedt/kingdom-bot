@@ -1130,6 +1130,7 @@ namespace KingdomBot
                     bool bannerHere = false;   // the banner already stands on this side (e.g. outer wall is a wreck) -> nothing to do
                     foreach (var bo in UnityEngine.Object.FindObjectsOfType<PayableBorder>()) if ((bo.transform.position.x - home) * side > 0) bannerHere = true;
                     if (bannerHere) continue;
+                    if (!FieldClear(home, side)) continue;   // no wall work out front while enemies are about
                     Payable best = null; float bd = float.MaxValue;
                     foreach (var p in payables)
                     {

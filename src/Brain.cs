@@ -938,7 +938,7 @@ namespace KingdomBot
         public int AssaultArmyCap = 25;
         public int MasterRunEndDay = 40;   // after day 40 no "Safe in X" is reachable (runs with all portals destroyed continue)
         public int MinChargeArchers = 16;
-        public float ForwardGap = 90f;     // outer wall -> nearest intact portal distance that triggers a forward wall
+        public float ForwardGap = 9999f;   // forward walls towards living portals made runs worse (archers spread thin, coins spent); only used for dead, uncrumbled portals
 
         /// <summary>The game's PortalsDestroyed flag (all inner portals gone): the run continues to the final wave / win.</summary>
         static bool PortalsAllDestroyed()

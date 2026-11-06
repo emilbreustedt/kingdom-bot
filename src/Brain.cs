@@ -934,7 +934,7 @@ namespace KingdomBot
             else { Push("walkto " + F(b.transform.position.x) + " 0.8 25"); Push("tap 1"); Push("wait 2.5"); }
         }
         public int AssaultArmyCap = 25;
-        public int MasterRunEndDay = 40;
+        public int MasterRunEndDay = 60;   // TEMP: after day 40 the final wave / Won flag is studied with test coins (nothing can be earned then)
         public int MinChargeArchers = 16;
 
         /// <summary>The game's PortalsDestroyed flag (all inner portals gone): the run continues to the final wave / win.</summary>

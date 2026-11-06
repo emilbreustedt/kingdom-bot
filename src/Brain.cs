@@ -578,6 +578,7 @@ namespace KingdomBot
 
         // ---------------- army1: ON_THE_FIRST_DAY (8 archers before the first dawn) ----------------
         int _rerolls; bool _mapChecked;
+        public float Army1Range = 130f;   // guide: run to the camps on both sides (four camps incl. the town centre) and loot chests on the way
         void ThinkArmy1(bool feast)
         {
             var k = Managers.kingdom; var am = Managers.achievements;
@@ -588,8 +589,8 @@ namespace KingdomBot
             if (!_mapChecked && !feast)
             {
                 int avail = coins;
-                foreach (var c in UnityEngine.Object.FindObjectsOfType<Coin>()) if (!c.pickedUp && Mathf.Abs(c.transform.position.x - home) < 70f) avail++;
-                foreach (var ch in UnityEngine.Object.FindObjectsOfType<Chest>()) if (!ch.isEmpty && Mathf.Abs(ch.transform.position.x - home) < 70f) avail += ch.coins;
+                foreach (var c in UnityEngine.Object.FindObjectsOfType<Coin>()) if (!c.pickedUp && Mathf.Abs(c.transform.position.x - home) < Army1Range) avail++;
+                foreach (var ch in UnityEngine.Object.FindObjectsOfType<Chest>()) if (!ch.isEmpty && Mathf.Abs(ch.transform.position.x - home) < Army1Range) avail += ch.coins;
                 _mapChecked = true;
                 Plugin.Log("army1: coins reachable on this map = " + avail + " (reroll " + _rerolls + ")");
                 if (avail < 24 && _rerolls < 10 && NormalizeRunType(ConfigMode) == "auto")
@@ -611,9 +612,9 @@ namespace KingdomBot
             foreach (var ch in UnityEngine.Object.FindObjectsOfType<Chest>())
             {
                 float cx = ch.transform.position.x;
-                if (!ch.isEmpty && !OnCooldown(ch.GetInstanceID()) && Mathf.Abs(cx - home) < 70f) { Cool(ch.GetInstanceID(), 60f); Status = "army1: chest (" + ch.coins + ")"; Push("goto " + F(cx) + " 0.3 30"); Push("wait 1"); return; }
+                if (!ch.isEmpty && !OnCooldown(ch.GetInstanceID()) && Mathf.Abs(cx - home) < Army1Range) { Cool(ch.GetInstanceID(), 60f); Status = "army1: chest (" + ch.coins + ")"; Push("goto " + F(cx) + " 0.3 " + F(10f + Mathf.Abs(cx - px) * 0.6f)); Push("wait 1"); return; }
             }
-            var coin = NearestCoin(px, home - 70f, home + 70f);
+            var coin = NearestCoin(px, home - Army1Range, home + Army1Range);
             if (coin != null && !(coin.droppedByPlayer && Time.time - _lastTap < 15f)) { Cool(coin.GetInstanceID(), 1e7f); Status = "army1: coin"; Push("goto " + F(coin.transform.position.x) + " 0.3 20"); return; }
             // 4. fire (opens the bow shop)
             var fire = Find(payables, x => x is PayableUpgrade && x.name.StartsWith("Castle0") && SafeCanPay(x));
@@ -627,9 +628,10 @@ namespace KingdomBot
             int target = feast ? 15 : 8;
             if (archersMade + peasants + onDisplay < target && coins >= 3)
             {
-                var b = NearestBeggar(px, home - 100f, home + 100f);
-                if (b != null) { Cool(b.GetInstanceID(), 8f); _lastTap = Time.time; Status = "army1: recruit (" + archersMade + "/8)"; Push("goto " + F(b.transform.position.x) + " 0.8 25"); Push("tap 1"); Push("wait 2"); return; }
+                var b = NearestBeggar(px, home - Army1Range, home + Army1Range);
+                if (b != null) { Cool(b.GetInstanceID(), 8f); _lastTap = Time.time; Status = "army1: recruit (" + archersMade + "/8)"; Push("goto " + F(b.transform.position.x) + " 0.8 " + F(10f + Mathf.Abs(b.transform.position.x - px) * 0.6f)); Push("tap 1"); Push("wait 2"); return; }
             }
+            if (feast && FeastStep()) return;   // guide: herd deer towards the archers, 10th deer exactly on day 4
             Status = (feast ? "Feast: waiting (deer " + (am != null ? am.counters[4] : -1) + ", " : "army1: waiting (") + archersMade + " archers, " + coins + " coins)";
             if (Mathf.Abs(px - home) > 3f) Push("walkto " + F(home) + " 1 6"); else Push("wait 1");
         }

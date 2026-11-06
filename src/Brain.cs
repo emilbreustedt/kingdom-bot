@@ -1241,7 +1241,7 @@ namespace KingdomBot
             }
             // statues (guide): archer statue buffs all archers, worker statue buffs the walls; a charge lasts some days,
             // 5-6 coins per level. Archer statue before charges, worker statue for the final assault phase.
-            if (assault && morning && hour >= 7f && archers >= 10 && !_armyFirst)
+            if (assault && morning && hour >= 7f && archers >= MinChargeArchers && !_armyFirst && (UnityEngine.Object.FindObjectsOfType<Knight>().Length > 0 || day >= 18))
             {
                 bool lateGame = day >= 18 || (am != null && am.flags != null && am.flags[7]);
                 foreach (var su in UnityEngine.Object.FindObjectsOfType<Statue>())
@@ -1249,7 +1249,7 @@ namespace KingdomBot
                     bool archerStatue = su.name.Contains("Archer");
                     if (!archerStatue && !lateGame) continue;
                     if (!SafeCanPay(su) || OnCooldown(su.GetInstanceID()) || Mathf.Abs(su.transform.position.x - home) > 200f) continue;
-                    if (budget - AssaultReserve(false) < su.price + 4) continue;
+                    if (budget - AssaultReserve(false) < su.price + 8) continue;
                     Cool(su.GetInstanceID(), 60f);
                     Status = "Statue: charge " + su.name.Replace("(Clone)", "") + " (" + su.price + ")";
                     Push("goto " + F(PayX(su)) + " 0.3 120"); Push("payid " + su.GetInstanceID() + " " + F(PayX(su))); Push("goto " + F(home) + " 1 40");

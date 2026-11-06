@@ -1084,9 +1084,6 @@ namespace KingdomBot
                 if (ws != null && budget >= ws.price + 3) { Status = "Buy catapult (" + ws.price + ")"; PayAt(ws); return true; }
             }
             if (finalWave || !assault) return false;   // survive mode / all inner portals gone: only defend
-            // shields -> knights
-            var shield = Find(payables, x => x is PayableShield && SafeCanPay(x), home);
-            if (shield != null && UnityEngine.Object.FindObjectsOfType<Knight>().Length + ShieldsWaiting() < KnightTarget && budget >= shield.price + 3) { Status = "Assault: buy shield (" + shield.price + ")"; PayAt(shield); return true; }
             // arm the knights: coins in a knight's purse are knocked out before he loses his shield
             var knights = UnityEngine.Object.FindObjectsOfType<Knight>();
             Knight poor = null; int poorCoins = 99;
@@ -1095,7 +1092,7 @@ namespace KingdomBot
                 int kc = 0; try { kc = Acc.Wallet(kn).coins; } catch { }
                 if (kc < KnightArmor && kc < poorCoins && !OnCooldown(kn.GetInstanceID())) { poorCoins = kc; poor = kn; }
             }
-            if (poor != null && budget >= 3 && k.isDaytime)
+            if (poor != null && k.isDaytime && (poorCoins < 1 ? budget >= 2 : budget >= 4 + 3))   // keep the banner price once every knight has a coin
             {
                 Cool(poor.GetInstanceID(), 6f);
                 Status = "Assault: arm knight (" + poorCoins + "/" + KnightArmor + " coins)";
@@ -1111,6 +1108,9 @@ namespace KingdomBot
                 var border = Find(payables, x => x is PayableBorder && SafeCanPay(x), px);
                 if (border != null && budget >= border.price) { Status = "Assault: knights CHARGE (" + border.name.Replace("(Clone)", "") + ")"; Cool(border.GetInstanceID(), 60f); PayAt(border); return true; }
             }
+            // shields -> knights
+            var shield = Find(payables, x => x is PayableShield && SafeCanPay(x), home);
+            if (shield != null && UnityEngine.Object.FindObjectsOfType<Knight>().Length + ShieldsWaiting() < KnightTarget && budget >= shield.price + 3) { Status = "Assault: buy shield (" + shield.price + ")"; PayAt(shield); return true; }
             return false;
         }
 

@@ -180,6 +180,11 @@ namespace KingdomBot
                 }
                 foreach (var b in UnityEngine.Object.FindObjectsOfType<PayableBorder>())
                     Log("BORDER x" + b.transform.position.x.ToString("0.0") + " canPay=" + b.CanPay() + " range=" + b.knightRange);
+                foreach (var po in UnityEngine.Object.FindObjectsOfType<Portal>())
+                {
+                    var d = po.GetComponent<Damageable>();
+                    Log("PORTAL x" + po.transform.position.x.ToString("0") + " outer=" + po.outerSpawner + " hp=" + (d != null ? d.hitPoints + "/" + d.initialHitPoints + " useHp=" + d.useHitPoints + " damagedBy=" + d.damagedBy + " invulnerable=" + d.invulnerable : "no damageable") + " defenseRange=" + po.defenseTriggerRange);
+                }
                 foreach (var fh in UnityEngine.Object.FindObjectsOfType<Farmhouse>())
                     Log("FARMHOUSE x" + fh.transform.position.x.ToString("0.0") + " level=" + fh.level + " name=" + fh.name);
                 var sbp = new System.Text.StringBuilder("PAYABLE LIST (campfire x" + Managers.kingdom.campfirePosition.ToString("0") + "):");
@@ -291,6 +296,21 @@ namespace KingdomBot
                 var k = Managers.kingdom;
                 Plugin.Log(string.Format("ARCHER HIT by {0} at x{1:0} (h{2:0.0}, day {3}, {4})", damager != null ? damager.name.Replace("(Clone)", "") : "?",
                     __instance.transform.position.x, GameState.Hour, GameState.Day, k != null && k.isDaytime ? "day" : "night"));
+            }
+            catch { }
+        }
+    }
+
+    /// <summary>Diagnostics: every hit on a portal (who hits, damage, hp left).</summary>
+    [HarmonyPatch(typeof(Damageable), "ReceiveDamage")]
+    static class Patch_PortalHit
+    {
+        static void Postfix(Damageable __instance, int __0, UnityEngine.GameObject __1, DamageSource __2)
+        {
+            try
+            {
+                if (__instance == null || __instance.GetComponentInParent<Portal>() == null) return;
+                Plugin.Log("PORTAL HIT x" + __instance.transform.position.x.ToString("0") + " dmg=" + __0 + " by " + (__1 != null ? __1.name : "?") + " src=" + __2 + " hp=" + __instance.hitPoints);
             }
             catch { }
         }

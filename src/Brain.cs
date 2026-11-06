@@ -540,8 +540,18 @@ namespace KingdomBot
                 if (d < 0) left = Mathf.Min(left, -d); else right = Mathf.Min(right, d);
             }
             foreach (var bc in UnityEngine.Object.FindObjectsOfType<BeggarCamp>()) if (Mathf.Abs(bc.transform.position.x - home) < 90f) camps++;
-            bool good = left >= MinPortalDistance && right >= MinPortalDistance && camps >= 3;
-            Plugin.Log(string.Format("main map check: nearest portals L {0:0} / R {1:0}, camps within 90: {2} -> {3} (reroll {4})", left, right, camps, good ? "keep" : "reroll", _mainRerolls));
+            // stone tech (mason shrine) is needed for castle level 5 = knights: the shrine must be reachable, i.e. closer
+            // than the nearest inner portal on its side (with a margin) and not too far
+            float shrineD = 1e6f; bool shrineOk = false;
+            foreach (var p in UnityEngine.Object.FindObjectsOfType<Payable>())
+            {
+                if (!p.name.StartsWith("Mason")) continue;
+                float d = p.transform.position.x - home;
+                float portalD = d < 0 ? left : right;
+                if (Mathf.Abs(d) < shrineD) { shrineD = Mathf.Abs(d); shrineOk = Mathf.Abs(d) <= 130f && Mathf.Abs(d) < portalD - 25f; }
+            }
+            bool good = left >= MinPortalDistance && right >= MinPortalDistance && camps >= 3 && shrineOk;
+            Plugin.Log(string.Format("main map check: nearest portals L {0:0} / R {1:0}, camps within 90: {2}, mason shrine {3:0} ({4}) -> {5} (reroll {6})", left, right, camps, shrineD, shrineOk ? "ok" : "unreachable", good ? "keep" : "reroll", _mainRerolls));
             if (good || _mainRerolls >= 30) { _mainRerolls = 0; return false; }
             _mainRerolls++; _lastDaySeen = -1; _pl.Queue.Clear();
             Acc.Call(Managers.game, "Restart");

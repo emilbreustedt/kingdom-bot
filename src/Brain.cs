@@ -854,6 +854,9 @@ namespace KingdomBot
         public bool ShouldInterrupt()
         {
             if (_safeMode || Mode == "pacifist") return false;
+            // phases driven by the record strategy: use its own guard (it knows its flight/retreat moves)
+            if ((Mode == "survive" || Mode == "master" || Mode == "feast") && _legacy != null && !Status.StartsWith("Assault") && !Status.StartsWith("Economy") && !Status.StartsWith("Defence"))
+                return _legacy.ShouldInterrupt();
             var p = GameState.Player; var k = Managers.kingdom; var g = Managers.game;
             if (p == null || k == null || g == null || (int)g.gameState != 2) return false;
             float px = GameState.PX, home = k.campfirePosition, hour = GameState.Hour; int day = GameState.Day;

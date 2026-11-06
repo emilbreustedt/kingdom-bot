@@ -546,6 +546,7 @@ namespace KingdomBot
         public float MinPortalDistance = 100f;
         bool MainMapCheck()
         {
+            _farmWallTrees = 0;   // new run
             if (_mainMapChecked || NormalizeRunType(ConfigMode) == "main" && false) return false;
             _mainMapChecked = true;
             var k = Managers.kingdom; float home = k.campfirePosition;
@@ -780,7 +781,8 @@ namespace KingdomBot
             // 0. farms = the only income that scales; they come first from day 6
             if (UseFarms && day >= 6) { var farm = FarmTarget(payables, home); if (farm != null) { item = farm; what = farm.name.StartsWith("Tree") ? "farmland (cut tree)" : "farm"; } }
             // 0b. a farm outside the walls loses its farmers every night: next wall goes up beyond the farm
-            if (UseFarms && item == null) { var fw = FarmWall(payables, home); if (fw != null) { item = fw; what = (fw.name.StartsWith("Tree") ? "farm wall (cut tree" : "wall beyond the farm (") + " @" + F(fw.transform.position.x) + " edges " + F(WallEdge(-1, home)) + "/" + F(WallEdge(1, home)) + ")"; } }
+            if (UseFarms && item == null) { var fw = FarmWall(payables, home); if (fw != null && fw.name.StartsWith("Tree") && coins >= fw.price + 4) _farmWallTrees++;
+            if (fw != null) { item = fw; what = (fw.name.StartsWith("Tree") ? "farm wall (cut tree" : "wall beyond the farm (") + " @" + F(fw.transform.position.x) + " edges " + F(WallEdge(-1, home)) + "/" + F(WallEdge(1, home)) + ")"; } }
             // 1. stone tech first (wall levels 3+ need it)
             if (item == null && Managers.techUpgrades != null && !Managers.techUpgrades.stoneBuilding)
             {
@@ -921,7 +923,7 @@ namespace KingdomBot
             }
             int farmers = UnityEngine.Object.FindObjectsOfType<Farmer>().Length;
             int peasants = UnityEngine.Object.FindObjectsOfType<Peasant>().Length;
-            if (farmers < Mathf.Min(FarmerTarget, 4 * farmsBuilt) && !FarmsExposed(home) && peasants > onDisplay && SafeCanPay(scythe) && coins >= scythe.price + 1)
+            if (farmers < Mathf.Min(FarmerTarget, 4 * farmsBuilt) && (!FarmsExposed(home) || _farmWallTrees >= FarmWallTreeCap) && peasants > onDisplay && SafeCanPay(scythe) && coins >= scythe.price + 1)
             { Status = "Economy: buy scythe (farmers " + farmers + ")"; PayAt(scythe); return true; }
             return false;
         }
@@ -932,7 +934,9 @@ namespace KingdomBot
         // at ~12 archers by day 30 instead of 25-30. Off by default.
         public bool UseFarms = true;      // guides: 1 farm + 4 farmers after day 5 is the basis of a fast win
         public bool FarmClearTrees = true;   // only a few trees (<= 4) for a spot right in front of the walls
-        public int FarmerTarget = 4;   // 4 coins every other day = ~half of the late-game income; not worth it
+        public int FarmerTarget = 4;
+        public int FarmWallTreeCap = 6;
+        int _farmWallTrees;   // 4 coins every other day = ~half of the late-game income; not worth it
         public int KnightTarget = 3;   // 3 knights destroy portals reliably; every shield (6) is a banner payment less at castle 5 (~1 coin/day)
 
         /// <summary>Recruit a beggar: hand-over (coin never touches the ground) only in the challenge run (Eighth Day);
@@ -1500,7 +1504,9 @@ namespace KingdomBot
                     if (rel < bd) { bd = rel; best = p; }
                 }
                 if (best != null) return best;
-                // wall spots beyond the farm are still in the forest: cut the nearest tree beyond the farm
+                // wall spots beyond the farm are still in the forest: cut the nearest tree beyond the farm (capped -
+                // on some maps the spot never becomes buildable and the clearing ate the army money)
+                if (_farmWallTrees >= FarmWallTreeCap) continue;
                 foreach (var p in payables)
                 {
                     if (!p.name.StartsWith("Tree") || OnCooldown(p.GetInstanceID()) || !SafeCanPay(p)) continue;

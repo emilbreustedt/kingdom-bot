@@ -164,7 +164,20 @@ namespace KingdomBot
             CheckRunEnd();
             if (Mode == "pacifist") { ThinkPacifist(); return; }
             if (Mode == "army1") { ThinkArmy1(); return; }
-            if (Mode == "survive")
+            if (Mode == "master" && GameState.Player != null && (int)Managers.game.gameState == 2)
+            {
+                // master = record-run defence (LegacyBrain) + portal assault steps on top
+                var kk = Managers.kingdom;
+                int d = GameState.Day; float hr = GameState.Hour, pxx = GameState.PX, hm = kk.campfirePosition;
+                int bud = GameState.Coins - ((d >= 1 && hr >= kk.dayEnd - 8f) ? 4 : 0);
+                int arch = UnityEngine.Object.FindObjectsOfType<Archer>().Length;
+                bool night = hr >= kk.dayEnd - 1.5f || !kk.isDaytime;
+                var en = NearestEnemy(pxx);
+                bool danger = en != null && Mathf.Abs(en.transform.position.x - pxx) < 12f && !WallBetween(pxx, en.transform.position.x);
+                _armyFirst = false;
+                if (!night && !danger && AssaultStep(UnityEngine.Object.FindObjectsOfType<Payable>(), d, hr, bud, arch, hm, pxx)) return;
+            }
+            if (Mode == "survive" || Mode == "master")
             {
                 if (_legacy == null) _legacy = new LegacyBrain(_pl);
                 _legacy.ThinkInner();

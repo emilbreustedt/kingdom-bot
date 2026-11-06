@@ -24,8 +24,29 @@ namespace KingdomBot
         /// <summary>failed runs per special mode in this session; after MaxFailures auto moves on</summary>
         public static readonly Dictionary<string, int> Failures = new Dictionary<string, int>();
         public const int MaxFailures = 3;
-        public static void Fail(string mode) { int n; Failures.TryGetValue(mode, out n); Failures[mode] = n + 1; }
-        static bool Allowed(string mode) { int n; return !Failures.TryGetValue(mode, out n) || n < MaxFailures; }
+        static string FailFile { get { return System.IO.Path.Combine(Plugin.Dir, "failures.txt"); } }
+        static bool _loaded;
+        static void LoadFailures()
+        {
+            if (_loaded) return; _loaded = true;
+            try
+            {
+                if (!System.IO.File.Exists(FailFile)) return;
+                foreach (var line in System.IO.File.ReadAllLines(FailFile))
+                {
+                    var p = line.Split('='); int n;
+                    if (p.Length == 2 && int.TryParse(p[1], out n)) Failures[p[0].Trim()] = n;
+                }
+            }
+            catch { }
+        }
+        public static void Fail(string mode)
+        {
+            LoadFailures();
+            int n; Failures.TryGetValue(mode, out n); Failures[mode] = n + 1;
+            try { var lines = new List<string>(); foreach (var kv in Failures) lines.Add(kv.Key + "=" + kv.Value); System.IO.File.WriteAllLines(FailFile, lines.ToArray()); } catch { }
+        }
+        static bool Allowed(string mode) { LoadFailures(); int n; return !Failures.TryGetValue(mode, out n) || n < MaxFailures; }
         static float _cacheTime = -1000f;
 
         /// <summary>true = unlocked, false = missing, null = unknown (Steam not available)</summary>

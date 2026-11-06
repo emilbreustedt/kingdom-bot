@@ -49,11 +49,17 @@ namespace KingdomBot
             }
         }
 
-        void ChooseModeForRun()
+        static string ModeFile { get { return System.IO.Path.Combine(Plugin.Dir, "run_mode.txt"); } }
+
+        void ChooseModeForRun(bool continuing)
         {
             if (ConfigMode == "main") ConfigMode = "master";
-            Mode = ConfigMode == "auto" ? Campaign.PickMode(PacifistEnabled) : ConfigMode;
-            Plugin.Log("New run - mode: " + Mode + " | " + Campaign.Summary());
+            string saved = null;
+            try { if (continuing && System.IO.File.Exists(ModeFile)) saved = System.IO.File.ReadAllText(ModeFile).Trim(); } catch { }
+            if (ConfigMode == "auto" && !string.IsNullOrEmpty(saved)) Mode = saved;          // loaded run keeps its mode
+            else Mode = ConfigMode == "auto" ? Campaign.PickMode(PacifistEnabled) : ConfigMode;
+            try { System.IO.File.WriteAllText(ModeFile, Mode); } catch { }
+            Plugin.Log((continuing ? "Continuing run" : "New run") + " - mode: " + Mode + " | " + Campaign.Summary());
         }
 
         /// <summary>Short special runs end as soon as their goal is reached or impossible (only in auto).</summary>
@@ -67,6 +73,11 @@ namespace KingdomBot
             {
                 if (am.flags[3] && dayC < 2) reason = "fire too early";
                 else if (am.flags[3] && dayC >= 2) reason = "fire run done";
+            }
+            else if (Mode == "acre")
+            {
+                if (am.counters[7] >= AcreTarget) reason = "acre cleared (" + am.counters[7] + ")";
+                else if (dayC > 6) reason = "acre run: too late (gap " + am.counters[7] + ")";
             }
             else if (Mode == "pacifist")
             {
@@ -103,7 +114,7 @@ namespace KingdomBot
                 _coinsAtTap = -1;
             }
             int dNow = GameState.Day;
-            if (dNow < _lastDaySeen || _lastDaySeen < 0) { _lastCastleUpgradeDay = -1; _cooldown.Clear(); ChooseModeForRun(); }
+            if (dNow < _lastDaySeen || _lastDaySeen < 0) { _lastCastleUpgradeDay = -1; _cooldown.Clear(); ChooseModeForRun(_lastDaySeen < 0 && dNow > 0); }
             if (dNow != _lastDaySeen && Managers.achievements != null && Managers.achievements.flags != null)
             {
                 var am = Managers.achievements;
@@ -233,7 +244,7 @@ namespace KingdomBot
             if (day >= 1 && hour >= k.dayEnd - 8f) reserve = 4;
             if (GiftPending() && castleAny != null) reserve = Mathf.Max(reserve, castleAny.price);
             int budget = coins - reserve;
-            bool acrePhase = AcreRun && day <= 6 && (k.rightForest - k.leftForest) < AcreTarget + 5f;
+            bool acrePhase = (AcreRun || Mode == "acre") && day <= 6 && (k.rightForest - k.leftForest) < AcreTarget + 5f;
             int archerCap = Mathf.Min(40, 6 + 3 * day);
 
             // shops
@@ -247,6 +258,13 @@ namespace KingdomBot
                 if (sh.name.Contains("Bow")) bowShop = sh; else if (sh.name.Contains("Hammer")) hammerShop = sh; else if (sh.name.Contains("Scythe")) scytheShop = sh;
             }
             int farmers = UnityEngine.Object.FindObjectsOfType<Farmer>().Length;
+
+            // ---------- 3a. acre run: clearing has priority right after the first tools ----------
+            if (Mode == "acre" && acrePhase && workers > 0 && archers >= 2 && budget >= 1 && !(peasants > toolsOnDisplay && workers < 6))
+            {
+                var tree = EdgeTree(payables, k);
+                if (tree != null) { Status = "Acre: chop tree (gap " + (k.rightForest - k.leftForest).ToString("0") + "/" + AcreTarget + ")"; PayAt(tree); return; }
+            }
 
             // ---------- 3b. assault phase: stone tech, castle up to shields, knights, charges ----------
             if (AssaultStep(payables, day, hour, budget, archers, home, px)) return;
@@ -410,14 +428,15 @@ namespace KingdomBot
         /// <summary>Portal assault (master mode): returns true if it queued an action.</summary>
         bool AssaultStep(Payable[] payables, int day, float hour, int budget, int archers, float home, float px)
         {
-            if (Mode != "master" || day < 5) return false;
+            if ((Mode != "master" && Mode != "survive") || day < 5) return false;
+            bool assault = Mode == "master";
             var k = Managers.kingdom; var am = Managers.achievements;
             bool finalWave = Managers.enemies != null && Managers.enemies.finalWaveSpawned;
             bool morning = k.isDaytime && hour < k.dayEnd - 9f;
             bool wallsOk = WallsOnSide(-1, home) > 0 && WallsOnSide(1, home) > 0;
 
-            // castle first from day 8 (level 5 = shield shops)
-            if (day >= 8 && archers >= 6)
+            // castle first from day 8 (level 5 = shield shops) - only when attacking; survive upgrades normally
+            if (assault && day >= 8 && archers >= 6)
             {
                 var castle = Find(payables, x => x is PayableUpgrade && x.name.StartsWith("Castle") && SafeCanPay(x));
                 if (castle != null && budget >= castle.price) { Status = "Assault prep: castle " + castle.name.Replace("(Clone)", "") + " (" + castle.price + ")"; PayAt(castle); return true; }
@@ -455,7 +474,7 @@ namespace KingdomBot
                 var ws = Find(payables, x => x is PayableWorkshop && SafeCanPay(x), home);
                 if (ws != null && budget >= ws.price + 2) { Status = "Buy catapult (" + ws.price + ")"; PayAt(ws); return true; }
             }
-            if (finalWave) return false;   // all inner portals gone: only defend now
+            if (finalWave || !assault) return false;   // survive mode / all inner portals gone: only defend
             // shields -> knights
             var shield = Find(payables, x => x is PayableShield && SafeCanPay(x), home);
             if (shield != null && budget >= shield.price) { Status = "Assault: buy shield (" + shield.price + ")"; PayAt(shield); return true; }
@@ -470,7 +489,7 @@ namespace KingdomBot
 
         bool GiftPending()
         {
-            if (Mode != "master" || Campaign.Has(Campaign.SecondDay) == true) return false;
+            if ((Mode != "master" && Mode != "survive") || Campaign.Has(Campaign.SecondDay) == true) return false;
             var am = Managers.achievements;
             if (am == null || am.flags == null || am.flags[2]) return false;   // FreeWallBuilt already set this run
             return am.counters[1] <= 1;

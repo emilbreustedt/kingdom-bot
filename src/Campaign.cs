@@ -74,7 +74,9 @@ namespace KingdomBot
         {
             if (Missing(ThirdDay)) return "fire3";
             // master covers day 100, the portal assault (Safe in X, Tenth Day) and the win
-            if (Missing("SURVIVED_UNTIL_DAY_100") || Missing("SAFE_IN_40") || Missing(TenthDay)) return "master";
+            if (Missing(Acre)) return "acre";                                           // short run (~2 min)
+            if (Missing("SURVIVED_UNTIL_DAY_100")) return "survive";                    // pure defence (record: day 98)
+            if (Missing("SAFE_IN_40") || Missing(TenthDay)) return "master";              // portal assault
             if (pacifistEnabled && (Missing(FifthDays) || Missing(EighthDay))) return "pacifist";
             return "master";
         }

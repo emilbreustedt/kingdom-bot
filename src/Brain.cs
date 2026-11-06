@@ -994,7 +994,23 @@ namespace KingdomBot
             float bx = b.transform.position.x, dist = Mathf.Abs(bx - GameState.PX);
             if (dist > 12f) Push("goto " + F(bx + (GameState.PX < bx ? -4f : 4f)) + " 1.5 " + F(Mathf.Max(30f, dist * 0.6f)));
             if (RunType == "challenge") { Push("walkto " + F(bx) + " 0.3 25"); Push("handtap " + b.GetInstanceID()); Push("wait 1.5"); }
-            else { Push("walkto " + F(bx) + " 0.8 25"); Push("tap 1"); Push("wait 2.5"); }
+            else
+            {
+                Push("walkto " + F(bx) + " 0.8 25"); Push("tap 1"); Push("wait 2.5");
+                // the whole camp in one trip: other beggars standing close by get a coin too (up to 3 per trip)
+                if (GameState.Coins >= 4)
+                {
+                    int extra = 0;
+                    foreach (var o in UnityEngine.Object.FindObjectsOfType<Beggar>())
+                    {
+                        if (o == b || extra >= 2 || GameState.Coins < 4 + 2 * extra) continue;
+                        float ox = o.transform.position.x;
+                        if (Mathf.Abs(ox - bx) > 10f || OnCooldown(o.GetInstanceID())) continue;
+                        Cool(o.GetInstanceID(), 10f); extra++;
+                        Push("walkto " + F(ox) + " 0.8 10"); Push("tap 1"); Push("wait 2.5");
+                    }
+                }
+            }
         }
         public int AssaultArmyCap = 25;
         public int MasterRunEndDay = 40;   // after day 40 no "Safe in X" is reachable (runs with all portals destroyed continue)

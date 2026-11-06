@@ -587,6 +587,7 @@ namespace KingdomBot
                 if (c != null && c.hideFlags == HideFlags.None && c.gameObject.hideFlags == HideFlags.None && c.transform.root.gameObject.activeSelf) l.Add(c);
             return l;
         }
+        int _knightDiagDay = -1;
         int _rerolls; bool _mapChecked;
         public float Army1Range = 130f;
         public bool BootDays = true;
@@ -1387,6 +1388,17 @@ namespace KingdomBot
                     }
                 }
             }
+            if (assault && morning && hour >= 7f && _knightDiagDay != day)
+            {
+                var kd = UnityEngine.Object.FindObjectsOfType<Knight>();
+                if (kd.Length > 0)
+                {
+                    _knightDiagDay = day;
+                    var sb = new System.Text.StringBuilder("KNIGHTS d" + day + " h" + hour.ToString("0.0") + ":");
+                    foreach (var kn in kd) { bool cc = false; try { cc = (bool)Acc.Call(kn, "CanCharge"); } catch { } int kc = -1; try { kc = Acc.Wallet(kn).coins; } catch { } sb.Append(" [x" + kn.transform.position.x.ToString("0") + " canCharge=" + cc + " coins=" + kc + "]"); }
+                    Plugin.Log(sb.ToString());
+                }
+            }
             if (assault && !finalWave && AssaultSaving(payables, day, hour, home, px)) return true;
             // catapults (workshop, castle level 3+): defensive artillery at the border, pushed there by workers
             if (UnityEngine.Object.FindObjectsOfType<Worker>().Length >= 2)
@@ -1431,7 +1443,7 @@ namespace KingdomBot
             }
             // shields -> knights
             var shield = Find(payables, x => x is PayableShield && SafeCanPay(x), home);
-            if (shield != null && UnityEngine.Object.FindObjectsOfType<Knight>().Length + ShieldsWaiting() < KnightGoal && budget - (UnityEngine.Object.FindObjectsOfType<Knight>().Length >= 2 ? AssaultReserve(false) : 0) >= shield.price + 3) { Status = "Assault: buy shield (" + shield.price + ")"; PayAt(shield); return true; }
+            if (shield != null && UnityEngine.Object.FindObjectsOfType<Knight>().Length + ShieldsWaiting() < KnightGoal && budget - (UnityEngine.Object.FindObjectsOfType<Knight>().Length >= 2 ? AssaultReserve(false) : 0) >= shield.price + 3 + (UnityEngine.Object.FindObjectsOfType<Knight>().Length >= 1 ? 4 : 0)) { Status = "Assault: buy shield (" + shield.price + ")"; PayAt(shield); return true; }
             // arm the knights: coins in a knight's purse are knocked out before he loses his shield
             Knight poor = null; int poorCoins = 99;
             foreach (var kn in knights)

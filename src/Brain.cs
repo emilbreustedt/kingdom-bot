@@ -233,7 +233,7 @@ namespace KingdomBot
                 bool danger = en != null && Mathf.Abs(en.transform.position.x - pxx) < 12f && !WallBetween(pxx, en.transform.position.x);
                 _armyFirst = false;
                 // assault only once the defence is solid (the castle rush + shields cost ~40 coins)
-                bool ready = (d >= 12 && arch >= 15) || d >= 20;
+                bool ready = (d >= 12 && arch >= 15) || d >= 20 || (TenthRush && d >= 4 && arch >= 8);
                 if (ready && !night && !danger && AssaultStep(UnityEngine.Object.FindObjectsOfType<Payable>(), d, hr, bud, arch, hm, pxx)) return;
             }
             // (master now shares the survival basis below; economy/defence extras are no longer used)
@@ -937,6 +937,12 @@ namespace KingdomBot
         public int FarmerTarget = 4;
         public int FarmWallTreeCap = 6;
         int _farmWallTrees;   // 4 coins every other day = ~half of the late-game income; not worth it
+        /// THE_TENTH_DAY (a portal destroyed by day 10, guide: castle max + 1 knight, charge on day 8 after the night):
+        /// while it is missing the master run rushes castle 5 and one knight before day 11.
+        public bool TenthRush { get { return Mode == "master" && GameState.Day <= 10 && Campaign.Missing(Campaign.TenthDay); } }
+        int KnightGoal { get { return TenthRush ? 1 : KnightTarget; } }
+        int ChargeArchers { get { return TenthRush ? 10 : MinChargeArchers; } }
+        public bool UseCatapults = false;   // guide + logs: big enemies throw our catapult boulders back over the wall (378 archer hits in one run)
         public int KnightTarget = 3;   // 3 knights destroy portals reliably; every shield (6) is a banner payment less at castle 5 (~1 coin/day)
 
         /// <summary>Recruit a beggar: hand-over (coin never touches the ground) only in the challenge run (Eighth Day);
@@ -1076,7 +1082,7 @@ namespace KingdomBot
         }   // escorts (4 per knight) + enough defenders at home   // after day 40 no "Safe in X" is reachable
         public int BurstCoins = 50;   // castle 4 (8) + castle 5 (9) + 2 shields (12) + 4 banners (16) + purse; castle 5 earns ~1 coin/day, every charge (4) must come from the bank
         /// <summary>Bank needed before castle 4: the full bank early, a smaller one from day 24 (late income ~= upkeep, the bank plateaus ~40).</summary>
-        public int BankTarget() { int d = GameState.Day; return d >= 24 ? 38 : d >= 18 ? BurstCoins : 60; }   // the assault (3 shields + 5-8 charges) is paid from the bank: castle 5 earns ~1 coin/day
+        public int BankTarget() { int d = GameState.Day; if (TenthRush) return 9 + 6 + 4 + 3; return d >= 24 ? 38 : d >= 18 ? BurstCoins : 60; }   // the assault (3 shields + 5-8 charges) is paid from the bank: castle 5 earns ~1 coin/day
 
         /// <summary>Coins the record strategy must leave alone while the assault saves for castle 4/5 and shields.</summary>
         public static int ShieldsWaitingPublic() { return ShieldsWaiting(); }
@@ -1226,10 +1232,27 @@ namespace KingdomBot
             // farm first (wall schedule saves for it), then the castle
             if (UseFarms && day >= 6 && day < 25 && FarmTarget(payables, home) != null) return false;
             // castle first from day 8 (level 5 = shield shops) - only when attacking; survive upgrades normally
-            if (assault && day >= 8 && archers >= 6)
+            if (assault && day >= (TenthRush ? 4 : 8) && archers >= 6)
             {
                 var castle = Find(payables, x => x is PayableUpgrade && x.name.StartsWith("Castle") && SafeCanPay(x) && CastleAllowed(x.name));
                 if (castle != null && k.isDaytime && hour < k.dayEnd - 5f && budget >= castle.price + 3) { Status = "Assault prep: castle " + castle.name.Replace("(Clone)", "") + " (" + castle.price + ")"; PayAt(castle); return true; }
+            }
+            // statues (guide): archer statue buffs all archers, worker statue buffs the walls; a charge lasts some days,
+            // 5-6 coins per level. Archer statue before charges, worker statue for the final assault phase.
+            if (assault && morning && hour >= 7f && archers >= 10 && !_armyFirst)
+            {
+                bool lateGame = day >= 18 || (am != null && am.flags != null && am.flags[7]);
+                foreach (var su in UnityEngine.Object.FindObjectsOfType<Statue>())
+                {
+                    bool archerStatue = su.name.Contains("Archer");
+                    if (!archerStatue && !lateGame) continue;
+                    if (!SafeCanPay(su) || OnCooldown(su.GetInstanceID()) || Mathf.Abs(su.transform.position.x - home) > 200f) continue;
+                    if (budget - AssaultReserve(false) < su.price + 4) continue;
+                    Cool(su.GetInstanceID(), 60f);
+                    Status = "Statue: charge " + su.name.Replace("(Clone)", "") + " (" + su.price + ")";
+                    Push("goto " + F(PayX(su)) + " 0.3 120"); Push("payid " + su.GetInstanceID() + " " + F(PayX(su))); Push("goto " + F(home) + " 1 40");
+                    return true;
+                }
             }
             // stone tech from the mason shrine (morning trip)
             if (Managers.techUpgrades != null && !Managers.techUpgrades.stoneBuilding && archers >= 8 && morning && !_armyFirst)
@@ -1327,7 +1350,7 @@ namespace KingdomBot
             if (UnityEngine.Object.FindObjectsOfType<Worker>().Length >= 2)
             {
                 var ws = Find(payables, x => x is PayableWorkshop && SafeCanPay(x), home);
-                if (ws != null && hour >= 12f && budget - AssaultReserve(true) >= ws.price + 3) { Status = "Buy catapult (" + ws.price + ")"; PayAt(ws); return true; }
+                if (UseCatapults && ws != null && hour >= 12f && budget - AssaultReserve(true) >= ws.price + 3) { Status = "Buy catapult (" + ws.price + ")"; PayAt(ws); return true; }
             }
             if (finalWave || !assault) return false;   // survive mode / all inner portals gone: only defend
             var knights = UnityEngine.Object.FindObjectsOfType<Knight>();
@@ -1344,10 +1367,10 @@ namespace KingdomBot
                 _chargeDiagDay = day;
                 var bl = new System.Text.StringBuilder();
                 foreach (var bo in UnityEngine.Object.FindObjectsOfType<PayableBorder>()) bl.Append(" " + bo.transform.position.x.ToString("0") + (SafeCanPay(bo) ? "" : "!"));
-                Plugin.Log("CHARGE CHECK d" + day + " h" + hour.ToString("0.0") + ": knights " + knights.Length + " armed(CanCharge)=" + armed + " archers " + archers + "/" + MinChargeArchers
+                Plugin.Log("CHARGE CHECK d" + day + " h" + hour.ToString("0.0") + ": knights " + knights.Length + " armed(CanCharge)=" + armed + " archers " + archers + "/" + ChargeArchers
                     + " recovery=" + recovery + " clearL=" + FieldClear(home, -1) + " clearR=" + FieldClear(home, 1) + " budget " + budget + " banners" + bl);
             }
-            if (morning && hour >= 7f && armed && archers >= MinChargeArchers && (recovery || FieldClear(home, -1) || FieldClear(home, 1)))
+            if (morning && hour >= 7f && armed && archers >= ChargeArchers && (recovery || FieldClear(home, -1) || FieldClear(home, 1)))
             {
                 // banner on the side of the nearest intact inner portal (each charge goes to that side's portal)
                 float bestPd = float.MaxValue; int pside = 0;
@@ -1366,7 +1389,7 @@ namespace KingdomBot
             }
             // shields -> knights
             var shield = Find(payables, x => x is PayableShield && SafeCanPay(x), home);
-            if (shield != null && UnityEngine.Object.FindObjectsOfType<Knight>().Length + ShieldsWaiting() < KnightTarget && budget - (UnityEngine.Object.FindObjectsOfType<Knight>().Length >= 2 ? AssaultReserve(false) : 0) >= shield.price + 3) { Status = "Assault: buy shield (" + shield.price + ")"; PayAt(shield); return true; }
+            if (shield != null && UnityEngine.Object.FindObjectsOfType<Knight>().Length + ShieldsWaiting() < KnightGoal && budget - (UnityEngine.Object.FindObjectsOfType<Knight>().Length >= 2 ? AssaultReserve(false) : 0) >= shield.price + 3) { Status = "Assault: buy shield (" + shield.price + ")"; PayAt(shield); return true; }
             // arm the knights: coins in a knight's purse are knocked out before he loses his shield
             Knight poor = null; int poorCoins = 99;
             foreach (var kn in knights)

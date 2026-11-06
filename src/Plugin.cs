@@ -210,6 +210,13 @@ namespace KingdomBot
                     foreach (var bu in UnityEngine.Object.FindObjectsOfType<Bunny>()) bx.Append(" " + bu.transform.position.x.ToString("0"));
                     Log("GRASS patches=" + grass.Length + " x" + gmin.ToString("0") + ".." + gmax.ToString("0") + " stages=" + string.Join("/", Array.ConvertAll(stages, v => v.ToString())) + " tall=" + tall + " | bunnies at" + bx);
                 }
+                foreach (var su in UnityEngine.Object.FindObjectsOfType<Statue>())
+                {
+                    var sb2 = new System.Text.StringBuilder("STATUE " + su.name.Replace("(Clone)", "") + " x" + su.transform.position.x.ToString("0"));
+                    foreach (var f in su.GetType().GetFields(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance))
+                        if (f.FieldType.IsPrimitive || f.FieldType.IsEnum) sb2.Append(" " + f.Name + "=" + f.GetValue(su));
+                    Log(sb2.ToString());
+                }
                 foreach (var st in UnityEngine.Object.FindObjectsOfType<Steed>())
                     Log("STEED " + st.name.Replace("(Clone)", "") + " x" + st.transform.position.x.ToString("0") + " price=" + st.price + " walk=" + st.walkSpeed + " run=" + st.runSpeed + " runStamina=" + st.runStaminaRate + " walkStamina=" + st.walkStaminaRate + " forest=" + st.forestSpeedMultiplier + " tired=" + st.tiredDuration + " eatDelay=" + st.eatDelay + " eatDuration=" + st.eatDuration + " wellFed=" + st.wellFedDuration + " standStamina=" + st.standStaminaRate);
                 try

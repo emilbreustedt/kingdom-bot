@@ -928,7 +928,7 @@ namespace KingdomBot
             return false;
         }
 
-        public int KnightArmor = 2;   // knight purses rarely fill beyond 1-3 coins; arming must not block everything else
+        public int KnightArmor = 4;   // knight wallet holds 8; no hp - each hit drops a coin with p=0.4, shield lost at 1 coin
         public bool UseMerchant = false;
         // Farms (tree clearing + wall beyond the farm + scythes) cost more than they earned in tests: the army stayed
         // at ~12 archers by day 30 instead of 25-30. Off by default.

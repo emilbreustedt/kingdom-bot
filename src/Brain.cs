@@ -927,14 +927,14 @@ namespace KingdomBot
         int _bossNightDay = -10;
 
         /// <summary>No live enemy outside the walls within 60 units of either wall (a charge would run into it).</summary>
-        static bool FieldClear(float home)
+        static bool FieldClear(float home, int side)
         {
-            float l = WallEdge(-1, home), r = WallEdge(1, home);
+            float edge = WallEdge(side, home);
             foreach (var e in UnityEngine.Object.FindObjectsOfType<Enemy>())
             {
                 if (!IsLiveEnemy(e)) continue;
-                float x = e.transform.position.x;
-                if ((x < l && x > l - 60f) || (x > r && x < r + 60f)) return false;
+                float rel = (e.transform.position.x - edge) * side;   // > 0: outside that wall
+                if (rel > -3f && rel < 60f) return false;
             }
             return true;
         }   // escorts (4 per knight) + enough defenders at home   // after day 40 no "Safe in X" is reachable
@@ -1147,7 +1147,7 @@ namespace KingdomBot
             foreach (var kn in knights) { try { if ((bool)Acc.Call(kn, "CanCharge")) armed = true; } catch { } }
             // charge: pay the border banner while knights with archers are ready (and armed)
             bool recovery = _bossNightDay == day - 1;
-            if (morning && armed && archers >= MinChargeArchers && (recovery || FieldClear(home)))
+            if (morning && armed && archers >= MinChargeArchers && (recovery || FieldClear(home, -1) || FieldClear(home, 1)))
             {
                 // banner on the side of the nearest intact inner portal (each charge goes to that side's portal)
                 float bestPd = float.MaxValue; int pside = 0;
@@ -1156,10 +1156,12 @@ namespace KingdomBot
                     var dm = po.GetComponent<Damageable>();
                     if (po.outerSpawner || (dm != null && dm.hitPoints <= 0)) continue;
                     float pd = Mathf.Abs(po.transform.position.x - home);
-                    if (pd < bestPd) { bestPd = pd; pside = po.transform.position.x < home ? -1 : 1; }
+                    int ps = po.transform.position.x < home ? -1 : 1;
+                    if (!FieldClear(home, ps)) continue;             // enemies (e.g. boulder throwers) in front of that wall: other side
+                    if (pd < bestPd) { bestPd = pd; pside = ps; }
                 }
-                var border = Find(payables, x => x is PayableBorder && SafeCanPay(x) && (pside == 0 || (x.transform.position.x - home) * pside > 0), px)
-                             ?? Find(payables, x => x is PayableBorder && SafeCanPay(x), px);
+                if (pside == 0) return false;
+                var border = Find(payables, x => x is PayableBorder && SafeCanPay(x) && (x.transform.position.x - home) * pside > 0, px);
                 if (border != null && budget >= border.price) { Status = "Assault: knights CHARGE (" + border.name.Replace("(Clone)", "") + ")"; Cool(border.GetInstanceID(), 60f); PayAt(border); return true; }
             }
             // shields -> knights

@@ -586,7 +586,8 @@ namespace KingdomBot
             return l;
         }
         int _rerolls; bool _mapChecked;
-        public float Army1Range = 130f;   // guide: run to the camps on both sides (four camps incl. the town centre) and loot chests on the way
+        public float Army1Range = 130f;
+        public float Army1Check = 80f;    // day 0 is short: 24 coins (8 recruits + 8 bows) must lie within ~80 of the camp, otherwise reroll   // guide: run to the camps on both sides (four camps incl. the town centre) and loot chests on the way
         void ThinkArmy1(bool feast)
         {
             var k = Managers.kingdom; var am = Managers.achievements;
@@ -597,11 +598,11 @@ namespace KingdomBot
             if (!_mapChecked && !feast)
             {
                 int avail = coins;
-                foreach (var c in UnityEngine.Object.FindObjectsOfType<Coin>()) if (!c.pickedUp && Mathf.Abs(c.transform.position.x - home) < Army1Range) avail++;
-                foreach (var ch in AllChests()) if (!ch.isEmpty && Mathf.Abs(ch.transform.position.x - home) < Army1Range) avail += ch.coins;
+                foreach (var c in UnityEngine.Object.FindObjectsOfType<Coin>()) if (!c.pickedUp && Mathf.Abs(c.transform.position.x - home) < Army1Check) avail++;
+                foreach (var ch in AllChests()) if (!ch.isEmpty && Mathf.Abs(ch.transform.position.x - home) < Army1Check) avail += ch.coins;
                 _mapChecked = true;
                 Plugin.Log("army1: coins reachable on this map = " + avail + " (reroll " + _rerolls + ")");
-                if (avail < 24 && _rerolls < 10 && NormalizeRunType(ConfigMode) == "auto")
+                if (avail < 25 && _rerolls < 40 && NormalizeRunType(ConfigMode) == "auto")
                 {
                     _rerolls++; _lastDaySeen = -1; _pl.Queue.Clear();
                     Acc.Call(Managers.game, "Restart");
@@ -687,26 +688,31 @@ namespace KingdomBot
             if (en != null && Mathf.Abs(en.transform.position.x - px) < 15f) return false;
             int allowed = dayC == 0 ? 3 : dayC == 1 ? 6 : dayC == 2 ? 9 : 10;   // never reach 10 before day counter 3
             if (deer >= allowed) return false;
-            // nearest deer outside the walls
+            // guide: ride out past a whole group of deer (7-10), then walk back - the herd flees ahead into the archers
             float l = WallEdge(-1, home), r = WallEdge(1, home);
-            Deer best = null; float bd = 90f;
-            foreach (var d in UnityEngine.Object.FindObjectsOfType<Deer>())
+            int[] cnt = new int[2]; float[] far = { home, home };
+            foreach (var d in Resources.FindObjectsOfTypeAll<Deer>())
             {
+                if (d == null || d.hideFlags != HideFlags.None || !d.transform.root.gameObject.activeSelf) continue;
                 float x = d.transform.position.x;
-                if (x > l && x < r) continue;
-                float dist = Mathf.Abs(x - home);
-                if (dist < bd) { bd = dist; best = d; }
+                if ((x > l && x < r) || Mathf.Abs(x - home) > 110f) continue;
+                int si = x < home ? 0 : 1;
+                cnt[si]++;
+                if (Mathf.Abs(x - home) > Mathf.Abs(far[si] - home)) far[si] = x;
             }
-            if (best == null) return false;
-            float dx = best.transform.position.x;
-            int side = dx < home ? -1 : 1;
-            float behind = dx + side * 7f;                      // get round the deer (far side from the camp)
-            Status = "Feast: herd deer (" + deer + "/10, day counter " + dayC + ", allowed " + allowed + ")";
+            int s2 = cnt[0] >= cnt[1] ? 0 : 1;
+            if (cnt[s2] == 0) return false;
+            int side = s2 == 0 ? -1 : 1;
+            float behind = far[s2] + side * 8f;
+            Status = "Feast: herd " + cnt[s2] + " deer (" + deer + "/10, day counter " + dayC + ", allowed " + allowed + ")";
             _safeMode = true;
-            if ((px - dx) * side < 3f) { Push("goto " + F(behind) + " 1.5 12"); return true; }
-            Push("walkto " + F(home + side * 6f) + " 2 10");     // ride back towards the camp: the deer flees ahead into the archers
+            if (_herdOut && (px - home) * side >= (behind - home) * side - 2f) _herdOut = false;   // reached the far end: drive back
+            if (!_herdOut && Mathf.Abs(px - home) < 10f) _herdOut = true;                        // back home: next round
+            if (_herdOut) { Push("goto " + F(behind) + " 1.5 " + F(10f + Mathf.Abs(behind - px) * 0.5f)); return true; }
+            Push("walkto " + F(home + side * 6f) + " 2 " + F(10f + Mathf.Abs(px - home)));      // walk (not gallop) so the herd stays ahead
             return true;
         }
+        bool _herdOut = true;
 
         /// <summary>
         /// Late-game survival = fully upgraded walls ("maxed two walls per side" - forum). Spend surplus coins on

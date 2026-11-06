@@ -920,7 +920,7 @@ namespace KingdomBot
             else { Push("walkto " + F(b.transform.position.x) + " 0.8 25"); Push("tap 1"); Push("wait 2.5"); }
         }
         public int AssaultArmyCap = 25;
-        public int MasterRunEndDay = 60;   // TEMP diagnostics: watch knights vs portals after day 40 (normal: 40)
+        public int MasterRunEndDay = 40;   // after day 40 no "Safe in X" is reachable
         public int BurstCoins = 50;   // castle 4 (8) + castle 5 (9) + 2 shields (12) + 4 banners (16) + purse; castle 5 earns ~1 coin/day, every charge (4) must come from the bank
 
         /// <summary>Coins the record strategy must leave alone while the assault saves for castle 4/5 and shields.</summary>

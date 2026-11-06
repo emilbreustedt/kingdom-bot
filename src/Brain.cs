@@ -1061,14 +1061,18 @@ namespace KingdomBot
         /// <summary>No live enemy outside the walls within 60 units of either wall (a charge would run into it).</summary>
         static bool FieldClear(float home, int side)
         {
+            // a few trolls in front of the wall are no match for knights with escorts; only many enemies or a big one block
             float edge = WallEdge(side, home);
+            int n = 0;
             foreach (var e in UnityEngine.Object.FindObjectsOfType<Enemy>())
             {
                 if (!IsLiveEnemy(e)) continue;
                 float rel = (e.transform.position.x - edge) * side;   // > 0: outside that wall
-                if (rel > -3f && rel < 60f) return false;
+                if (rel <= -3f || rel >= 60f) continue;
+                if (e.GetComponent<Boss>() != null || e.GetComponent<Ogre>() != null) return false;
+                n++;
             }
-            return true;
+            return n <= 4;
         }   // escorts (4 per knight) + enough defenders at home   // after day 40 no "Safe in X" is reachable
         public int BurstCoins = 50;   // castle 4 (8) + castle 5 (9) + 2 shields (12) + 4 banners (16) + purse; castle 5 earns ~1 coin/day, every charge (4) must come from the bank
         /// <summary>Bank needed before castle 4: the full bank early, a smaller one from day 24 (late income ~= upkeep, the bank plateaus ~40).</summary>

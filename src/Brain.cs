@@ -920,7 +920,8 @@ namespace KingdomBot
             else { Push("walkto " + F(b.transform.position.x) + " 0.8 25"); Push("tap 1"); Push("wait 2.5"); }
         }
         public int AssaultArmyCap = 25;
-        public int MasterRunEndDay = 40;   // after day 40 no "Safe in X" is reachable
+        public int MasterRunEndDay = 40;
+        public int MinChargeArchers = 16;   // escorts (4 per knight) + enough defenders at home   // after day 40 no "Safe in X" is reachable
         public int BurstCoins = 50;   // castle 4 (8) + castle 5 (9) + 2 shields (12) + 4 banners (16) + purse; castle 5 earns ~1 coin/day, every charge (4) must come from the bank
 
         /// <summary>Coins the record strategy must leave alone while the assault saves for castle 4/5 and shields.</summary>
@@ -1129,9 +1130,19 @@ namespace KingdomBot
             bool armed = false;
             foreach (var kn in knights) { try { if ((bool)Acc.Call(kn, "CanCharge")) armed = true; } catch { } }
             // charge: pay the border banner while knights with archers are ready (and armed)
-            if (morning && armed)
+            if (morning && armed && archers >= MinChargeArchers)
             {
-                var border = Find(payables, x => x is PayableBorder && SafeCanPay(x), px);
+                // banner on the side of the nearest intact inner portal (each charge goes to that side's portal)
+                float bestPd = float.MaxValue; int pside = 0;
+                foreach (var po in UnityEngine.Object.FindObjectsOfType<Portal>())
+                {
+                    var dm = po.GetComponent<Damageable>();
+                    if (po.outerSpawner || (dm != null && dm.hitPoints <= 0)) continue;
+                    float pd = Mathf.Abs(po.transform.position.x - home);
+                    if (pd < bestPd) { bestPd = pd; pside = po.transform.position.x < home ? -1 : 1; }
+                }
+                var border = Find(payables, x => x is PayableBorder && SafeCanPay(x) && (pside == 0 || (x.transform.position.x - home) * pside > 0), px)
+                             ?? Find(payables, x => x is PayableBorder && SafeCanPay(x), px);
                 if (border != null && budget >= border.price) { Status = "Assault: knights CHARGE (" + border.name.Replace("(Clone)", "") + ")"; Cool(border.GetInstanceID(), 60f); PayAt(border); return true; }
             }
             // shields -> knights

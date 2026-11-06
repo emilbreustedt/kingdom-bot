@@ -244,7 +244,7 @@ namespace KingdomBot
                 var sh = py as PayableShop;
                 if (sh == null) continue;
                 toolsOnDisplay += sh.GetItemCount();
-                if (sh.name.Contains("Bow")) bowShop = sh; else if (sh.name.Contains("hammer")) hammerShop = sh; else if (sh.name.Contains("Scythe")) scytheShop = sh;
+                if (sh.name.Contains("Bow")) bowShop = sh; else if (sh.name.Contains("Hammer")) hammerShop = sh; else if (sh.name.Contains("Scythe")) scytheShop = sh;
             }
             int farmers = UnityEngine.Object.FindObjectsOfType<Farmer>().Length;
 
@@ -265,7 +265,7 @@ namespace KingdomBot
                 else if (archers < archerCap && bowShop != null) { shop = bowShop; what = "bow"; }
                 if (shop != null && SafeCanPay(shop) && budget >= shop.price)
                 {
-                    Status = "Buy tool: " + what;
+                    Status = "Buy tool: " + what + " (archers " + archers + ", workers " + workers + "/" + WorkerTarget(day, archers, acrePhase) + ", hammerShop " + (hammerShop != null) + ")";
                     PayAt(shop); return;
                 }
             }

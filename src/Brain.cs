@@ -1096,6 +1096,19 @@ namespace KingdomBot
                         if (rel < bd) { bd = rel; best = p; }
                     }
                     if (best != null && budget >= best.price + 1) { Status = "Outer wall " + (side < 0 ? "left" : "right") + " (banner range)"; PayAt(best); Cool(best.GetInstanceID(), 120f); return true; }
+                    if (best == null)
+                    {
+                        // wall spots are only buildable on cleared land: cut the nearest tree on this side first
+                        Payable tree = null; float td = float.MaxValue;
+                        foreach (var p in payables)
+                        {
+                            if (!p.name.StartsWith("Tree") || OnCooldown(p.GetInstanceID()) || !SafeCanPay(p)) continue;
+                            float rel = (p.transform.position.x - home) * side;
+                            if (rel < 8f || rel > 40f) continue;
+                            if (rel < td) { td = rel; tree = p; }
+                        }
+                        if (tree != null && budget >= tree.price + 1) { Status = "Banner range " + (side < 0 ? "left" : "right") + ": cut tree"; Cool(tree.GetInstanceID(), 60f); PayAt(tree); return true; }
+                    }
                 }
             }
 

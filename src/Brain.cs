@@ -235,7 +235,7 @@ namespace KingdomBot
                 bool danger = en != null && Mathf.Abs(en.transform.position.x - pxx) < 12f && !WallBetween(pxx, en.transform.position.x);
                 _armyFirst = false;
                 // assault only once the defence is solid (the castle rush + shields cost ~40 coins)
-                bool ready = (d >= 12 && arch >= 15) || d >= 20 || (TenthRush && d >= 4 && arch >= 8);
+                bool ready = (d >= 12 && (arch >= 15 || UnityEngine.Object.FindObjectsOfType<Knight>().Length > 0)) || d >= 20 || (TenthRush && d >= 4 && arch >= 8);   // a knight waiting for the 15th archer wasted days 11-15
                 if (ready && !night && !danger && AssaultStep(UnityEngine.Object.FindObjectsOfType<Payable>(), d, hr, bud, arch, hm, pxx)) return;
             }
             // (master now shares the survival basis below; economy/defence extras are no longer used)
@@ -1014,7 +1014,7 @@ namespace KingdomBot
         }
         public int AssaultArmyCap = 25;
         public int MasterRunEndDay = 40;   // after day 40 no "Safe in X" is reachable (runs with all portals destroyed continue)
-        public int MinChargeArchers = 16;
+        public int MinChargeArchers = 12;   // 16 blocked charges for days in weaker runs; escort = 4 per knight
         public float GrassStrip = 30f;   // tree-free strip in front of the outer walls (rabbits / hunting income)
 
         /// <summary>

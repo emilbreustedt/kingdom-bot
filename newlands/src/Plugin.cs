@@ -250,8 +250,10 @@ namespace KingdomBot.NewLands
                     int count = parts.Length > 1 ? int.Parse(parts[1]) : 1;
                     int coinIdx = (int)((Time.time - _t0) / 0.4f);
                     if (coinIdx >= count) { c.Pay = false; done = true; break; }
-                    if (coinIdx != _lastCoinIdx) { _lastCoinIdx = coinIdx; _pressFrames = 1; }
-                    c.Pay = _pressFrames-- > 0;
+                    // New Lands selects the CLOSEST payable, so a short pay-tap usually hits a tree/wall instead of dropping a coin.
+                    // Drop the coin the way the game's own short tap does (Game.ShortTap -> Player.TryDropCoin).
+                    c.Pay = false;
+                    if (coinIdx != _lastCoinIdx) { _lastCoinIdx = coinIdx; try { p.TryDropCoin(); } catch (Exception e) { Plugin.Log("TryDropCoin failed: " + e.Message); } }
                     break;
                 }
                 case "wait":

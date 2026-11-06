@@ -29,6 +29,16 @@ namespace KingdomBot.NewLands
             }
         }
 
+        // enemies that have not moved for 20s are ignored (frozen leftovers after loading a save)
+        static readonly System.Collections.Generic.Dictionary<int, Vector2> _track = new System.Collections.Generic.Dictionary<int, Vector2>();
+        public static bool IsLiveEnemy(Enemy e)
+        {
+            if (e == null || !e.isActiveAndEnabled) return false;
+            int id = e.GetInstanceID(); float x = e.transform.position.x; Vector2 t;
+            if (!_track.TryGetValue(id, out t) || Mathf.Abs(t.x - x) > 0.2f) { _track[id] = new Vector2(x, Time.time); return true; }
+            return Time.time - t.y < 20f;
+        }
+
         /// <summary>inner edge of the forest on each side of the camp</summary>
         public static float LeftForest { get { return Edge(-1); } }
         public static float RightForest { get { return Edge(1); } }

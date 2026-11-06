@@ -119,7 +119,8 @@ namespace KingdomBot.NewLands
         public bool ShouldInterrupt()
         {
             var k = Managers.kingdom; if (k == null || GameState.Player == null) return false;
-            if (Status.StartsWith("Night") || Status == "Dodging") return false;
+            // safety moves of both strategies must not be interrupted (record strategy uses German status texts)
+            foreach (var safe in new[] { "Night", "Dodging", "Abend", "Nacht", "Ausweichen", "Flucht" }) if (Status.StartsWith(safe)) return false;
             float px = GameState.PX;
             if (!k.isDaytime && Mathf.Abs(px - k.campfirePosition) > 6f) { Status = "Interrupt: night"; return true; }
             var e = NearestEnemy(px);
@@ -163,7 +164,9 @@ namespace KingdomBot.NewLands
         static Enemy NearestEnemy(float px)
         {
             Enemy best = null; float bd = float.MaxValue;
-            foreach (var e in UnityEngine.Object.FindObjectsOfType<Enemy>()) { float d = Mathf.Abs(e.transform.position.x - px); if (d < bd) { bd = d; best = e; } }
+            foreach (var e in UnityEngine.Object.FindObjectsOfType<Enemy>())
+            {
+                if (!Compat.IsLiveEnemy(e)) continue; float d = Mathf.Abs(e.transform.position.x - px); if (d < bd) { bd = d; best = e; } }
             return best;
         }
 

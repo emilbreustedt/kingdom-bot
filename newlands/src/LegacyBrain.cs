@@ -468,6 +468,7 @@ namespace KingdomBot.NewLands
             Enemy best = null; float bd = float.MaxValue;
             foreach (var e in UnityEngine.Object.FindObjectsOfType<Enemy>())
             {
+                if (!Compat.IsLiveEnemy(e)) continue;
                 float d = Mathf.Abs(e.transform.position.x - px);
                 if (d < bd) { bd = d; best = e; }
             }

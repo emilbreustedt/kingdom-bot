@@ -114,8 +114,8 @@ namespace KingdomBot
             int dayC = am.counters[1];
             if (RunType == "main")
             {
-                // assault phase: after day 40 no "Safe in X" is reachable any more (Day C is already done) -> next attempt
-                if (Mode == "master" && dayC > MasterRunEndDay && !PortalsAllDestroyed() && !InnerPortalsDead() && Campaign.Missing("SAFE_IN_40") && !Campaign.Missing("SURVIVED_UNTIL_DAY_100"))
+                // assault phase: once the last open "Safe in X" day has passed nothing more can be won in this run -> next attempt
+                if (Mode == "master" && SafeTargetDay() > 0 && dayC > SafeTargetDay() && !Campaign.Missing("SURVIVED_UNTIL_DAY_100"))
                 {
                     Plugin.Log("Run finished (assault, day " + dayC + ", portals left) -> new game");
                     _newGameAt = Time.unscaledTime + 6f;
@@ -941,6 +941,14 @@ namespace KingdomBot
         public float ForwardGap = 9999f;   // forward walls towards living portals made runs worse (archers spread thin, coins spent); only used for dead, uncrumbled portals
 
         /// <summary>The game's PortalsDestroyed flag (all inner portals gone): the run continues to the final wave / win.</summary>
+        /// <summary>Largest X of a still missing "Safe in X" (a win on day d unlocks every X >= d); 0 = all done.</summary>
+        static int SafeTargetDay()
+        {
+            int t = 0;
+            foreach (int x in new[] { 25, 30, 35, 40 }) if (Campaign.Missing("SAFE_IN_" + x)) t = x;
+            return t;
+        }
+
         static bool PortalsAllDestroyed()
         {
             try { var f = Managers.achievements.flags; return f != null && f.Length > 7 && f[7]; } catch { return false; }

@@ -17,6 +17,7 @@ namespace KingdomBot
         float _lastTap = -100f;
         int _coinsAtTap = -1, _tapFails; float _noRecruitUntil;
         float _gameOverAt = -1f;
+        bool _failCounted;
         public bool AutoRestart = true;
         bool _safeMode;
         bool _armyFirst;
@@ -45,7 +46,7 @@ namespace KingdomBot
         {
             get
             {
-                if (Mode == "pacifist" || Mode == "fire3") return true;
+                if (Mode == "pacifist" || Mode == "fire3" || Mode == "army1") return true;
                 if (Campaign.Has(Campaign.NinthDay) == true) return true;   // already unlocked: no need to wait
                 return GameState.Day >= GallopFromDay;
             }
@@ -76,6 +77,11 @@ namespace KingdomBot
                 if (am.flags[3] && dayC < 2) reason = "fire too early";
                 else if (am.flags[3] && dayC >= 2) reason = "fire run done";
             }
+            else if (Mode == "army1")
+            {
+                if (am.counters[3] >= 8 && dayC == 0) reason = "8 archers on day 1";
+                else if (dayC >= 1) reason = "army1: day 1 over (" + am.counters[3] + " archers)";
+            }
             else if (Mode == "acre")
             {
                 if (am.counters[7] >= AcreTarget) reason = "acre cleared (" + am.counters[7] + ")";
@@ -89,6 +95,8 @@ namespace KingdomBot
             }
             if (reason != null)
             {
+                bool success = reason.StartsWith("8 archers") || reason.StartsWith("acre cleared") || reason == "fire run done";
+                if (!success) Campaign.Fail(Mode);
                 Plugin.Log("Run finished: " + reason + " -> new game");
                 _newGameAt = Time.unscaledTime + 6f;   // let the unlock coroutine finish first
             }
@@ -116,7 +124,7 @@ namespace KingdomBot
                 _coinsAtTap = -1;
             }
             int dNow = GameState.Day;
-            if (dNow < _lastDaySeen || _lastDaySeen < 0) { _lastCastleUpgradeDay = -1; _cooldown.Clear(); ChooseModeForRun(_lastDaySeen < 0 && dNow > 0); }
+            if (dNow < _lastDaySeen || _lastDaySeen < 0) { _lastCastleUpgradeDay = -1; _cooldown.Clear(); _mapChecked = false; ChooseModeForRun(_lastDaySeen < 0 && dNow > 0); }
             if (dNow != _lastDaySeen && Managers.achievements != null && Managers.achievements.flags != null)
             {
                 var am = Managers.achievements;
@@ -137,7 +145,8 @@ namespace KingdomBot
             if ((int)game.gameState == 3)
             {
                 if (_gameOverAt < 0) _gameOverAt = Time.unscaledTime;
-                if (AutoRestart && Time.unscaledTime - _gameOverAt > 10f) { _gameOverAt = -1; Runs++; Status = "Restart (attempt " + (Runs + 1) + ")"; _pl.Queue.Clear(); Acc.Call(game, "Restart"); return; }
+                if (AutoRestart && Time.unscaledTime - _gameOverAt > 10f && Mode != "survive" && Mode != "master" && !_failCounted) { Campaign.Fail(Mode); _failCounted = true; }
+                if (AutoRestart && Time.unscaledTime - _gameOverAt > 10f) { _failCounted = false; _gameOverAt = -1; Runs++; Status = "Restart (attempt " + (Runs + 1) + ")"; _pl.Queue.Clear(); Acc.Call(game, "Restart"); return; }
                 Status = "Game Over"; Push("wait 1"); return;
             }
             _gameOverAt = -1;
@@ -154,6 +163,7 @@ namespace KingdomBot
             int day = GameState.Day;
             CheckRunEnd();
             if (Mode == "pacifist") { ThinkPacifist(); return; }
+            if (Mode == "army1") { ThinkArmy1(); return; }
             if (Mode == "survive")
             {
                 if (_legacy == null) _legacy = new LegacyBrain(_pl);
@@ -423,6 +433,60 @@ namespace KingdomBot
             // 3. otherwise wait at the castle
             Status = "Pacifist: waiting at the castle (day " + GameState.Day + (walled ? ", walled" : "") + ")";
             if (Mathf.Abs(px - home) > 2f) Push("walkto " + F(home + 0.5f) + " 1 6"); else Push("wait 1");
+        }
+
+        // ---------------- army1: ON_THE_FIRST_DAY (8 archers before the first dawn) ----------------
+        int _rerolls; bool _mapChecked;
+        void ThinkArmy1()
+        {
+            var k = Managers.kingdom; var am = Managers.achievements;
+            float px = GameState.PX, home = k.campfirePosition;
+            int coins = GameState.Coins;
+            _safeMode = true;
+            // 1. map check: enough coins on the ground and in chests near the start? otherwise reroll the map
+            if (!_mapChecked)
+            {
+                int avail = coins;
+                foreach (var c in UnityEngine.Object.FindObjectsOfType<Coin>()) if (!c.pickedUp && Mathf.Abs(c.transform.position.x - home) < 70f) avail++;
+                foreach (var ch in UnityEngine.Object.FindObjectsOfType<Chest>()) if (!ch.isEmpty && Mathf.Abs(ch.transform.position.x - home) < 70f) avail += ch.coins;
+                _mapChecked = true;
+                Plugin.Log("army1: coins reachable on this map = " + avail + " (reroll " + _rerolls + ")");
+                if (avail < 24 && _rerolls < 40 && ConfigMode == "auto")
+                {
+                    _rerolls++; _lastDaySeen = -1; _pl.Queue.Clear();
+                    Acc.Call(Managers.game, "Restart");
+                    Status = "army1: reroll map"; Push("wait 2"); return;
+                }
+            }
+            var payables = UnityEngine.Object.FindObjectsOfType<Payable>();
+            // 2. danger
+            var e = NearestEnemy(px);
+            if (e != null && Mathf.Abs(e.transform.position.x - px) < 10f && !WallBetween(px, e.transform.position.x))
+            { Status = "army1: dodge"; Push("goto " + F(px + (px > e.transform.position.x ? 14f : -14f)) + " 1 2"); return; }
+            // 3. coins & chests
+            foreach (var ch in UnityEngine.Object.FindObjectsOfType<Chest>())
+            {
+                float cx = ch.transform.position.x;
+                if (!ch.isEmpty && !OnCooldown(ch.GetInstanceID()) && Mathf.Abs(cx - home) < 70f) { Cool(ch.GetInstanceID(), 60f); Status = "army1: chest (" + ch.coins + ")"; Push("goto " + F(cx) + " 0.3 30"); Push("wait 1"); return; }
+            }
+            var coin = NearestCoin(px, home - 70f, home + 70f);
+            if (coin != null && !(coin.droppedByPlayer && Time.time - _lastTap < 15f)) { Cool(coin.GetInstanceID(), 1e7f); Status = "army1: coin"; Push("goto " + F(coin.transform.position.x) + " 0.3 20"); return; }
+            // 4. fire (opens the bow shop)
+            var fire = Find(payables, x => x is PayableUpgrade && x.name.StartsWith("Castle0") && SafeCanPay(x));
+            if (fire != null && coins >= fire.price) { Status = "army1: light fire"; PayAt(fire); return; }
+            // 5. bows for every idle peasant, otherwise recruit until 8 archers are possible
+            int peasants = UnityEngine.Object.FindObjectsOfType<Peasant>().Length;
+            int archersMade = am != null ? am.counters[3] : 0;
+            PayableShop bow = null; int onDisplay = 0;
+            foreach (var py in payables) { var sh = py as PayableShop; if (sh == null) continue; onDisplay += sh.GetItemCount(); if (sh.name.Contains("Bow")) bow = sh; }
+            if (peasants > onDisplay && bow != null && SafeCanPay(bow) && coins >= bow.price) { Status = "army1: buy bow (" + archersMade + "/8)"; PayAt(bow); return; }
+            if (archersMade + peasants + onDisplay < 8 && coins >= 3)
+            {
+                var b = NearestBeggar(px, home - 100f, home + 100f);
+                if (b != null) { Cool(b.GetInstanceID(), 8f); _lastTap = Time.time; Status = "army1: recruit (" + archersMade + "/8)"; Push("goto " + F(b.transform.position.x) + " 0.8 25"); Push("tap 1"); Push("wait 2"); return; }
+            }
+            Status = "army1: waiting (" + archersMade + "/8 archers, " + coins + " coins)";
+            if (Mathf.Abs(px - home) > 3f) Push("walkto " + F(home) + " 1 6"); else Push("wait 1");
         }
 
         /// <summary>Furthest safe x on one side: a bit inside the nearest inner portal (enemies spawn there).</summary>

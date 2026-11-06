@@ -21,6 +21,11 @@ namespace KingdomBot
         public const string TenthDay = "THE_TENTH_DAY";
 
         static readonly Dictionary<string, bool> _cache = new Dictionary<string, bool>();
+        /// <summary>failed runs per special mode in this session; after MaxFailures auto moves on</summary>
+        public static readonly Dictionary<string, int> Failures = new Dictionary<string, int>();
+        public const int MaxFailures = 3;
+        public static void Fail(string mode) { int n; Failures.TryGetValue(mode, out n); Failures[mode] = n + 1; }
+        static bool Allowed(string mode) { int n; return !Failures.TryGetValue(mode, out n) || n < MaxFailures; }
         static float _cacheTime = -1000f;
 
         /// <summary>true = unlocked, false = missing, null = unknown (Steam not available)</summary>
@@ -72,12 +77,13 @@ namespace KingdomBot
         /// <summary>Mode for the next run in "auto".</summary>
         public static string PickMode(bool pacifistEnabled)
         {
-            if (Missing(ThirdDay)) return "fire3";
+            if (Missing(ThirdDay) && Allowed("fire3")) return "fire3";
             // master covers day 100, the portal assault (Safe in X, Tenth Day) and the win
-            if (Missing(Acre)) return "acre";                                           // short run (~2 min)
+            if (Missing(Acre) && Allowed("acre")) return "acre";
+            if (Missing(FirstDay) && Allowed("army1")) return "army1";                                       // reroll maps until rich enough                                           // short run (~2 min)
             if (Missing("SURVIVED_UNTIL_DAY_100")) return "survive";                    // pure defence (record: day 98)
             if (Missing("SAFE_IN_40") || Missing(TenthDay)) return "master";              // portal assault
-            if (pacifistEnabled && (Missing(FifthDays) || Missing(EighthDay))) return "pacifist";
+            if (pacifistEnabled && (Missing(FifthDays) || Missing(EighthDay)) && Allowed("pacifist")) return "pacifist";
             return "master";
         }
     }

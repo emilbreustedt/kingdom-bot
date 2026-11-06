@@ -31,7 +31,8 @@ namespace KingdomBot
         /// <summary>"main": no walls on day 0, castle upgrade on day 1 -> free walls (ON_THE_SECOND_DAY).
         /// "fire3": first campfire only on day counter 2 (ON_THE_THIRD_DAY), survive two nights by evading.</summary>
         public string Mode = "master";        // effective mode of the current run
-        public string ConfigMode = "auto";   // auto | master | fire3 | pacifist
+        public string ConfigMode = "auto";   // auto | main | early | challenge (old names are aliases)
+        public string RunType = "main";      // run type of the current run; Mode = phase derived from it every step
         public bool PacifistEnabled = true;
         float _newGameAt = -1f;
         public bool AcreRun = false;       // dedicated run: heavy forest clearing until day 6
@@ -54,52 +55,75 @@ namespace KingdomBot
 
         static string ModeFile { get { return System.IO.Path.Combine(Plugin.Dir, "run_mode.txt"); } }
 
-        void ChooseModeForRun(bool continuing)
+        /// <summary>Old mode names map to the three run types.</summary>
+        public static string NormalizeRunType(string m)
         {
-            if (ConfigMode == "main") ConfigMode = "master";
-            string saved = null;
-            try { if (continuing && System.IO.File.Exists(ModeFile)) saved = System.IO.File.ReadAllText(ModeFile).Trim(); } catch { }
-            if (ConfigMode == "auto" && !string.IsNullOrEmpty(saved)) Mode = saved;          // loaded run keeps its mode
-            else Mode = ConfigMode == "auto" ? Campaign.PickMode(PacifistEnabled) : ConfigMode;
-            try { System.IO.File.WriteAllText(ModeFile, Mode); } catch { }
-            Plugin.Log((continuing ? "Continuing run" : "New run") + " - mode: " + Mode + " | " + Campaign.Summary());
+            switch ((m ?? "").Trim().ToLowerInvariant())
+            {
+                case "auto": return "auto";
+                case "early": case "army1": case "feast": case "acre": return "early";
+                case "challenge": case "fire3": case "pacifist": return "challenge";
+                default: return "main";   // main, master, survive
+            }
         }
 
-        /// <summary>Short special runs end as soon as their goal is reached or impossible (only in auto).</summary>
+        void ChooseModeForRun(bool continuing)
+        {
+            string cfg = NormalizeRunType(ConfigMode);
+            string saved = null;
+            try { if (continuing && System.IO.File.Exists(ModeFile)) saved = NormalizeRunType(System.IO.File.ReadAllText(ModeFile)); } catch { }
+            if (cfg == "auto" && !string.IsNullOrEmpty(saved) && saved != "auto") RunType = saved;           // a loaded run keeps its type
+            else RunType = cfg == "auto" ? Campaign.PickMode(PacifistEnabled) : cfg;
+            try { System.IO.File.WriteAllText(ModeFile, RunType); } catch { }
+            UpdatePhase();
+            Plugin.Log((continuing ? "Continuing run" : "New run") + " - type: " + RunType + " (phase " + Mode + ") | " + Campaign.Summary());
+        }
+
+        /// <summary>
+        /// Phase of the current step:
+        ///  early     = army1 (day 1: 8 archers) -> feast (10th deer on day 4) -> acre (clearing until day 7) -> master
+        ///  challenge = fire3 (no camp until day 3) -> pacifist (no kills until day 6, no coin on the ground until day 8) -> master
+        ///  main      = master (record defence + economy + portal assault)
+        /// </summary>
+        void UpdatePhase()
+        {
+            var am = Managers.achievements;
+            int dayC = am != null && am.counters != null ? am.counters[1] : GameState.Day;
+            string phase = "master";
+            if (RunType == "early")
+            {
+                if (dayC == 0 && Campaign.Missing(Campaign.FirstDay)) phase = "army1";
+                else if (dayC <= 3 && Campaign.Missing(Campaign.FourthDay)) phase = "feast";
+                else if (dayC <= 6 && Campaign.Missing(Campaign.Acre)) phase = "acre";
+            }
+            else if (RunType == "challenge")
+            {
+                bool fireLit = am != null && am.flags != null && am.flags[3];
+                if (dayC < 2 && !fireLit && Campaign.Missing(Campaign.ThirdDay)) phase = "fire3";
+                else if (dayC < 8 && (Campaign.Missing(Campaign.FifthDays) || Campaign.Missing(Campaign.EighthDay))) phase = "pacifist";
+            }
+            if (phase != Mode) { if (Mode != null) Plugin.Log("Phase: " + Mode + " -> " + phase); Mode = phase; }
+        }
+
+        /// <summary>Special runs end as soon as none of their achievements is reachable any more (only in auto).</summary>
         void CheckRunEnd()
         {
-            if (ConfigMode != "auto" || _newGameAt > 0f) return;
+            if (NormalizeRunType(ConfigMode) != "auto" || _newGameAt > 0f || RunType == "main") return;
             var am = Managers.achievements; if (am == null || am.flags == null) return;
             int dayC = am.counters[1];
-            string reason = null;
-            if (Mode == "fire3")
-            {
-                if (am.flags[3] && dayC < 2) reason = "fire too early";
-                else if (am.flags[3] && dayC >= 2) reason = "fire run done";
-            }
-            else if (Mode == "army1")
-            {
-                if (am.counters[3] >= 8 && dayC == 0) reason = "8 archers on day 1";
-                else if (dayC >= 1) reason = "army1: day 1 over (" + am.counters[3] + " archers)";
-            }
-            else if (Mode == "acre")
-            {
-                if (am.counters[7] >= AcreTarget) reason = "acre cleared (" + am.counters[7] + ")";
-                else if (dayC > 6) reason = "acre run: too late (gap " + am.counters[7] + ")";
-            }
-            else if (Mode == "pacifist")
-            {
-                bool fiveOpen = Campaign.Missing(Campaign.FifthDays) && am.counters[5] == 0 && dayC < 6;
-                bool eightOpen = Campaign.Missing(Campaign.EighthDay) && !am.flags[5] && dayC < 8;
-                if (!fiveOpen && !eightOpen) reason = "pacifist run done (kills=" + am.counters[5] + ", coin on ground=" + am.flags[5] + ")";
-            }
-            if (reason != null)
-            {
-                bool success = reason.StartsWith("8 archers") || reason.StartsWith("acre cleared") || reason == "fire run done";
-                if (!success) Campaign.Fail(Mode);
-                Plugin.Log("Run finished: " + reason + " -> new game");
-                _newGameAt = Time.unscaledTime + 6f;   // let the unlock coroutine finish first
-            }
+            bool possible;
+            if (RunType == "early")
+                possible = (dayC == 0 && Campaign.Missing(Campaign.FirstDay))
+                        || (dayC <= 3 && am.counters[4] < 10 && Campaign.Missing(Campaign.FourthDay))
+                        || (dayC <= 6 && Campaign.Missing(Campaign.Acre));
+            else
+                possible = (dayC <= 2 && Campaign.Missing(Campaign.ThirdDay) && !(am.flags[3] && dayC < 2))
+                        || (dayC < 6 && am.counters[5] == 0 && Campaign.Missing(Campaign.FifthDays))
+                        || (dayC < 8 && !am.flags[5] && Campaign.Missing(Campaign.EighthDay));
+            if (possible) return;
+            Plugin.Log("Run finished (" + RunType + ", day counter " + dayC + ") -> new game | " + Campaign.Summary());
+            Campaign.Fail(RunType);      // counts attempts; auto moves on once everything of this type is unlocked or after too many tries
+            _newGameAt = Time.unscaledTime + 6f;   // let unlock coroutines finish first
         }
 
         public void Think()
@@ -145,7 +169,7 @@ namespace KingdomBot
             if ((int)game.gameState == 3)
             {
                 if (_gameOverAt < 0) _gameOverAt = Time.unscaledTime;
-                if (AutoRestart && Time.unscaledTime - _gameOverAt > 10f && Mode != "survive" && Mode != "master" && !_failCounted) { Campaign.Fail(Mode); _failCounted = true; }
+                if (AutoRestart && Time.unscaledTime - _gameOverAt > 10f && RunType != "main" && !_failCounted) { Campaign.Fail(RunType); _failCounted = true; }
                 if (AutoRestart && Time.unscaledTime - _gameOverAt > 10f) { _failCounted = false; _gameOverAt = -1; Runs++; Status = "Restart (attempt " + (Runs + 1) + ")"; _pl.Queue.Clear(); Acc.Call(game, "Restart"); return; }
                 Status = "Game Over"; Push("wait 1"); return;
             }
@@ -161,6 +185,7 @@ namespace KingdomBot
 
             var k = Managers.kingdom;
             int day = GameState.Day;
+            UpdatePhase();
             CheckRunEnd();
             if (Mode == "pacifist") { ThinkPacifist(); return; }
             if (Mode == "army1") { ThinkArmy1(); return; }
@@ -179,8 +204,9 @@ namespace KingdomBot
                 bool ready = (d >= 12 && arch >= 15) || d >= 20;
                 if (ready && !night && !danger && AssaultStep(UnityEngine.Object.FindObjectsOfType<Payable>(), d, hr, bud, arch, hm, pxx)) return;
             }
+            if (Mode == "feast" && GameState.Player != null && (int)Managers.game.gameState == 2 && FeastStep()) return;
             if ((Mode == "survive" || Mode == "master") && GameState.Player != null && (int)Managers.game.gameState == 2 && EconomyStep()) return;
-            if (Mode == "survive" || Mode == "master")
+            if (Mode == "survive" || Mode == "master" || Mode == "feast")
             {
                 if (_legacy == null) _legacy = new LegacyBrain(_pl);
                 _legacy.ThinkInner();
@@ -493,7 +519,7 @@ namespace KingdomBot
                 foreach (var ch in UnityEngine.Object.FindObjectsOfType<Chest>()) if (!ch.isEmpty && Mathf.Abs(ch.transform.position.x - home) < 70f) avail += ch.coins;
                 _mapChecked = true;
                 Plugin.Log("army1: coins reachable on this map = " + avail + " (reroll " + _rerolls + ")");
-                if (avail < 24 && _rerolls < 40 && ConfigMode == "auto")
+                if (avail < 24 && _rerolls < 10 && NormalizeRunType(ConfigMode) == "auto")
                 {
                     _rerolls++; _lastDaySeen = -1; _pl.Queue.Clear();
                     Acc.Call(Managers.game, "Restart");
@@ -543,6 +569,43 @@ namespace KingdomBot
             }
             if (Mathf.Abs(best) > 1e5f) best = px + side * 60f;
             return best - side * 15f;
+        }
+
+        /// <summary>
+        /// ON_THE_FOURTH_DAY: the 10th hunted deer must fall on day counter 3. Archers only hunt in safe daytime and
+        /// deer flee from the rider -> ride around a deer and push it towards the camp, following a deer schedule.
+        /// </summary>
+        bool FeastStep()
+        {
+            var k = Managers.kingdom; var am = Managers.achievements;
+            if (am == null || am.counters == null) return false;
+            int dayC = am.counters[1], deer = am.counters[4];
+            float px = GameState.PX, home = k.campfirePosition, hour = GameState.Hour;
+            int archers = UnityEngine.Object.FindObjectsOfType<Archer>().Length;
+            if (!k.isDaytime || hour > k.dayEnd - 4f || archers < 2 || dayC > 3) return false;
+            var en = NearestEnemy(px);
+            if (en != null && Mathf.Abs(en.transform.position.x - px) < 15f) return false;
+            int allowed = dayC == 0 ? 3 : dayC == 1 ? 6 : dayC == 2 ? 9 : 10;   // never reach 10 before day counter 3
+            if (deer >= allowed) return false;
+            // nearest deer outside the walls
+            float l = WallEdge(-1, home), r = WallEdge(1, home);
+            Deer best = null; float bd = 90f;
+            foreach (var d in UnityEngine.Object.FindObjectsOfType<Deer>())
+            {
+                float x = d.transform.position.x;
+                if (x > l && x < r) continue;
+                float dist = Mathf.Abs(x - home);
+                if (dist < bd) { bd = dist; best = d; }
+            }
+            if (best == null) return false;
+            float dx = best.transform.position.x;
+            int side = dx < home ? -1 : 1;
+            float behind = dx + side * 7f;                      // get round the deer (far side from the camp)
+            Status = "Feast: herd deer (" + deer + "/10, day counter " + dayC + ", allowed " + allowed + ")";
+            _safeMode = true;
+            if ((px - dx) * side < 3f) { Push("goto " + F(behind) + " 1.5 12"); return true; }
+            Push("walkto " + F(home + side * 6f) + " 2 10");     // ride back towards the camp: the deer flees ahead into the archers
+            return true;
         }
 
         /// <summary>Farms = the main mid-game income. Build a farmhouse near the camp and staff it with farmers.</summary>

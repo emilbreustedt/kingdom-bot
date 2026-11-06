@@ -32,7 +32,7 @@ namespace KingdomBot
             Brain = new Brain(this);
             // user settings: BepInEx/config/emil.kingdombot.cfg
             Brain.ConfigMode = Config.Bind("General", "Mode", "auto",
-                "auto = pick the run type from the achievements still missing on Steam; or master | fire3 | pacifist").Value;
+                "auto = pick the run type from the achievements still missing on Steam; or main | early | challenge").Value;
             Speed = Config.Bind("General", "Speed", 16f, "Game speed while the bot plays (1-16). F10 cycles at runtime.").Value;
             BotActive = AutoBrain = Config.Bind("General", "AutoStart", true, "Bot takes over as soon as the game runs (F8/F9 toggle).").Value;
             Brain.AutoRestart = Config.Bind("General", "AutoRestart", true, "Start a new game automatically after game over.").Value;
@@ -135,7 +135,7 @@ namespace KingdomBot
                     Application.Quit(); continue;
                 }
                 if (l == "newgame") { try { Queue.Clear(); Ctl.Reset(); Acc.Call(Managers.game, "Restart"); Log("New game requested"); } catch (Exception e) { Log("newgame failed: " + e.Message); } continue; }
-                if (l.StartsWith("mode ")) { Brain.ConfigMode = l.Substring(5).Trim(); Brain.Mode = Brain.ConfigMode == "auto" ? Campaign.PickMode(Brain.PacifistEnabled) : Brain.ConfigMode; Log("Mode: " + Brain.ConfigMode + " -> " + Brain.Mode); continue; }
+                if (l.StartsWith("mode ")) { Brain.ConfigMode = Brain.NormalizeRunType(l.Substring(5)); Log("Run type for the next run: " + Brain.ConfigMode); continue; }
                 if (l == "achievements") { Log(Campaign.Summary()); continue; }
                 if (l == "debug") { DebugDump(); continue; }
                 if (l == "clear") { Queue.Clear(); Ctl.Reset(); continue; }

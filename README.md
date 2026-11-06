@@ -49,7 +49,7 @@ controller input with its own, and runs a rule-based strategy at up to 16× game
 4. Optional settings in `BepInEx/config/emil.kingdombot.cfg` (created on first start):
    ```ini
    [General]
-   Mode = auto          # auto | master | fire3 | pacifist
+   Mode = auto          # auto | main | early | challenge
    Speed = 16
    AutoStart = true
    AutoRestart = true
@@ -62,14 +62,18 @@ controller input with its own, and runs a rule-based strategy at up to 16× game
 
 To update the bot **without losing the current run** use `.\deploy.ps1` (save & quit → build → start; the game reloads its `AUTO` save).
 
-## Modes
+## Run types
 
-| Mode | Targets |
-|------|---------|
-| `auto` | default — chooses one of the modes below based on your missing achievements |
-| `master` | *Second Day Gift* and *Ninth Day* (only if missing), survival up to day 100, portal assault → *Safe in 25–40*, *Tenth Day*, win |
-| `fire3` | *On the Third Day I Lit Up a Fire* — survive two nights without a camp |
-| `pacifist` | *Five Days I Turned the Other Cheek* + *Eighth Day I Fumbled* — no recruiting, no dropped coins (experimental) |
+You normally never pick anything: with `Mode = auto` the bot reads which achievements are still missing on Steam and
+plays the right kind of run, restarting automatically until everything of that kind is unlocked (or after 5 failed tries).
+
+| Run type | Phases (switch by day) | Achievements |
+|---|---|---|
+| `challenge` | days 1–2 no camp (dodge) → light the fire on day 3 → no kills / no coin on the ground until day 8 (walls only, coins handed straight to beggars) | Third Day Fire, Five Days, Eighth Day |
+| `early` | day 1: 8 archers (map reroll if too poor) → days 1–4 deer hunting → days 4–7 clearing | First Day Army, Fourth Day Feast, Cleared an Acre |
+| `main` | record defence + farms → stone, castle level 5, knights, border charges | Second Day Gift, Ninth Day, Day V … C, Safe in 25–40, Tenth Day, win |
+
+Old mode names still work (`master`/`survive` → main, `fire3`/`pacifist` → challenge, `army1`/`feast`/`acre` → early).
 
 ## Controls
 
@@ -84,7 +88,7 @@ To update the bot **without losing the current run** use `.\deploy.ps1` (save & 
 ```
 bot on | bot off | auto on | auto off | clear | achievements | savequit
 speed 16
-mode auto | mode master | mode fire3 | mode pacifist
+mode auto | mode main | mode early | mode challenge
 newgame
 goto X [tol] [timeout]     walkto X [tol] [timeout]
 payid <instanceId> [x]     pay      tap N      wait S      shot

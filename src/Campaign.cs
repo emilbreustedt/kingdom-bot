@@ -23,7 +23,7 @@ namespace KingdomBot
         static readonly Dictionary<string, bool> _cache = new Dictionary<string, bool>();
         /// <summary>failed runs per special mode in this session; after MaxFailures auto moves on</summary>
         public static readonly Dictionary<string, int> Failures = new Dictionary<string, int>();
-        public const int MaxFailures = 3;
+        public const int MaxFailures = 5;
         static string FailFile { get { return System.IO.Path.Combine(Plugin.Dir, "failures.txt"); } }
         static bool _loaded;
         static void LoadFailures()
@@ -98,15 +98,10 @@ namespace KingdomBot
         /// <summary>Mode for the next run in "auto".</summary>
         public static string PickMode(bool pacifistEnabled)
         {
-            if (Missing(ThirdDay) && Allowed("fire3")) return "fire3";
-            // master covers day 100, the portal assault (Safe in X, Tenth Day) and the win
-            if (Missing(Acre) && Allowed("acre")) return "acre";
-            if (Missing(FirstDay) && Allowed("army1")) return "army1";                                       // reroll maps until rich enough                                           // short run (~2 min)
-            // portal assault first: Safe in 25/30/35/40 only need all inner portals destroyed before day X (4 achievements)
-            if (Missing("SAFE_IN_40") || Missing(TenthDay)) return "master";
-            if (Missing("SURVIVED_UNTIL_DAY_100")) return "survive";                    // pure defence (record: day 98)
-            if (pacifistEnabled && (Missing(FifthDays) || Missing(EighthDay)) && Allowed("pacifist")) return "pacifist";
-            return "master";
+            // short special runs first (a few minutes each), the long main run last
+            if ((Missing(ThirdDay) || (pacifistEnabled && (Missing(FifthDays) || Missing(EighthDay)))) && Allowed("challenge")) return "challenge";
+            if ((Missing(FirstDay) || Missing(FourthDay) || Missing(Acre)) && Allowed("early")) return "early";
+            return "main";
         }
     }
 }

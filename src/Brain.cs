@@ -1078,7 +1078,7 @@ namespace KingdomBot
             if (finalWave || !assault) return false;   // survive mode / all inner portals gone: only defend
             // shields -> knights
             var shield = Find(payables, x => x is PayableShield && SafeCanPay(x), home);
-            if (shield != null && budget >= shield.price + 3) { Status = "Assault: buy shield (" + shield.price + ")"; PayAt(shield); return true; }
+            if (shield != null && UnityEngine.Object.FindObjectsOfType<Knight>().Length + ShieldsWaiting() < KnightTarget && budget >= shield.price + 3) { Status = "Assault: buy shield (" + shield.price + ")"; PayAt(shield); return true; }
             // arm the knights: coins in a knight's purse are knocked out before he loses his shield
             var knights = UnityEngine.Object.FindObjectsOfType<Knight>();
             Knight poor = null; int poorCoins = 99;

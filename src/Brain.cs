@@ -675,7 +675,7 @@ namespace KingdomBot
             if (Managers.techUpgrades != null && !Managers.techUpgrades.stoneBuilding && day >= 4 && hour < k.dayEnd - 9f)
             {
                 var shrine = Find(payables, x => x is PayableUpgrade && x.name.StartsWith("Mason") && SafeCanPay(x));
-                if (shrine != null && coins >= shrine.price + 3 && Mathf.Abs(shrine.transform.position.x - home) < 140f)
+                if (shrine != null && coins >= shrine.price + 3 && Mathf.Abs(shrine.transform.position.x - home) < 220f)
                 { Status = "Defence: mason shrine (stone)"; Cool(shrine.GetInstanceID(), 30f); Push("goto " + F(PayX(shrine)) + " 0.3 40"); Push("payid " + shrine.GetInstanceID() + " " + F(PayX(shrine))); Push("goto " + F(home) + " 1 40"); return true; }
             }
             if (workers < 1) return false;
@@ -758,7 +758,7 @@ namespace KingdomBot
             if (item == null && Managers.techUpgrades != null && !Managers.techUpgrades.stoneBuilding)
             {
                 var shrine = Find(payables, x => x is PayableUpgrade && x.name.StartsWith("Mason") && SafeCanPay(x));
-                if (shrine != null && Mathf.Abs(shrine.transform.position.x - home) < 140f && hour < k.dayEnd - 9f) { item = shrine; what = "mason shrine (stone)"; }
+                if (shrine != null && Mathf.Abs(shrine.transform.position.x - home) < 220f && hour < k.dayEnd - 9f) { item = shrine; what = "mason shrine (stone)"; }
             }
             // 2. outer wall of the weaker side below today's target
             if (item == null)
@@ -1012,7 +1012,7 @@ namespace KingdomBot
             if (Managers.techUpgrades != null && !Managers.techUpgrades.stoneBuilding && archers >= 8 && morning && !_armyFirst)
             {
                 var shrine = Find(payables, x => x is PayableUpgrade && x.name.StartsWith("Mason") && SafeCanPay(x));
-                if (shrine != null && budget >= shrine.price && Mathf.Abs(shrine.transform.position.x - home) < 140f)
+                if (shrine != null && budget >= shrine.price && Mathf.Abs(shrine.transform.position.x - home) < 220f)
                 { Status = "Assault prep: mason shrine (stone)"; Cool(shrine.GetInstanceID(), 30f); Push("goto " + F(PayX(shrine)) + " 0.3 40"); Push("payid " + shrine.GetInstanceID() + " " + F(PayX(shrine))); Push("goto " + F(home) + " 1 40"); return true; }
             }
             if (!assault && day >= 10 && archers >= 8)

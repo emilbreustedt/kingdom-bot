@@ -1300,7 +1300,10 @@ namespace KingdomBot
                     }
                     float outerRel = (WallEdge(side, home) - home) * side;
                     // dead but not crumbled: enemies camping there block its collapse -> bring the archers (outermost wall) close
-                    float gapNeeded = deadTarget ? 45f : ForwardGap;
+                    // the last intact portal is usually the far one the knights never reach: move the launch point towards it
+                    int intact = 0;
+                    foreach (var po2 in UnityEngine.Object.FindObjectsOfType<Portal>()) { var dm2 = po2.GetComponent<Damageable>(); if (!po2.outerSpawner && (dm2 == null || dm2.hitPoints > 0)) intact++; }
+                    float gapNeeded = deadTarget ? 45f : intact == 1 ? 90f : ForwardGap;
                     if (portalRel == float.MaxValue || portalRel - outerRel < gapNeeded) continue;
                     Payable spot = null, tree = null; float sd = float.MaxValue, td = float.MaxValue;
                     foreach (var p in payables)

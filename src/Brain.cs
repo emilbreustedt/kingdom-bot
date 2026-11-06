@@ -208,15 +208,9 @@ namespace KingdomBot
                 if (ready && !night && !danger && AssaultStep(UnityEngine.Object.FindObjectsOfType<Payable>(), d, hr, bud, arch, hm, pxx)) return;
             }
             if (Mode == "master" && GameState.Player != null && (int)Managers.game.gameState == 2 && (EconomyStep() || DefenseStep())) return;
-            // survival: stone walls decide late survival (L3/L4 = 200/300 HP vs 50 HP). Upgrade the outer walls whenever the
-            // army is large enough for the day (or money piles up); otherwise the record strategy recruits first.
-            if (Mode == "survive" && GameState.Player != null && (int)Managers.game.gameState == 2)
-            {
-                int d0 = GameState.Day;
-                int archersNow = UnityEngine.Object.FindObjectsOfType<Archer>().Length;
-                bool armyOk = archersNow >= Mathf.Min(2 * d0 + 4, 30);
-                if ((armyOk || GameState.Coins >= 20) && DefenseStep()) return;
-            }
+            // survival: stone walls decide late survival (L3/L4 = 200/300 HP vs 50 HP). Follow a wall schedule and save for
+            // the next step during the day if needed; otherwise the record strategy plays as usual.
+            if (Mode == "survive" && GameState.Player != null && (int)Managers.game.gameState == 2 && WallSchedule()) return;
             if (Mode == "survive" || Mode == "master" || Mode == "feast")
             {
                 if (_legacy == null) _legacy = new LegacyBrain(_pl);
@@ -689,6 +683,56 @@ namespace KingdomBot
                 if (w != null && coins >= w.price + 8) { Status = "Defence: 2nd wall " + (side < 0 ? "left" : "right"); PayAt(w); return true; }
             }
             return false;
+        }
+
+        /// <summary>Target level of the outer walls per day (boss nights get much harder from ~day 10 and ~day 25).</summary>
+        static int WallTarget(int day) { return day >= 14 ? 4 : day >= 9 ? 3 : day >= 4 ? 2 : 1; }
+
+        /// <summary>Buys the next scheduled defence item, or saves for it (patrol for taxes, pick up coins). true = acted.</summary>
+        bool WallSchedule()
+        {
+            var k = Managers.kingdom;
+            int day = GameState.Day; float hour = GameState.Hour, px = GameState.PX, home = k.campfirePosition;
+            if (day < 4 || !k.isDaytime || hour > k.dayEnd - 4f) return false;
+            var en = NearestEnemy(px);
+            if (en != null && Mathf.Abs(en.transform.position.x - px) < 15f) return false;
+            if (UnityEngine.Object.FindObjectsOfType<Worker>().Length < 1) return false;   // walls need builders
+            int coins = GameState.Coins;
+            var payables = UnityEngine.Object.FindObjectsOfType<Payable>();
+            Payable item = null; string what = null;
+            // 1. stone tech first (wall levels 3+ need it)
+            if (Managers.techUpgrades != null && !Managers.techUpgrades.stoneBuilding)
+            {
+                var shrine = Find(payables, x => x is PayableUpgrade && x.name.StartsWith("Mason") && SafeCanPay(x));
+                if (shrine != null && Mathf.Abs(shrine.transform.position.x - home) < 140f && hour < k.dayEnd - 9f) { item = shrine; what = "mason shrine (stone)"; }
+            }
+            // 2. outer wall of the weaker side below today's target
+            if (item == null)
+            {
+                int target = WallTarget(day), bestLvl = 99;
+                for (int side = -1; side <= 1; side += 2)
+                {
+                    var outer = OuterWall(side, home);
+                    if (outer == null || outer.level >= target) continue;
+                    var up = UpgradeOf(payables, outer);
+                    if (up != null && outer.level < bestLvl) { bestLvl = outer.level; item = up; what = "outer wall " + (side < 0 ? "left" : "right") + " L" + outer.level + "->" + (outer.level + 1); }
+                }
+            }
+            if (item == null) return false;
+            if (coins >= item.price + 1)
+            {
+                Status = "Defence: " + what + " (" + item.price + ")";
+                if (item.name.StartsWith("Mason")) { Cool(item.GetInstanceID(), 30f); Push("goto " + F(PayX(item)) + " 0.3 40"); Push("payid " + item.GetInstanceID() + " " + F(PayX(item))); Push("goto " + F(home) + " 1 40"); }
+                else PayAt(item);
+                return true;
+            }
+            // save: collect coins and taxes instead of spending
+            var c = NearestCoin(px, home - 40f, home + 40f);
+            if (c != null) { Cool(c.GetInstanceID(), 1e7f); Status = "Saving for " + what + ": coin"; Push("goto " + F(c.transform.position.x) + " 0.3 15"); return true; }
+            Status = "Saving for " + what + " (" + coins + "/" + (item.price + 1) + ")";
+            float l = WallEdge(-1, home), r = WallEdge(1, home);
+            Push("walkto " + F(px < home ? r - 1f : l + 1f) + " 1 20");   // ride along the walls past the archers (taxes)
+            return true;
         }
 
         /// <summary>

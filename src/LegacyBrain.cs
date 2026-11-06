@@ -336,7 +336,12 @@ namespace KingdomBot
             float l = WallEdge(-1, home), r = WallEdge(1, home);
             if (evening && (px < l - 0.5f || px > r + 0.5f)) { Status = "Abbruch: Abend"; return true; }
             var e = NearestEnemy(px);
-            if (e != null && Mathf.Abs(e.transform.position.x - px) < 9f && !WallBetween(px, e.transform.position.x)) { Status = "Abbruch: Gegner"; return true; }
+            if (e != null && Mathf.Abs(e.transform.position.x - px) < 9f && !WallBetween(px, e.transform.position.x))
+            {
+                // a troll hit costs one coin: with a purse only big enemies / squids (grab) break off the current task
+                bool big = e.GetComponent<Boss>() != null || e.GetComponent<Ogre>() != null || e.GetComponent<Squid>() != null;
+                if (big || GameState.Coins < 6) { Status = "Abbruch: Gegner"; return true; }
+            }
             return false;
         }
 

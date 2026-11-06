@@ -931,7 +931,7 @@ namespace KingdomBot
         // Farms (tree clearing + wall beyond the farm + scythes) cost more than they earned in tests: the army stayed
         // at ~12 archers by day 30 instead of 25-30. Off by default.
         public bool UseFarms = true;      // guides: 1 farm + 4 farmers after day 5 is the basis of a fast win
-        public bool FarmClearTrees = false;
+        public bool FarmClearTrees = true;   // only a few trees (<= 4) for a spot right in front of the walls
         public int FarmerTarget = 4;   // 4 coins every other day = ~half of the late-game income; not worth it
         public int KnightTarget = 3;   // 3 knights destroy portals reliably; every shield (6) is a banner payment less at castle 5 (~1 coin/day)
 
@@ -1112,7 +1112,7 @@ namespace KingdomBot
             {
                 if (!(fp is PayableUpgrade) || !fp.name.StartsWith("Farmhouse")) continue;
                 float fx = fp.transform.position.x;
-                if (Mathf.Abs(fx - home) > 80f) continue;
+                if (fx < lw - 20f || fx > rw + 20f) continue;   // only spots right in front of the walls
                 float lo = Mathf.Min(home, fx) - 2f, hi = Mathf.Max(home, fx) + 2f;
                 int count = 0; Payable nearest = null; float nd = float.MaxValue;
                 foreach (var t in payables)
@@ -1123,7 +1123,7 @@ namespace KingdomBot
                     count++;
                     if (SafeCanPay(t) && !OnCooldown(t.GetInstanceID()) && Mathf.Abs(tx - home) < nd) { nd = Mathf.Abs(tx - home); nearest = t; }
                 }
-                if (nearest != null && count < bestCount) { bestCount = count; bestTree = nearest; }
+                if (nearest != null && count <= 4 && count < bestCount) { bestCount = count; bestTree = nearest; }   // a few trees at most
             }
             return bestTree;
         }

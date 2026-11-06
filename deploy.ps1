@@ -3,6 +3,12 @@ param([string]$GamePath = (& "$PSScriptRoot\tools\find-game.ps1"))
 $ErrorActionPreference = 'Stop'
 $proc = Get-Process Kingdom -ErrorAction SilentlyContinue | Where-Object { $_.Path -like "$GamePath*" }
 if ($proc) {
+    # never interrupt a promising run: save & quit late in a run (e.g. during the final wave) can lose it
+    try { $st0 = Get-Content "$GamePath\BepInEx\KingdomBot\state.json" -ErrorAction Stop | ConvertFrom-Json } catch { $st0 = $null }
+    if (-not $Force -and $st0 -and $st0.gameState -eq 'Game' -and $st0.day -ge 15) {
+        Write-Output "Run is on day $($st0.day) - not deploying (would risk the run). Use -Force to override."
+        exit 1
+    }
     # save only while no enemies exist (daytime, after they retreated): saved enemies come back as frozen "ghosts"
     for ($i = 0; $i -lt 120; $i++) {
         try { $st = Get-Content "$GamePath\BepInEx\KingdomBot\state.json" -ErrorAction Stop | ConvertFrom-Json } catch { Start-Sleep 1; continue }

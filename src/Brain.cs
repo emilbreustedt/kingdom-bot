@@ -921,7 +921,7 @@ namespace KingdomBot
         }
         public int AssaultArmyCap = 25;
         public int MasterRunEndDay = 60;   // TEMP diagnostics: watch knights vs portals after day 40 (normal: 40)
-        public int BurstCoins = 38;   // castle 4 (8) + castle 5 (9) + 2 shields (12) + banner (4) + purse (3) + 2; late-game income ~= upkeep, the bank plateaus ~40
+        public int BurstCoins = 50;   // castle 4 (8) + castle 5 (9) + 2 shields (12) + 4 banners (16) + purse; castle 5 earns ~1 coin/day, every charge (4) must come from the bank
 
         /// <summary>Coins the record strategy must leave alone while the assault saves for castle 4/5 and shields.</summary>
         public static int ShieldsWaitingPublic() { return ShieldsWaiting(); }
@@ -936,9 +936,10 @@ namespace KingdomBot
             Payable castle = null;
             foreach (var x in UnityEngine.Object.FindObjectsOfType<Payable>())
                 if (x is PayableUpgrade && x.name.StartsWith("Castle") && CastleIndex(x.name) >= 4 && CastleIndex(x.name) <= 5) { castle = x; break; }
-            if (castle != null) return CastleIndex(castle.name) == 4 ? (includeBank ? b.BurstCoins : 0) : castle.price + 2 * 6 + 4 + 3;   // castle 5 + 2 shields + banner + purse
+            if (castle != null) return CastleIndex(castle.name) == 4 ? (includeBank ? b.BurstCoins : 0) : castle.price + 2 * 6 + 4 * 4 + 3;   // castle 5 + 2 shields + 4 banners + purse
             int missing = Mathf.Max(0, 2 - UnityEngine.Object.FindObjectsOfType<Knight>().Length - ShieldsWaiting());
-            return missing * 6 + 4 + 3;   // shields for 2 knights + banner + purse
+            int inner = 0; foreach (var po in UnityEngine.Object.FindObjectsOfType<Portal>()) { var dm = po.GetComponent<Damageable>(); if (!po.outerSpawner && (dm == null || dm.hitPoints > 0)) inner++; }
+            return missing * 6 + Mathf.Max(1, inner) * 4 + 3;   // shields for 2 knights + one banner per remaining portal + purse
         }       // castle 4 (8) + castle 5 (12) + 2 shields (12) + purse   // while saving for castle/shields the army only grows to this size (else nothing is ever saved)
 
         /// <summary>Farmhouse payable to build next (first farm once scythes are sold, second one from day 12), or null.</summary>

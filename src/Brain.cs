@@ -1104,8 +1104,18 @@ namespace KingdomBot
                 if (ws != null && budget - AssaultReserve(true) >= ws.price + 3) { Status = "Buy catapult (" + ws.price + ")"; PayAt(ws); return true; }
             }
             if (finalWave || !assault) return false;   // survive mode / all inner portals gone: only defend
-            // arm the knights: coins in a knight's purse are knocked out before he loses his shield
             var knights = UnityEngine.Object.FindObjectsOfType<Knight>();
+            // ready to charge: at least 2 knights, each with a coin of armour (waiting for 4 fully armed knights took
+            // until the next boss night, which killed them before any charge)
+            bool armed = knights.Length >= 2;
+            foreach (var kn in knights) { int kc = 0; try { kc = Acc.Wallet(kn).coins; } catch { } if (kc < 1) armed = false; }
+            // charge: pay the border banner while knights with archers are ready (and armed)
+            if (morning && armed)
+            {
+                var border = Find(payables, x => x is PayableBorder && SafeCanPay(x), px);
+                if (border != null && budget >= border.price) { Status = "Assault: knights CHARGE (" + border.name.Replace("(Clone)", "") + ")"; Cool(border.GetInstanceID(), 60f); PayAt(border); return true; }
+            }
+            // arm the knights: coins in a knight's purse are knocked out before he loses his shield
             Knight poor = null; int poorCoins = 99;
             foreach (var kn in knights)
             {
@@ -1117,16 +1127,6 @@ namespace KingdomBot
                 Cool(poor.GetInstanceID(), 6f);
                 Status = "Assault: arm knight (" + poorCoins + "/" + KnightArmor + " coins)";
                 Push("walkto " + F(poor.transform.position.x) + " 0.6 20"); Push("tap 2"); Push("wait 1.5"); return true;
-            }
-            // ready to charge: at least 2 knights, each with a coin of armour (waiting for 4 fully armed knights took
-            // until the next boss night, which killed them before any charge)
-            bool armed = knights.Length >= 2;
-            foreach (var kn in knights) { int kc = 0; try { kc = Acc.Wallet(kn).coins; } catch { } if (kc < 1) armed = false; }
-            // charge: pay the border banner while knights with archers are ready (and armed)
-            if (morning && armed)
-            {
-                var border = Find(payables, x => x is PayableBorder && SafeCanPay(x), px);
-                if (border != null && budget >= border.price) { Status = "Assault: knights CHARGE (" + border.name.Replace("(Clone)", "") + ")"; Cool(border.GetInstanceID(), 60f); PayAt(border); return true; }
             }
             // shields -> knights
             var shield = Find(payables, x => x is PayableShield && SafeCanPay(x), home);

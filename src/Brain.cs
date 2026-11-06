@@ -1014,7 +1014,7 @@ namespace KingdomBot
                 target = CastleIndex(castle.name) == 4 ? BurstCoins : castle.price + 3;
                 if (CastleIndex(castle.name) == 4) what = "castle 4+5 and shields";
             }
-            else if (UnityEngine.Object.FindObjectsOfType<Knight>().Length < KnightTarget)
+            else if (UnityEngine.Object.FindObjectsOfType<Knight>().Length + ShieldsWaiting() < 2)   // with 2 knights the charges come first; more shields only from spare coins
             {
                 var sh = Find(payables, x => x is PayableShield && SafeCanPay(x), home);
                 if (sh != null) { item = sh; what = "shield"; }

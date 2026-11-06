@@ -1229,7 +1229,7 @@ namespace KingdomBot
             if (assault && day >= 8 && archers >= 6)
             {
                 var castle = Find(payables, x => x is PayableUpgrade && x.name.StartsWith("Castle") && SafeCanPay(x) && CastleAllowed(x.name));
-                if (castle != null && budget >= castle.price + 3) { Status = "Assault prep: castle " + castle.name.Replace("(Clone)", "") + " (" + castle.price + ")"; PayAt(castle); return true; }
+                if (castle != null && k.isDaytime && hour < k.dayEnd - 5f && budget >= castle.price + 3) { Status = "Assault prep: castle " + castle.name.Replace("(Clone)", "") + " (" + castle.price + ")"; PayAt(castle); return true; }
             }
             // stone tech from the mason shrine (morning trip)
             if (Managers.techUpgrades != null && !Managers.techUpgrades.stoneBuilding && archers >= 8 && morning && !_armyFirst)

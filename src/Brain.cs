@@ -751,7 +751,7 @@ namespace KingdomBot
             var payables = UnityEngine.Object.FindObjectsOfType<Payable>();
             Payable item = null; string what = null;
             // 0. farms = the only income that scales; they come first from day 6
-            if (day >= 6) { var farm = FarmTarget(payables, home); if (farm != null) { item = farm; what = "farm"; } }
+            if (day >= 6) { var farm = FarmTarget(payables, home); if (farm != null) { item = farm; what = farm.name.StartsWith("Tree") ? "farmland (cut tree)" : "farm"; } }
             // 1. stone tech first (wall levels 3+ need it)
             if (item == null && Managers.techUpgrades != null && !Managers.techUpgrades.stoneBuilding)
             {
@@ -794,7 +794,7 @@ namespace KingdomBot
             {
                 Status = "Defence: " + what + " (" + item.price + ")";
                 if (item.name.StartsWith("Mason")) { Cool(item.GetInstanceID(), 30f); Push("goto " + F(PayX(item)) + " 0.3 40"); Push("payid " + item.GetInstanceID() + " " + F(PayX(item))); Push("goto " + F(home) + " 1 40"); }
-                else PayAt(item);
+                else { if (item.name.StartsWith("Tree")) Cool(item.GetInstanceID(), 60f); PayAt(item); }
                 return true;
             }
             // while saving the army must keep growing: bows for idle peasants, then recruit beggars (hand-over)
@@ -900,7 +900,29 @@ namespace KingdomBot
             foreach (var fh in UnityEngine.Object.FindObjectsOfType<Farmhouse>()) if (fh.level > 0 && Mathf.Abs(fh.transform.position.x - home) < 60f) farmsBuilt++;
             int farmers = UnityEngine.Object.FindObjectsOfType<Farmer>().Length;
             if (!(farmsBuilt == 0 || (farmsBuilt == 1 && farmers >= 3 && GameState.Day >= 12))) return null;
-            return Find(payables, x => x is PayableUpgrade && x.name.StartsWith("Farmhouse") && SafeCanPay(x) && Mathf.Abs(x.transform.position.x - home) < 55f, home);
+            var farm = Find(payables, x => x is PayableUpgrade && x.name.StartsWith("Farmhouse") && SafeCanPay(x) && Mathf.Abs(x.transform.position.x - home) < 55f, home);
+            if (farm != null) return farm;
+            // farmhouse spots only become payable inside the buildable (cleared) land: cut the trees between the camp
+            // and the nearest spot, fewest trees first
+            Payable bestTree = null; int bestCount = 99;
+            foreach (var fp in payables)
+            {
+                if (!(fp is PayableUpgrade) || !fp.name.StartsWith("Farmhouse")) continue;
+                float fx = fp.transform.position.x;
+                if (Mathf.Abs(fx - home) > 80f) continue;
+                float lo = Mathf.Min(home, fx) - 2f, hi = Mathf.Max(home, fx) + 2f;
+                int count = 0; Payable nearest = null; float nd = float.MaxValue;
+                foreach (var t in payables)
+                {
+                    if (!t.name.StartsWith("Tree")) continue;
+                    float tx = t.transform.position.x;
+                    if (tx < lo || tx > hi) continue;
+                    count++;
+                    if (SafeCanPay(t) && !OnCooldown(t.GetInstanceID()) && Mathf.Abs(tx - home) < nd) { nd = Mathf.Abs(tx - home); nearest = t; }
+                }
+                if (nearest != null && count < bestCount) { bestCount = count; bestTree = nearest; }
+            }
+            return bestTree;
         }
 
         /// <summary>Shields lying at a shield shop (bought, not yet taken by a peasant).</summary>
@@ -974,7 +996,7 @@ namespace KingdomBot
             bool wallsOk = WallsOnSide(-1, home) > 0 && WallsOnSide(1, home) > 0;
 
             // farm first (wall schedule saves for it), then the castle
-            if (day >= 6 && FarmTarget(payables, home) != null) return false;
+            if (day >= 6 && day < 25 && FarmTarget(payables, home) != null) return false;
             // castle first from day 8 (level 5 = shield shops) - only when attacking; survive upgrades normally
             if (assault && day >= 8 && archers >= 6)
             {

@@ -935,7 +935,7 @@ namespace KingdomBot
             Payable castle = null;
             foreach (var x in UnityEngine.Object.FindObjectsOfType<Payable>())
                 if (x is PayableUpgrade && x.name.StartsWith("Castle") && CastleIndex(x.name) >= 4 && CastleIndex(x.name) <= 5) { castle = x; break; }
-            if (castle != null) return CastleIndex(castle.name) == 4 ? (includeBank ? b.BurstCoins : 0) : castle.price + 3;
+            if (castle != null) return CastleIndex(castle.name) == 4 ? (includeBank ? b.BurstCoins : 0) : castle.price + 2 * 6 + 4 + 3;   // castle 5 + 2 shields + banner + purse
             int missing = Mathf.Max(0, 2 - UnityEngine.Object.FindObjectsOfType<Knight>().Length - ShieldsWaiting());
             return missing * 6 + 4 + 3;   // shields for 2 knights + banner + purse
         }       // castle 4 (8) + castle 5 (12) + 2 shields (12) + purse   // while saving for castle/shields the army only grows to this size (else nothing is ever saved)

@@ -768,6 +768,20 @@ namespace KingdomBot
                     if (up != null && outer.level < bestLvl) { bestLvl = outer.level; item = up; what = "outer wall " + (side < 0 ? "left" : "right") + " L" + outer.level + "->" + (outer.level + 1); }
                 }
             }
+            // 2b. farms = the only income that scales; save for them once the walls are on schedule
+            if (item == null && day >= 6)
+            {
+                bool scytheShop = false;
+                foreach (var py in payables) if (py is PayableShop && py.name.Contains("Scythe")) scytheShop = true;
+                int farmsBuilt = 0;
+                foreach (var fh in UnityEngine.Object.FindObjectsOfType<Farmhouse>()) if (fh.level > 0 && Mathf.Abs(fh.transform.position.x - home) < 60f) farmsBuilt++;
+                int farmers = UnityEngine.Object.FindObjectsOfType<Farmer>().Length;
+                if (scytheShop && (farmsBuilt == 0 || (farmsBuilt == 1 && farmers >= 3 && day >= 12)))
+                {
+                    var farm = Find(payables, x => x is PayableUpgrade && x.name.StartsWith("Farmhouse") && SafeCanPay(x) && Mathf.Abs(x.transform.position.x - home) < 55f, home);
+                    if (farm != null) { item = farm; what = "farm"; }
+                }
+            }
             // 3. towers next to the outer walls: archers in a guard slot are immune to troll/boss hits
             if (item == null && day >= 9)
             {
@@ -801,7 +815,7 @@ namespace KingdomBot
             {
                 int peasants = UnityEngine.Object.FindObjectsOfType<Peasant>().Length, onDisplay = 0; PayableShop bow = null;
                 foreach (var py in payables) { var sh = py as PayableShop; if (sh == null) continue; onDisplay += sh.GetItemCount(); if (sh.name.Contains("Bow")) bow = sh; }
-                if (peasants > onDisplay && bow != null && SafeCanPay(bow) && coins >= bow.price) { Status = "Army while saving: buy bow"; PayAt(bow); return true; }
+                if (peasants > onDisplay && ShieldsWaiting() == 0 && bow != null && SafeCanPay(bow) && coins >= bow.price) { Status = "Army while saving: buy bow"; PayAt(bow); return true; }
                 if (peasants + onDisplay < 2 && coins >= 3)
                 {
                     var b = NearestBeggar(px, home - 150f, home + 150f);
@@ -824,9 +838,9 @@ namespace KingdomBot
         public static bool CastleAllowed(string payableName)
         {
             var b = Plugin.Instance != null ? Plugin.Instance.Brain : null;
-            if (b == null || b.Mode == "master") return true;
+            if (b == null) return true;
             int n;
-            return payableName.Length > 6 && int.TryParse(payableName.Substring(6, 1), out n) ? n <= 3 : true;
+            return payableName.Length > 6 && int.TryParse(payableName.Substring(6, 1), out n) ? n <= (b.Mode == "master" ? 5 : 3) : true;
         }
 
         public static Wall OuterWall(int side, float home)
@@ -888,6 +902,15 @@ namespace KingdomBot
         public bool UseMerchant = false;   // 4 coins every other day = ~half of the late-game income; not worth it
         public int KnightTarget = 4;
 
+        /// <summary>Shields lying at a shield shop (bought, not yet taken by a peasant).</summary>
+        static int ShieldsWaiting()
+        {
+            int n = 0;
+            foreach (var ds in UnityEngine.Object.FindObjectsOfType<DroppableShield>())
+                if (ds != null && ds.GetComponentInParent<Character>() == null) n++;
+            return n;
+        }
+
         /// <summary>
         /// Next assault purchase not affordable yet -> save for it (army growth still continues). Order: castle up to
         /// level 5 (shield shops), then shields until KnightTarget knights exist.
@@ -897,8 +920,19 @@ namespace KingdomBot
             var k = Managers.kingdom;
             if (!k.isDaytime || hour > k.dayEnd - 4f) return false;
             int coins = GameState.Coins;
+            // a bought shield is a tool: only a peasant can take it (and becomes a knight). Without idle peasants it
+            // just lies at the shop -> recruit a beggar for it.
+            if (ShieldsWaiting() > 0)
+            {
+                int peasantsNow = UnityEngine.Object.FindObjectsOfType<Peasant>().Length;
+                if (peasantsNow < ShieldsWaiting() && coins >= 1 && hour < k.dayEnd - 5f)
+                {
+                    var b = NearestBeggar(px, home - 150f, home + 150f);
+                    if (b != null) { Cool(b.GetInstanceID(), 10f); Status = "Assault: recruit a peasant for the shield"; Push("walkto " + F(b.transform.position.x) + " 0.3 25"); Push("handtap " + b.GetInstanceID()); Push("wait 1.5"); return true; }
+                }
+            }
             Payable item = null; string what = null;
-            var castle = Find(payables, x => x is PayableUpgrade && x.name.StartsWith("Castle") && SafeCanPay(x));
+            var castle = Find(payables, x => x is PayableUpgrade && x.name.StartsWith("Castle") && SafeCanPay(x) && CastleAllowed(x.name));
             if (castle != null) { item = castle; what = "castle " + castle.name.Replace("(Clone)", ""); }
             else if (UnityEngine.Object.FindObjectsOfType<Knight>().Length < KnightTarget)
             {
@@ -913,7 +947,7 @@ namespace KingdomBot
             {
                 int peasants = UnityEngine.Object.FindObjectsOfType<Peasant>().Length, onDisplay = 0; PayableShop bow = null;
                 foreach (var py in payablesAll) { var shp = py as PayableShop; if (shp == null) continue; onDisplay += shp.GetItemCount(); if (shp.name.Contains("Bow")) bow = shp; }
-                if (peasants > onDisplay && bow != null && SafeCanPay(bow) && coins >= bow.price) { Status = "Army while saving: buy bow"; PayAt(bow); return true; }
+                if (peasants > onDisplay && ShieldsWaiting() == 0 && bow != null && SafeCanPay(bow) && coins >= bow.price) { Status = "Army while saving: buy bow"; PayAt(bow); return true; }
                 if (peasants + onDisplay < 2 && coins >= 3)
                 {
                     var b = NearestBeggar(px, home - 150f, home + 150f);
@@ -941,7 +975,7 @@ namespace KingdomBot
             // castle first from day 8 (level 5 = shield shops) - only when attacking; survive upgrades normally
             if (assault && day >= 8 && archers >= 6)
             {
-                var castle = Find(payables, x => x is PayableUpgrade && x.name.StartsWith("Castle") && SafeCanPay(x));
+                var castle = Find(payables, x => x is PayableUpgrade && x.name.StartsWith("Castle") && SafeCanPay(x) && CastleAllowed(x.name));
                 if (castle != null && budget >= castle.price) { Status = "Assault prep: castle " + castle.name.Replace("(Clone)", "") + " (" + castle.price + ")"; PayAt(castle); return true; }
             }
             // stone tech from the mason shrine (morning trip)

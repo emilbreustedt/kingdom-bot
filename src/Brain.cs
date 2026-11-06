@@ -973,6 +973,8 @@ namespace KingdomBot
         {
             var b = Plugin.Instance != null ? Plugin.Instance.Brain : null;
             if (b == null || b.Mode != "master" || GameState.Day < 12) return 0;
+            // a weak base comes first: no builders or too few archers -> the reserve must not block hammers/bows/recruits
+            if (UnityEngine.Object.FindObjectsOfType<Worker>().Length < 2 || UnityEngine.Object.FindObjectsOfType<Archer>().Length < b.MinChargeArchers) return 0;
             Payable castle = null;
             foreach (var x in UnityEngine.Object.FindObjectsOfType<Payable>())
                 if (x is PayableUpgrade && x.name.StartsWith("Castle") && CastleIndex(x.name) >= 4 && CastleIndex(x.name) <= 5) { castle = x; break; }

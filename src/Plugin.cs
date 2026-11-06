@@ -272,6 +272,32 @@ namespace KingdomBot
         }
     }
 
+    /// <summary>Diagnostics: who hits our archers (and when/where)?</summary>
+    [HarmonyPatch(typeof(Damageable), "ReceiveDamage")]
+    static class Patch_ArcherDamage
+    {
+        static void Prefix(Damageable __instance, GameObject damager)
+        {
+            try
+            {
+                if (__instance == null || __instance.GetComponent<Archer>() == null) return;
+                var k = Managers.kingdom;
+                Plugin.Log(string.Format("ARCHER HIT by {0} at x{1:0} (h{2:0.0}, day {3}, {4})", damager != null ? damager.name.Replace("(Clone)", "") : "?",
+                    __instance.transform.position.x, GameState.Hour, GameState.Day, k != null && k.isDaytime ? "day" : "night"));
+            }
+            catch { }
+        }
+    }
+
+    [HarmonyPatch(typeof(Character), "Grab")]
+    static class Patch_Grab
+    {
+        static void Prefix(Character __instance)
+        {
+            try { Plugin.Log(string.Format("GRABBED: {0} at x{1:0} (h{2:0.0}, day {3})", __instance.name.Replace("(Clone)", ""), __instance.transform.position.x, GameState.Hour, GameState.Day)); } catch { }
+        }
+    }
+
     [HarmonyPatch(typeof(Player), "ReceiveInput")]
     static class Patch_ReceiveInput
     {

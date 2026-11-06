@@ -245,6 +245,13 @@ namespace KingdomBot
 
             // ---------- 8. more walls further out ----------
             var wall = InnerWallSpot(payables, home);
+            // only push the wall line outwards once the current outer wall on that side is stone (archers move to the outermost wall)
+            if (wall != null)
+            {
+                int side = wall.transform.position.x < home ? -1 : 1;
+                var ow = Brain.OuterWall(side, home);
+                if (ow != null && ow.level < 3) wall = null;
+            }
             if (wall != null && budget >= wall.price + 1 && archers >= 6)
             {
                 Status = "Mauer bauen";

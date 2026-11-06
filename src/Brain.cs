@@ -659,17 +659,48 @@ namespace KingdomBot
                 { Status = "Defence: mason shrine (stone)"; Cool(shrine.GetInstanceID(), 30f); Push("goto " + F(PayX(shrine)) + " 0.3 40"); Push("payid " + shrine.GetInstanceID() + " " + F(PayX(shrine))); Push("goto " + F(home) + " 1 40"); return true; }
             }
             if (workers < 1) return false;
-            // two walls per side
+            // Archers always stand at the OUTERMOST wall of their side -> that wall must be the strongest one.
+            // 1. upgrade the outermost wall of each side (weakest side first)
+            Payable best = null; int bestLvl = 99;
             for (int side = -1; side <= 1; side += 2)
             {
-                if (WallsOnSide(side, home) >= 2) continue;
-                var w = WallSpotOnSide(payables, home, side);
-                if (w != null && coins >= w.price + 4) { Status = "Defence: 2nd wall " + (side < 0 ? "left" : "right"); PayAt(w); return true; }
+                Wall outer = OuterWall(side, home);
+                if (outer == null) continue;
+                var up = UpgradeOf(payables, outer);
+                if (up != null && up.price <= coins - 3 && outer.level < bestLvl) { bestLvl = outer.level; best = up; }
             }
-            // upgrade walls, innermost first, keeping a small reserve
-            var up = Find(payables, x => x is PayableUpgrade && IsBuiltWall(x) && SafeCanPay(x) && x.price <= coins - 4, home);
-            if (up != null) { Status = "Defence: upgrade wall (" + up.price + ")"; PayAt(up); return true; }
+            if (best != null) { Status = "Defence: upgrade outer wall (L" + bestLvl + ", " + best.price + ")"; PayAt(best); return true; }
+            // 2. a second wall further out only once the outer wall is stone (level 3+) - otherwise the archers move to a weak wall
+            for (int side = -1; side <= 1; side += 2)
+            {
+                Wall outer = OuterWall(side, home);
+                if (outer == null || outer.level < 3 || WallsOnSide(side, home) >= 2) continue;
+                var w = WallSpotOnSide(payables, home, side);
+                if (w != null && coins >= w.price + 8) { Status = "Defence: 2nd wall " + (side < 0 ? "left" : "right"); PayAt(w); return true; }
+            }
             return false;
+        }
+
+        public static Wall OuterWall(int side, float home)
+        {
+            Wall best = null; float bd = -1f;
+            foreach (var w in UnityEngine.Object.FindObjectsOfType<Wall>())
+            {
+                if (!w.isIntact) continue;
+                float rel = (w.transform.position.x - home) * side;
+                if (rel > 0 && rel > bd) { bd = rel; best = w; }
+            }
+            return best;
+        }
+
+        static Payable UpgradeOf(Payable[] payables, Wall w)
+        {
+            foreach (var p in payables)
+            {
+                if (!(p is PayableUpgrade) || !SafeCanPay(p)) continue;
+                if (p.gameObject == w.gameObject || (p.transform.parent != null && p.transform.parent.gameObject == w.gameObject)) return p;
+            }
+            return null;
         }
 
         /// <summary>Farms = the main mid-game income. Build a farmhouse near the camp and staff it with farmers.</summary>

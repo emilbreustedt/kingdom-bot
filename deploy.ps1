@@ -1,6 +1,9 @@
 # Updates the bot without losing the current run: save & quit -> build -> start again (the game loads the AUTO save).
 param([string]$GamePath = (& "$PSScriptRoot\tools\find-game.ps1"), [switch]$Force)
 $ErrorActionPreference = 'Stop'
+$pause = "$GamePath\BepInEx\KingdomBot\watchdog.pause"
+New-Item -ItemType File -Force $pause | Out-Null   # keep tools\watchdog.ps1 from restarting the game mid-deploy
+try {
 $proc = Get-Process Kingdom -ErrorAction SilentlyContinue | Where-Object { $_.Path -like "$GamePath*" }
 if ($proc) {
     # never interrupt a promising run: save & quit late in a run (e.g. during the final wave) can lose it
@@ -20,3 +23,4 @@ if ($proc) {
 }
 & "$PSScriptRoot\build.ps1" -GamePath $GamePath
 & "$PSScriptRoot\start.ps1" -GamePath $GamePath
+} finally { Remove-Item $pause -ErrorAction SilentlyContinue }

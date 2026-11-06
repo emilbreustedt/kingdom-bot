@@ -770,7 +770,7 @@ namespace KingdomBot
             if (day < 4 || !k.isDaytime || hour > k.dayEnd - 4f) return false;
             var en = NearestEnemy(px);
             if (en != null && Mathf.Abs(en.transform.position.x - px) < 15f) return false;
-            if (UnityEngine.Object.FindObjectsOfType<Worker>().Length < 1) return false;   // walls need builders
+            bool noBuilders = UnityEngine.Object.FindObjectsOfType<Worker>().Length < 1;   // walls need builders - but the army must still grow
             int coins = GameState.Coins - (Mode == "master" ? AssaultReserve(false) : 0);   // castle 5 / shields / banner first
             var payables = UnityEngine.Object.FindObjectsOfType<Payable>();
             Payable item = null; string what = null;
@@ -816,6 +816,7 @@ namespace KingdomBot
                 }
             }
             bool tooEarly = item != null && item.name.StartsWith("Mason") && hour < 7f;   // trolls still about at dawn
+            if (noBuilders && item != null && !item.name.StartsWith("Mason")) item = null;   // nothing gets built without workers
             if (item != null && coins >= item.price + 4 && !tooEarly)   // keep a small purse: coins are knocked out before the crown
             {
                 Status = "Defence: " + what + " (" + item.price + ")";

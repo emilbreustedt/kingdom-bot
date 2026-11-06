@@ -425,7 +425,12 @@ namespace KingdomBot
                     float dx = target.transform.position.x - px;
                     if (Mathf.Abs(dx) > 0.2f) { c.Dir = dx > 0 ? 1 : -1; if ((Time.frameCount & 1) == 1) c.Dir = 0; break; }
                     c.Dir = 0;
-                    if (!_started) { _started = true; _pressFrames = 1; }
+                    if (!_started)
+                    {
+                        _started = true; _pressFrames = 1;
+                        var selH = GameState.Player != null ? Acc.Selected(GameState.Player) : null;
+                        Plugin.Log("handtap at x" + px.ToString("0.0") + " coins=" + GameState.Coins + " selected=" + (selH != null ? selH.name : "none"));
+                    }
                     c.Pay = _pressFrames-- > 0;
                     if (_pressFrames < -3) done = true;
                     break;

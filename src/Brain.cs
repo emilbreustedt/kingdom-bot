@@ -225,7 +225,7 @@ namespace KingdomBot
             // the next step during the day if needed; otherwise the record strategy plays as usual.
             if ((Mode == "survive" || Mode == "master") && GameState.Player != null && (int)Managers.game.gameState == 2 && AvoidIntruder()) return;
             // income: farms + merchant (archers barely hunt in the late game - waves keep the kingdom "unsafe")
-            if ((Mode == "survive" || Mode == "master") && GameState.Player != null && (int)Managers.game.gameState == 2 && GameState.Day >= 6 && EconomyStep()) return;
+            if ((Mode == "survive" || Mode == "master") && GameState.Player != null && (int)Managers.game.gameState == 2 && GameState.Day >= 6 && UseFarms && EconomyStep()) return;
             if ((Mode == "survive" || Mode == "master") && GameState.Player != null && (int)Managers.game.gameState == 2 && WallSchedule()) return;
             if (Mode == "survive" || Mode == "master" || Mode == "feast")
             {
@@ -751,9 +751,9 @@ namespace KingdomBot
             var payables = UnityEngine.Object.FindObjectsOfType<Payable>();
             Payable item = null; string what = null;
             // 0. farms = the only income that scales; they come first from day 6
-            if (day >= 6) { var farm = FarmTarget(payables, home); if (farm != null) { item = farm; what = farm.name.StartsWith("Tree") ? "farmland (cut tree)" : "farm"; } }
+            if (UseFarms && day >= 6) { var farm = FarmTarget(payables, home); if (farm != null) { item = farm; what = farm.name.StartsWith("Tree") ? "farmland (cut tree)" : "farm"; } }
             // 0b. a farm outside the walls loses its farmers every night: next wall goes up beyond the farm
-            if (item == null) { var fw = FarmWall(payables, home); if (fw != null) { item = fw; what = fw.name.StartsWith("Tree") ? "farm wall (cut tree)" : "wall beyond the farm"; } }
+            if (UseFarms && item == null) { var fw = FarmWall(payables, home); if (fw != null) { item = fw; what = (fw.name.StartsWith("Tree") ? "farm wall (cut tree" : "wall beyond the farm (") + " @" + F(fw.transform.position.x) + " edges " + F(WallEdge(-1, home)) + "/" + F(WallEdge(1, home)) + ")"; } }
             // 1. stone tech first (wall levels 3+ need it)
             if (item == null && Managers.techUpgrades != null && !Managers.techUpgrades.stoneBuilding)
             {
@@ -795,7 +795,7 @@ namespace KingdomBot
             {
                 Status = "Defence: " + what + " (" + item.price + ")";
                 if (item.name.StartsWith("Mason")) { Cool(item.GetInstanceID(), 30f); Push("goto " + F(PayX(item)) + " 0.3 40"); Push("payid " + item.GetInstanceID() + " " + F(PayX(item))); Push("goto " + F(home) + " 1 40"); }
-                else { if (item.name.StartsWith("Tree") || what == "wall beyond the farm") Cool(item.GetInstanceID(), 120f); PayAt(item); }
+                else { if (item.name.StartsWith("Tree") || what.StartsWith("wall beyond the farm")) Cool(item.GetInstanceID(), 120f); PayAt(item); }
                 return true;
             }
             // while saving the army must keep growing: bows for idle peasants, then recruit beggars (hand-over)
@@ -889,7 +889,10 @@ namespace KingdomBot
         }
 
         public int KnightArmor = 4;
-        public bool UseMerchant = false;   // 4 coins every other day = ~half of the late-game income; not worth it
+        public bool UseMerchant = false;
+        // Farms (tree clearing + wall beyond the farm + scythes) cost more than they earned in tests: the army stayed
+        // at ~12 archers by day 30 instead of 25-30. Off by default.
+        public bool UseFarms = false;   // 4 coins every other day = ~half of the late-game income; not worth it
         public int KnightTarget = 4;
 
         /// <summary>Farmhouse payable to build next (first farm once scythes are sold, second one from day 12), or null.</summary>
@@ -998,7 +1001,7 @@ namespace KingdomBot
             bool wallsOk = WallsOnSide(-1, home) > 0 && WallsOnSide(1, home) > 0;
 
             // farm first (wall schedule saves for it), then the castle
-            if (day >= 6 && day < 25 && FarmTarget(payables, home) != null) return false;
+            if (UseFarms && day >= 6 && day < 25 && FarmTarget(payables, home) != null) return false;
             // castle first from day 8 (level 5 = shield shops) - only when attacking; survive upgrades normally
             if (assault && day >= 8 && archers >= 6)
             {

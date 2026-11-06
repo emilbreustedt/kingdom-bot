@@ -374,7 +374,7 @@ namespace KingdomBot
 
         public bool Idle { get { return _cur == null && _q.Count == 0; } }
         /// <summary>true while creeping onto a payable (game speed is lowered for precision)</summary>
-        int _payTarget;
+        int _payTarget, _matchFrames;
         static bool IdIsShield(int id)
         {
             foreach (var ps in UnityEngine.Object.FindObjectsOfType<PayableShield>()) if (ps.GetInstanceID() == id) return true;
@@ -393,7 +393,7 @@ namespace KingdomBot
             if (_cur == null)
             {
                 if (_q.Count == 0) { c.Dir = 0; c.Sprint = false; c.Pay = false; return; }
-                _cur = _q.Dequeue(); _t0 = Time.time; _u0 = Time.unscaledTime; _n = 0; _started = false; _payTarget = 0; _lastCoinIdx = -1; _pressFrames = 0;
+                _cur = _q.Dequeue(); _t0 = Time.time; _u0 = Time.unscaledTime; _n = 0; _started = false; _payTarget = 0; _matchFrames = 0; _lastCoinIdx = -1; _pressFrames = 0;
             }
             var parts = _cur.Split(' ');
             var p = GameState.Player;
@@ -438,7 +438,9 @@ namespace KingdomBot
                         bool payable = false; try { payable = sel != null && sel.CanPay() && GameState.Coins > 0; } catch { }
                         // shield shops stand next to each other and are interchangeable: any selected shield shop will do
                         bool match = sel != null && (sel.GetInstanceID() == id || (sel is PayableShield && IdIsShield(id)));
+                        if (match && payable && _matchFrames < 3) { _matchFrames++; c.Dir = 0; break; }   // stand still first: a moving king slides out of the trigger mid-payment
                         if (match && payable) { id = sel.GetInstanceID(); _payTarget = id; _started = true; _t0 = Time.time; c.Dir = 0; c.Pay = true; }
+                        else _matchFrames = 0;
                         else if (Time.time - _t0 > 10f)
                         {
                             string tinfo = "?";
@@ -472,7 +474,7 @@ namespace KingdomBot
                     if (ps == 1 && Time.time - _t0 < 6f) { c.Pay = true; break; }
                     if (_payTarget != 0) id = _payTarget;
                     if (sel != null && sel.GetInstanceID() != id && ps != 3) { Plugin.Log("payid: wrong selection " + sel.name); c.Pay = false; done = true; break; }
-                    if (sel == null && Time.time - _t0 > 0.6f && ps != 3) { c.Pay = false; done = true; break; }
+                    if (sel == null && Time.time - _t0 > 0.6f && ps != 3) { Plugin.Log("payid: selection lost while paying (player x" + px.ToString("0.0") + ")"); c.Pay = false; done = true; break; }
                     if (ps == 3 || (ps == 0 && Time.time - _t0 > 1f) || Time.time - _t0 > 12f) { c.Pay = false; done = true; }
                     break;
                 }

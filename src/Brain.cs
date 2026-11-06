@@ -427,7 +427,33 @@ namespace KingdomBot
             {
                 var shrine = Find(payables, x => x is PayableUpgrade && x.name.StartsWith("Mason") && SafeCanPay(x));
                 if (shrine != null && budget >= shrine.price && Mathf.Abs(shrine.transform.position.x - home) < 140f)
-                { Status = "Assault prep: mason shrine (stone)"; Cool(shrine.GetInstanceID(), 30f); Push("goto " + F(shrine.transform.position.x) + " 0.3 40"); Push("payid " + shrine.GetInstanceID() + " " + F(shrine.transform.position.x)); Push("goto " + F(home) + " 1 40"); return true; }
+                { Status = "Assault prep: mason shrine (stone)"; Cool(shrine.GetInstanceID(), 30f); Push("goto " + F(PayX(shrine)) + " 0.3 40"); Push("payid " + shrine.GetInstanceID() + " " + F(PayX(shrine))); Push("goto " + F(home) + " 1 40"); return true; }
+            }
+            // outer wall ring: the border banner (needed to send knights) only exists if the outermost wall
+            // is far enough from the campfire -> keep a wall >= 14 units out on both sides
+            if (UnityEngine.Object.FindObjectsOfType<Worker>().Length >= 1)
+            {
+                for (int side = -1; side <= 1; side += 2)
+                {
+                    float outer = WallEdge(side, home);
+                    if (Mathf.Abs(outer - home) >= 14f) continue;
+                    Payable best = null; float bd = float.MaxValue;
+                    foreach (var p in payables)
+                    {
+                        if (!(p is PayableUpgrade) || !(p.name.StartsWith("Wall") || p.name.Contains("Wreck")) || IsBuiltWall(p) || OnCooldown(p.GetInstanceID()) || !SafeCanPay(p)) continue;
+                        float rel = (p.transform.position.x - home) * side;
+                        if (rel < 14f || rel > 32f) continue;
+                        if (rel < bd) { bd = rel; best = p; }
+                    }
+                    if (best != null && budget >= best.price + 1) { Status = "Outer wall " + (side < 0 ? "left" : "right") + " (banner range)"; PayAt(best); return true; }
+                }
+            }
+
+            // catapults (workshop, castle level 3+): defensive artillery at the border, pushed there by workers
+            if (UnityEngine.Object.FindObjectsOfType<Worker>().Length >= 2)
+            {
+                var ws = Find(payables, x => x is PayableWorkshop && SafeCanPay(x), home);
+                if (ws != null && budget >= ws.price + 2) { Status = "Buy catapult (" + ws.price + ")"; PayAt(ws); return true; }
             }
             if (finalWave) return false;   // all inner portals gone: only defend now
             // shields -> knights
@@ -503,8 +529,16 @@ namespace KingdomBot
         void PayAt(Payable py)
         {
             Cool(py.GetInstanceID(), 6f);
-            Push("walkto " + F(py.transform.position.x) + " 0.3");
-            Push("payid " + py.GetInstanceID() + " " + F(py.transform.position.x));
+            float x = PayX(py);
+            Push("walkto " + F(x) + " 0.3");
+            Push("payid " + py.GetInstanceID() + " " + F(x));
+        }
+
+        /// <summary>x of the payable's trigger (selection uses the collider, which can be offset from the transform).</summary>
+        public static float PayX(Payable py)
+        {
+            var col = py.GetComponent<Collider2D>();
+            return col != null ? col.bounds.center.x : py.transform.position.x;
         }
 
         // ----- helpers -----

@@ -105,10 +105,11 @@ namespace KingdomBot
             bool normal = g != null && (int)g.gameState == 2 && (int)g.menuState == 0;
             if (!normal) { _appliedSpeed = 1f; return; }
             // game sets 1.0 itself after effects; we only replace "1" or our own previous value
+            float want = Queue.Positioning ? Mathf.Min(Speed, 2f) : Speed;   // precise positioning for payments
             if (Mathf.Approximately(Time.timeScale, 1f) || Mathf.Approximately(Time.timeScale, _appliedSpeed))
             {
-                Time.timeScale = Speed;
-                _appliedSpeed = Speed;
+                Time.timeScale = want;
+                _appliedSpeed = want;
             }
         }
 
@@ -159,6 +160,17 @@ namespace KingdomBot
                 }
                 foreach (var d in UnityEngine.Object.FindObjectsOfType<DroppableTool>())
                     Log("TOOL " + d.name + " x" + d.transform.position.x.ToString("0.0") + " picked=" + d.pickedUp + " fake=" + d.fake + " active=" + d.gameObject.activeInHierarchy);
+                foreach (var kn in UnityEngine.Object.FindObjectsOfType<Knight>())
+                {
+                    var fsm = Acc.Get<object>(kn, "_fsm");
+                    object cur = null; try { cur = fsm.GetType().GetField("current").GetValue(fsm); } catch { }
+                    var arObj = Acc.Get<object>(kn, "_archers");
+                    int arCount = arObj != null ? (int)arObj.GetType().GetProperty("Count").GetValue(arObj, null) : -1;
+                    bool cc = false; try { cc = (bool)Acc.Call(kn, "CanCharge"); } catch { }
+                    Log("KNIGHT x" + kn.transform.position.x.ToString("0.0") + " side=" + kn.side + " state=" + cur + " archers=" + arCount + "/" + kn.maxArchers + " canCharge=" + cc);
+                }
+                foreach (var b in UnityEngine.Object.FindObjectsOfType<PayableBorder>())
+                    Log("BORDER x" + b.transform.position.x.ToString("0.0") + " canPay=" + b.CanPay() + " range=" + b.knightRange);
                 var pm = Managers.payables;
                 if (pm != null) Log("PAYABLES enabledByDefault=" + Acc.Get<bool>(pm, "_enabledByDefault"));
                 var tm = Managers.tutorial;
@@ -284,6 +296,8 @@ namespace KingdomBot
         int _lastCoinIdx = -1, _pressFrames;
 
         public bool Idle { get { return _cur == null && _q.Count == 0; } }
+        /// <summary>true while creeping onto a payable (game speed is lowered for precision)</summary>
+        public bool Positioning { get { return _cur != null && _cur.StartsWith("payid") && !_started; } }
         public void Clear() { _q.Clear(); _cur = null; }
         public void Enqueue(string c) { _q.Enqueue(c); }
         public string Describe() { return (_cur ?? "-") + (_q.Count > 0 ? " (+" + _q.Count + ")" : ""); }

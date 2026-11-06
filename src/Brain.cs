@@ -90,6 +90,7 @@ namespace KingdomBot
             var am = Managers.achievements;
             int dayC = am != null && am.counters != null ? am.counters[1] : GameState.Day;
             string phase = "master";
+            if (RunType == "main" && Campaign.Missing("SURVIVED_UNTIL_DAY_100")) phase = "survive";   // pure record strategy for Day C
             if (RunType == "early")
             {
                 if (dayC == 0 && Campaign.Missing(Campaign.FirstDay)) phase = "army1";
@@ -206,7 +207,7 @@ namespace KingdomBot
                 bool ready = (d >= 12 && arch >= 15) || d >= 20;
                 if (ready && !night && !danger && AssaultStep(UnityEngine.Object.FindObjectsOfType<Payable>(), d, hr, bud, arch, hm, pxx)) return;
             }
-            if ((Mode == "survive" || Mode == "master") && GameState.Player != null && (int)Managers.game.gameState == 2 && (EconomyStep() || DefenseStep())) return;
+            if (Mode == "master" && GameState.Player != null && (int)Managers.game.gameState == 2 && (EconomyStep() || DefenseStep())) return;
             if (Mode == "survive" || Mode == "master" || Mode == "feast")
             {
                 if (_legacy == null) _legacy = new LegacyBrain(_pl);

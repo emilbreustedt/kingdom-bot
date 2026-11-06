@@ -8,7 +8,7 @@ namespace KingdomBot
     /// Strategy layer (v1). Called whenever the CommandQueue is idle; pushes a short plan (1-3 commands)
     /// so that the situation is re-evaluated every few seconds.
     /// </summary>
-    /// <summary>Strategy of the day-98 record run (first commit, dddb58e), used by mode "survive".</summary>
+    /// <summary>Strategy of the day-98 record run, unchanged (first commit dddb58e). Used for the survival phase.</summary>
     public class LegacyBrain
     {
         readonly Plugin _pl;
@@ -245,13 +245,6 @@ namespace KingdomBot
 
             // ---------- 8. more walls further out ----------
             var wall = InnerWallSpot(payables, home);
-            // only push the wall line outwards once the current outer wall on that side is stone (archers move to the outermost wall)
-            if (wall != null)
-            {
-                int side = wall.transform.position.x < home ? -1 : 1;
-                var ow = Brain.OuterWall(side, home);
-                if (ow != null && ow.level < 3) wall = null;
-            }
             if (wall != null && budget >= wall.price + 1 && archers >= 6)
             {
                 Status = "Mauer bauen";
@@ -260,10 +253,10 @@ namespace KingdomBot
 
             // ---------- 9a. recruit beggars (only while the army is below the cap) ----------
             int army = archers + workers + farmers;
-            if (Time.time >= _noRecruitUntil && budget >= 2 && peasants < 3 && hour < k.dayEnd - 4f && army < archerCap + WorkerTarget(day, archers, acrePhase) + 3)
+            if (Time.time >= _noRecruitUntil && budget >= 2 && peasants < 2 && hour < k.dayEnd - 4f && army < archerCap + WorkerTarget(day, archers, acrePhase) + 3)
             {
                 // reach: 35 beyond the walls, but at least 60 around the fire while there is time left today
-                float reach = hour < k.dayEnd - 10f ? 150f : (hour < k.dayEnd - 7f ? 100f : 35f);   /* far camps only in the morning */
+                float reach = hour < k.dayEnd - 7f ? 60f : 35f;
                 var b = NearestBeggar(px, Mathf.Min(leftSafe - 35f, home - reach), Mathf.Max(rightSafe + 35f, home + reach));
                 if (b != null)
                 {
@@ -271,7 +264,7 @@ namespace KingdomBot
                     float bx = b.transform.position.x;
                     Cool(b.GetInstanceID(), 8f);
                     _lastTap = Time.time; _coinsAtTap = coins;
-                    Push("walkto " + F(bx) + " 0.3 25"); Push("handtap " + b.GetInstanceID()); Push("wait 1.5"); return;   /* coin straight into the beggar's hands */
+                    Push("walkto " + F(bx) + " 0.8 25"); Push("tap 1"); Push("wait 2.5"); return;
                 }
             }
 
@@ -505,9 +498,6 @@ namespace KingdomBot
             {
                 float x = b.transform.position.x;
                 if (x < minX || x > maxX || OnCooldown(b.GetInstanceID())) continue;
-                bool nearPortal = false;
-                foreach (var po in UnityEngine.Object.FindObjectsOfType<Portal>()) if (Mathf.Abs(po.transform.position.x - x) < 25f) nearPortal = true;
-                if (nearPortal) continue;
                 float d = Mathf.Abs(x - px);
                 if (d < bd) { bd = d; best = b; }
             }

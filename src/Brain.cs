@@ -817,7 +817,7 @@ namespace KingdomBot
                 int peasants = UnityEngine.Object.FindObjectsOfType<Peasant>().Length, onDisplay = 0; PayableShop bow = null;
                 foreach (var py in payables) { var sh = py as PayableShop; if (sh == null) continue; onDisplay += sh.GetItemCount(); if (sh.name.Contains("Bow")) bow = sh; }
                 if (peasants > onDisplay && ShieldsWaiting() == 0 && bow != null && SafeCanPay(bow) && coins >= bow.price) { Status = "Army while saving: buy bow"; PayAt(bow); return true; }
-                if (peasants < onDisplay + 2 && peasants < 4 && coins >= 3)
+                if (peasants < onDisplay + 2 && peasants < 4 && coins >= 4)
                 {
                     var b = NearestBeggar(px, home - 150f, home + 150f);
                     if (b != null) { Cool(b.GetInstanceID(), 10f); Status = "Army while saving: recruit"; Recruit(b); return true; }
@@ -936,8 +936,8 @@ namespace KingdomBot
             foreach (var x in UnityEngine.Object.FindObjectsOfType<Payable>())
                 if (x is PayableUpgrade && x.name.StartsWith("Castle") && CastleIndex(x.name) >= 4 && CastleIndex(x.name) <= 5) { castle = x; break; }
             if (castle != null) return CastleIndex(castle.name) == 4 ? (includeBank ? b.BurstCoins : 0) : castle.price + 3;
-            if (UnityEngine.Object.FindObjectsOfType<Knight>().Length + ShieldsWaiting() < b.KnightTarget) return 9;
-            return 7;   // banner (4) + purse
+            int missing = Mathf.Max(0, 2 - UnityEngine.Object.FindObjectsOfType<Knight>().Length - ShieldsWaiting());
+            return missing * 6 + 4 + 3;   // shields for 2 knights + banner + purse
         }       // castle 4 (8) + castle 5 (12) + 2 shields (12) + purse   // while saving for castle/shields the army only grows to this size (else nothing is ever saved)
 
         /// <summary>Farmhouse payable to build next (first farm once scythes are sold, second one from day 12), or null.</summary>
@@ -998,7 +998,7 @@ namespace KingdomBot
             if (ShieldsWaiting() > 0)
             {
                 int peasantsNow = UnityEngine.Object.FindObjectsOfType<Peasant>().Length;
-                if (peasantsNow < ShieldsWaiting() && coins >= 1 && hour < k.dayEnd - 5f)
+                if (peasantsNow < ShieldsWaiting() && coins >= 4 && hour < k.dayEnd - 5f)
                 {
                     var b = NearestBeggar(px, home - 150f, home + 150f);
                     if (b != null) { Cool(b.GetInstanceID(), 10f); Status = "Assault: recruit a peasant for the shield"; Recruit(b); return true; }
@@ -1028,7 +1028,7 @@ namespace KingdomBot
                 int peasants = UnityEngine.Object.FindObjectsOfType<Peasant>().Length, onDisplay = 0; PayableShop bow = null;
                 foreach (var py in payablesAll) { var shp = py as PayableShop; if (shp == null) continue; onDisplay += shp.GetItemCount(); if (shp.name.Contains("Bow")) bow = shp; }
                 if (peasants > onDisplay && ShieldsWaiting() == 0 && bow != null && SafeCanPay(bow) && coins >= bow.price) { Status = "Army while saving: buy bow"; PayAt(bow); return true; }
-                if (peasants < onDisplay + 2 && peasants < 4 && coins >= 3)
+                if (peasants < onDisplay + 2 && peasants < 4 && coins >= 4)
                 {
                     var b = NearestBeggar(px, home - 150f, home + 150f);
                     if (b != null) { Cool(b.GetInstanceID(), 10f); Status = "Army while saving: recruit"; Recruit(b); return true; }

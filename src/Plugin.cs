@@ -465,7 +465,7 @@ namespace KingdomBot
                             float dx = tx - px;
                             if (Mathf.Abs(dx) > 0.05f) c.Dir = dx > 0 ? 1 : -1;
                             // step-walk: move every other frame to avoid overshooting narrow triggers
-                            if ((Time.frameCount & 1) == 1) c.Dir = 0;
+                            if (Mathf.Abs(dx) < 1f && (Time.frameCount & 1) == 1) c.Dir = 0;   // step-walk only close to the trigger
                         }
                         break;
                     }
@@ -486,7 +486,7 @@ namespace KingdomBot
                     foreach (var b in UnityEngine.Object.FindObjectsOfType<Beggar>()) if (b.GetInstanceID() == bid) { target = b; break; }
                     if (target == null || Time.time - _t0 > 8f) { c.Dir = 0; done = true; break; }
                     float dx = target.transform.position.x - px;
-                    if (Mathf.Abs(dx) > 0.2f) { c.Dir = dx > 0 ? 1 : -1; if ((Time.frameCount & 1) == 1) c.Dir = 0; break; }
+                    if (Mathf.Abs(dx) > 0.2f) { c.Dir = dx > 0 ? 1 : -1; if (Mathf.Abs(dx) < 1f && (Time.frameCount & 1) == 1) c.Dir = 0; break; }
                     c.Dir = 0;
                     if (!_started)
                     {

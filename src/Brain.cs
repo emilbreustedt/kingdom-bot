@@ -205,7 +205,7 @@ namespace KingdomBot
                 bool ready = (d >= 12 && arch >= 15) || d >= 20;
                 if (ready && !night && !danger && AssaultStep(UnityEngine.Object.FindObjectsOfType<Payable>(), d, hr, bud, arch, hm, pxx)) return;
             }
-            if ((Mode == "survive" || Mode == "master") && GameState.Player != null && (int)Managers.game.gameState == 2 && EconomyStep()) return;
+            if ((Mode == "survive" || Mode == "master") && GameState.Player != null && (int)Managers.game.gameState == 2 && (EconomyStep() || DefenseStep())) return;
             if (Mode == "survive" || Mode == "master" || Mode == "feast")
             {
                 if (_legacy == null) _legacy = new LegacyBrain(_pl);
@@ -610,6 +610,41 @@ namespace KingdomBot
             if ((px - dx) * side < 3f) { Push("goto " + F(behind) + " 1.5 12"); return true; }
             Push("walkto " + F(home + side * 6f) + " 2 10");     // ride back towards the camp: the deer flees ahead into the archers
             return true;
+        }
+
+        /// <summary>
+        /// Late-game survival = fully upgraded walls ("maxed two walls per side" - forum). Spend surplus coins on
+        /// stone tech, a second wall per side and wall upgrades (innermost first).
+        /// </summary>
+        bool DefenseStep()
+        {
+            var k = Managers.kingdom;
+            int day = GameState.Day; float hour = GameState.Hour, px = GameState.PX, home = k.campfirePosition;
+            if (day < 3 || !k.isDaytime || hour > k.dayEnd - 5f) return false;
+            var en = NearestEnemy(px);
+            if (en != null && Mathf.Abs(en.transform.position.x - px) < 15f) return false;
+            int coins = GameState.Coins;
+            var payables = UnityEngine.Object.FindObjectsOfType<Payable>();
+            int workers = UnityEngine.Object.FindObjectsOfType<Worker>().Length;
+            // stone tech (needed for wall levels 3+) - morning trip to the mason shrine
+            if (Managers.techUpgrades != null && !Managers.techUpgrades.stoneBuilding && day >= 4 && hour < k.dayEnd - 9f)
+            {
+                var shrine = Find(payables, x => x is PayableUpgrade && x.name.StartsWith("Mason") && SafeCanPay(x));
+                if (shrine != null && coins >= shrine.price + 3 && Mathf.Abs(shrine.transform.position.x - home) < 140f)
+                { Status = "Defence: mason shrine (stone)"; Cool(shrine.GetInstanceID(), 30f); Push("goto " + F(PayX(shrine)) + " 0.3 40"); Push("payid " + shrine.GetInstanceID() + " " + F(PayX(shrine))); Push("goto " + F(home) + " 1 40"); return true; }
+            }
+            if (workers < 1) return false;
+            // two walls per side
+            for (int side = -1; side <= 1; side += 2)
+            {
+                if (WallsOnSide(side, home) >= 2) continue;
+                var w = WallSpotOnSide(payables, home, side);
+                if (w != null && coins >= w.price + 4) { Status = "Defence: 2nd wall " + (side < 0 ? "left" : "right"); PayAt(w); return true; }
+            }
+            // upgrade walls, innermost first, keeping a small reserve
+            var up = Find(payables, x => x is PayableUpgrade && IsBuiltWall(x) && SafeCanPay(x) && x.price <= coins - 4, home);
+            if (up != null) { Status = "Defence: upgrade wall (" + up.price + ")"; PayAt(up); return true; }
+            return false;
         }
 
         /// <summary>Farms = the main mid-game income. Build a farmhouse near the camp and staff it with farmers.</summary>

@@ -1069,7 +1069,7 @@ namespace KingdomBot
                 if (!IsLiveEnemy(e)) continue;
                 float rel = (e.transform.position.x - edge) * side;   // > 0: outside that wall
                 if (rel <= -3f || rel >= 60f) continue;
-                if (e.GetComponent<Boss>() != null || e.GetComponent<Ogre>() != null) return false;
+                if (e.GetComponent<Boss>() != null || e.GetComponent<Ogre>() != null || e.GetComponent<Squid>() != null) return false;   // a squid throws boulders all day from ~50 out
                 n++;
             }
             return n <= 4;

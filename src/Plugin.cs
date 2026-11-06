@@ -339,7 +339,8 @@ namespace KingdomBot
                 if (__instance == null || __instance.GetComponent<Archer>() == null) return;
                 var k = Managers.kingdom;
                 Plugin.Log(string.Format("ARCHER HIT by {0} at x{1:0} (h{2:0.0}, day {3}, {4})", damager != null ? damager.name.Replace("(Clone)", "") : "?",
-                    __instance.transform.position.x, GameState.Hour, GameState.Day, k != null && k.isDaytime ? "day" : "night"));
+                    __instance.transform.position.x, GameState.Hour, GameState.Day, k != null && k.isDaytime ? "day" : "night")
+                    + (damager != null ? " src x" + damager.transform.position.x.ToString("0") + " comps " + string.Join(",", System.Array.ConvertAll(damager.GetComponents<Component>(), c => c.GetType().Name)) + " layer " + LayerMask.LayerToName(damager.layer) : ""));
             }
             catch { }
         }

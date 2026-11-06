@@ -1093,8 +1093,10 @@ namespace KingdomBot
                 Status = "Assault: arm knight (" + poorCoins + "/" + KnightArmor + " coins)";
                 Push("walkto " + F(poor.transform.position.x) + " 0.6 20"); Push("tap 2"); Push("wait 1.5"); return true;
             }
-            bool armed = knights.Length > 0;
-            foreach (var kn in knights) { int kc = 0; try { kc = Acc.Wallet(kn).coins; } catch { } if (kc < 2) armed = false; }
+            // ready to charge: at least 2 knights, each with a coin of armour (waiting for 4 fully armed knights took
+            // until the next boss night, which killed them before any charge)
+            bool armed = knights.Length >= 2;
+            foreach (var kn in knights) { int kc = 0; try { kc = Acc.Wallet(kn).coins; } catch { } if (kc < 1) armed = false; }
             // charge: pay the border banner while knights with archers are ready (and armed)
             if (morning && armed)
             {

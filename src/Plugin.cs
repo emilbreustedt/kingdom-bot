@@ -146,6 +146,22 @@ namespace KingdomBot
                 if (l.StartsWith("mode ")) { Brain.ConfigMode = Brain.NormalizeRunType(l.Substring(5)); Log("Run type for the next run: " + Brain.ConfigMode); continue; }
                 if (l == "achievements") { Log(Campaign.Summary()); continue; }
                 if (l == "debug") { DebugDump(); continue; }
+                if (l.StartsWith("givecoins"))
+                {
+                    // TEST ONLY: refuses before day 41 - from then on no assault achievement can unlock any more
+                    // (Safe in 40 needs day < 40, Tenth Day day <= 9), so nothing is earned by it.
+                    int n; if (!int.TryParse(l.Substring(9).Trim(), out n)) n = 30;
+                    if (GameState.Day <= 40) { Log("givecoins refused: only after day 40 (achievements must be earned legitimately)"); continue; }
+                    try
+                    {
+                        var w = Acc.Wallet(GameState.Player);
+                        var cf = typeof(Wallet).GetField("_coins", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
+                        cf.SetValue(w, (int)cf.GetValue(w) + n);
+                        Log("givecoins: +" + n + " (test, day " + GameState.Day + ")");
+                    }
+                    catch (Exception e) { Log("givecoins failed: " + e.Message); }
+                    continue;
+                }
                 if (l == "gamedata") { try { GameData.Write(Path.Combine(Dir, "gamedata.txt")); Log("gamedata written"); } catch (Exception e) { Log("gamedata failed: " + e); } continue; }
                 if (l == "clear") { Queue.Clear(); Ctl.Reset(); continue; }
                 if (l.StartsWith("speed ")) { Speed = float.Parse(l.Substring(6), System.Globalization.CultureInfo.InvariantCulture); continue; }

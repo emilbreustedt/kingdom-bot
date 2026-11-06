@@ -905,7 +905,7 @@ namespace KingdomBot
             return false;
         }
 
-        public int KnightArmor = 4;
+        public int KnightArmor = 2;   // knight purses rarely fill beyond 1-3 coins; arming must not block everything else
         public bool UseMerchant = false;
         // Farms (tree clearing + wall beyond the farm + scythes) cost more than they earned in tests: the army stayed
         // at ~12 archers by day 30 instead of 25-30. Off by default.
@@ -1115,6 +1115,9 @@ namespace KingdomBot
                 var border = Find(payables, x => x is PayableBorder && SafeCanPay(x), px);
                 if (border != null && budget >= border.price) { Status = "Assault: knights CHARGE (" + border.name.Replace("(Clone)", "") + ")"; Cool(border.GetInstanceID(), 60f); PayAt(border); return true; }
             }
+            // shields -> knights
+            var shield = Find(payables, x => x is PayableShield && SafeCanPay(x), home);
+            if (shield != null && UnityEngine.Object.FindObjectsOfType<Knight>().Length + ShieldsWaiting() < KnightTarget && budget >= shield.price + 3) { Status = "Assault: buy shield (" + shield.price + ")"; PayAt(shield); return true; }
             // arm the knights: coins in a knight's purse are knocked out before he loses his shield
             Knight poor = null; int poorCoins = 99;
             foreach (var kn in knights)
@@ -1128,9 +1131,6 @@ namespace KingdomBot
                 Status = "Assault: arm knight (" + poorCoins + "/" + KnightArmor + " coins)";
                 Push("walkto " + F(poor.transform.position.x) + " 0.6 20"); Push("tap 2"); Push("wait 1.5"); return true;
             }
-            // shields -> knights
-            var shield = Find(payables, x => x is PayableShield && SafeCanPay(x), home);
-            if (shield != null && UnityEngine.Object.FindObjectsOfType<Knight>().Length + ShieldsWaiting() < KnightTarget && budget >= shield.price + 3) { Status = "Assault: buy shield (" + shield.price + ")"; PayAt(shield); return true; }
             return false;
         }
 

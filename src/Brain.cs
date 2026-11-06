@@ -883,6 +883,47 @@ namespace KingdomBot
         }
 
         public int KnightArmor = 4;
+        public int KnightTarget = 4;
+
+        /// <summary>
+        /// Next assault purchase not affordable yet -> save for it (army growth still continues). Order: castle up to
+        /// level 5 (shield shops), then shields until KnightTarget knights exist.
+        /// </summary>
+        bool AssaultSaving(Payable[] payables, int day, float hour, float home, float px)
+        {
+            var k = Managers.kingdom;
+            if (!k.isDaytime || hour > k.dayEnd - 4f) return false;
+            int coins = GameState.Coins;
+            Payable item = null; string what = null;
+            var castle = Find(payables, x => x is PayableUpgrade && x.name.StartsWith("Castle") && SafeCanPay(x));
+            if (castle != null) { item = castle; what = "castle " + castle.name.Replace("(Clone)", ""); }
+            else if (UnityEngine.Object.FindObjectsOfType<Knight>().Length < KnightTarget)
+            {
+                var sh = Find(payables, x => x is PayableShield && SafeCanPay(x), home);
+                if (sh != null) { item = sh; what = "shield"; }
+            }
+            if (item == null || coins >= item.price + 2) return false;     // nothing to save for / affordable: AssaultStep buys it
+            // keep the army growing while saving (same as the wall schedule)
+            int archersNow = UnityEngine.Object.FindObjectsOfType<Archer>().Length;
+            var payablesAll = payables;
+            if (archersNow < Mathf.Min(2 * day + 4, 30) && hour < k.dayEnd - 5f)
+            {
+                int peasants = UnityEngine.Object.FindObjectsOfType<Peasant>().Length, onDisplay = 0; PayableShop bow = null;
+                foreach (var py in payablesAll) { var shp = py as PayableShop; if (shp == null) continue; onDisplay += shp.GetItemCount(); if (shp.name.Contains("Bow")) bow = shp; }
+                if (peasants > onDisplay && bow != null && SafeCanPay(bow) && coins >= bow.price) { Status = "Army while saving: buy bow"; PayAt(bow); return true; }
+                if (peasants + onDisplay < 2 && coins >= 3)
+                {
+                    var b = NearestBeggar(px, home - 150f, home + 150f);
+                    if (b != null) { Cool(b.GetInstanceID(), 10f); Status = "Army while saving: recruit"; Push("walkto " + F(b.transform.position.x) + " 0.3 25"); Push("handtap " + b.GetInstanceID()); Push("wait 1.5"); return true; }
+                }
+            }
+            var c = NearestCoin(px, home - 40f, home + 40f);
+            if (c != null) { Cool(c.GetInstanceID(), 1e7f); Status = "Saving for " + what + ": coin"; Push("goto " + F(c.transform.position.x) + " 0.3 15"); return true; }
+            Status = "Saving for " + what + " (" + coins + "/" + (item.price + 2) + ")";
+            float l = WallEdge(-1, home), r = WallEdge(1, home);
+            Push("walkto " + F(px < home ? r - 1f : l + 1f) + " 1 20");
+            return true;
+        }
 
         /// <summary>Portal assault (master mode): returns true if it queued an action.</summary>
         bool AssaultStep(Payable[] payables, int day, float hour, int budget, int archers, float home, float px)
@@ -942,6 +983,7 @@ namespace KingdomBot
                 if (ws != null && budget >= ws.price + 2) { Status = "Buy catapult (" + ws.price + ")"; PayAt(ws); return true; }
             }
             if (finalWave || !assault) return false;   // survive mode / all inner portals gone: only defend
+            if (AssaultSaving(payables, day, hour, home, px)) return true;
             // shields -> knights
             var shield = Find(payables, x => x is PayableShield && SafeCanPay(x), home);
             if (shield != null && budget >= shield.price) { Status = "Assault: buy shield (" + shield.price + ")"; PayAt(shield); return true; }

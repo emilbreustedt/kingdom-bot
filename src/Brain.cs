@@ -19,7 +19,8 @@ namespace KingdomBot
         float _gameOverAt = -1f;
         public bool AutoRestart = true;
         bool _safeMode;
-        bool _armyFirst;          // current plan is a retreat/home plan -> do not interrupt it
+        bool _armyFirst;
+        LegacyBrain _legacy;          // current plan is a retreat/home plan -> do not interrupt it
         public int Runs = 0;
         string _lastLogged = "";
 
@@ -153,6 +154,13 @@ namespace KingdomBot
             int day = GameState.Day;
             CheckRunEnd();
             if (Mode == "pacifist") { ThinkPacifist(); return; }
+            if (Mode == "survive")
+            {
+                if (_legacy == null) _legacy = new LegacyBrain(_pl);
+                _legacy.ThinkInner();
+                Status = _legacy.Status; _safeMode = false;
+                return;
+            }
             float hour = GameState.Hour;
             float px = GameState.PX;
             int coins = GameState.Coins;

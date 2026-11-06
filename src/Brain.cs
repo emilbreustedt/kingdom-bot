@@ -306,7 +306,7 @@ namespace KingdomBot
             }
             if (fire != null && coins >= fire.price) { Status = "Light campfire"; PayAt(fire); return; }
             bool fireLit = fire == null && Find(payables0, x => x.name.StartsWith("Castle0")) == null;
-            foreach (var ch in UnityEngine.Object.FindObjectsOfType<Chest>())
+            foreach (var ch in AllChests())
             {
                 if (!fireLit) break;
                 float cx = ch.transform.position.x;
@@ -492,7 +492,7 @@ namespace KingdomBot
             // 3. fire, coins/chests (not dropped by us)
             var fire = Find(payables, x => x is PayableUpgrade && x.name.StartsWith("Castle0") && SafeCanPay(x));
             if (fire != null && coins >= fire.price) { Status = "Pacifist: light fire"; PayAt(fire); return; }
-            foreach (var ch in UnityEngine.Object.FindObjectsOfType<Chest>())
+            foreach (var ch in AllChests())
             {
                 float cx = ch.transform.position.x;
                 if (!ch.isEmpty && !OnCooldown(ch.GetInstanceID()) && Mathf.Abs(cx - home) < 40f) { Cool(ch.GetInstanceID(), 120f); Status = "Pacifist: chest"; Push("goto " + F(cx) + " 0.3 10"); Push("wait 1"); return; }
@@ -577,6 +577,14 @@ namespace KingdomBot
         }
 
         // ---------------- army1: ON_THE_FIRST_DAY (8 archers before the first dawn) ----------------
+        /// <summary>All chests incl. far ones (deactivated objects are missed by FindObjectsOfType).</summary>
+        static System.Collections.Generic.List<Chest> AllChests()
+        {
+            var l = new System.Collections.Generic.List<Chest>();
+            foreach (var c in Resources.FindObjectsOfTypeAll<Chest>())
+                if (c != null && c.hideFlags == HideFlags.None && c.gameObject.hideFlags == HideFlags.None && c.transform.root.gameObject.activeSelf) l.Add(c);
+            return l;
+        }
         int _rerolls; bool _mapChecked;
         public float Army1Range = 130f;   // guide: run to the camps on both sides (four camps incl. the town centre) and loot chests on the way
         void ThinkArmy1(bool feast)
@@ -590,7 +598,7 @@ namespace KingdomBot
             {
                 int avail = coins;
                 foreach (var c in UnityEngine.Object.FindObjectsOfType<Coin>()) if (!c.pickedUp && Mathf.Abs(c.transform.position.x - home) < Army1Range) avail++;
-                foreach (var ch in UnityEngine.Object.FindObjectsOfType<Chest>()) if (!ch.isEmpty && Mathf.Abs(ch.transform.position.x - home) < Army1Range) avail += ch.coins;
+                foreach (var ch in AllChests()) if (!ch.isEmpty && Mathf.Abs(ch.transform.position.x - home) < Army1Range) avail += ch.coins;
                 _mapChecked = true;
                 Plugin.Log("army1: coins reachable on this map = " + avail + " (reroll " + _rerolls + ")");
                 if (avail < 24 && _rerolls < 10 && NormalizeRunType(ConfigMode) == "auto")
@@ -609,7 +617,7 @@ namespace KingdomBot
             if (feast && (!k.isDaytime || GameState.Hour >= k.dayEnd - 1.5f))
             { Status = "Feast: night at the fire"; if (Mathf.Abs(px - home) > 2f) Push("goto " + F(home) + " 1 6"); else Push("wait 1"); return; }
             // 3. coins & chests
-            foreach (var ch in UnityEngine.Object.FindObjectsOfType<Chest>())
+            foreach (var ch in AllChests())
             {
                 float cx = ch.transform.position.x;
                 if (!ch.isEmpty && !OnCooldown(ch.GetInstanceID()) && Mathf.Abs(cx - home) < Army1Range) { Cool(ch.GetInstanceID(), 60f); Status = "army1: chest (" + ch.coins + ")"; Push("goto " + F(cx) + " 0.3 " + F(10f + Mathf.Abs(cx - px) * 0.6f)); Push("wait 1"); return; }

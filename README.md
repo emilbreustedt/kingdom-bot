@@ -2,7 +2,7 @@
 
 A BepInEx mod that plays **Kingdom: Classic** (Steam, 2015) on its own — built to hunt the game's
 day-based achievements. It reads the game state directly (no screen scraping), replaces the
-controller input with its own, and runs a rule-based strategy at up to 16× game speed.
+controller input with its own, and runs a rule-based strategy at up to 32× game speed.
 
 > Single-player only. Use at your own discretion. Not affiliated with Raw Fury or Noio.
 > This repository contains **no game code or assets** — the build derives a compile-time
@@ -50,7 +50,7 @@ controller input with its own, and runs a rule-based strategy at up to 16× game
    ```ini
    [General]
    Mode = auto          # auto | main | early | challenge
-   Speed = 16
+   Speed = 32
    AutoStart = true
    AutoRestart = true
    ```
@@ -81,7 +81,7 @@ Old mode names still work (`master`/`survive` → main, `fire3`/`pacifist` → c
 |-----|--------|
 | F8  | bot on/off (takes over the controls) |
 | F9  | automatic strategy on/off |
-| F10 | game speed 1× → 2× → 4× → 8× → 16× |
+| F10 | game speed 1× → 2× → 4× → 8× → 16× → 32× |
 
 ### Commands (`BepInEx/KingdomBot/cmd.txt`, polled twice per second)
 

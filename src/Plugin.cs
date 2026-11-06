@@ -16,7 +16,7 @@ namespace KingdomBot
 
         public bool BotActive;          // F8: bot owns the controls
         public bool AutoBrain;          // F9: strategy generates commands (otherwise only cmd.txt)
-        public float Speed = 16f;        // F10: game speed while playing normally
+        public float Speed = 32f;        // F10: game speed while playing normally
         public readonly Controller Ctl = new Controller();
         public readonly CommandQueue Queue = new CommandQueue();
         public Brain Brain;
@@ -33,7 +33,7 @@ namespace KingdomBot
             // user settings: BepInEx/config/emil.kingdombot.cfg
             Brain.ConfigMode = Config.Bind("General", "Mode", "auto",
                 "auto = pick the run type from the achievements still missing on Steam; or main | early | challenge").Value;
-            Speed = Config.Bind("General", "Speed", 16f, "Game speed while the bot plays (1-16). F10 cycles at runtime.").Value;
+            Speed = Config.Bind("General", "Speed", 32f, "Game speed while the bot plays (1-32; ~30x effective). F10 cycles at runtime.").Value;
             BotActive = AutoBrain = Config.Bind("General", "AutoStart", true, "Bot takes over as soon as the game runs (F8/F9 toggle).").Value;
             Brain.AutoRestart = Config.Bind("General", "AutoRestart", true, "Start a new game automatically after game over.").Value;
             Brain.PacifistEnabled = Config.Bind("Modes", "Pacifist", true, "auto: try the no-kill / no-dropped-coin run (Five Days + Eighth Day).").Value;
@@ -49,7 +49,7 @@ namespace KingdomBot
         {
             if (Input.GetKeyDown(KeyCode.F8)) { BotActive = !BotActive; if (!BotActive) { Queue.Clear(); Ctl.Reset(); } Log("Bot active: " + BotActive); }
             if (Input.GetKeyDown(KeyCode.F9)) { AutoBrain = !AutoBrain; Log("Auto strategy: " + AutoBrain); }
-            if (Input.GetKeyDown(KeyCode.F10)) { Speed = Speed >= 16f ? 1f : Speed * 2f; Log("Speed: " + Speed); }
+            if (Input.GetKeyDown(KeyCode.F10)) { Speed = Speed >= 32f ? 1f : Speed * 2f; Log("Speed: " + Speed); }
             ApplySpeed();
 
             if (Time.unscaledTime >= _nextCmdPoll) { _nextCmdPoll = Time.unscaledTime + 0.5f; PollCommandFile(); }

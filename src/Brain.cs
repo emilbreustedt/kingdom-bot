@@ -1212,7 +1212,7 @@ namespace KingdomBot
                 foreach (var po in UnityEngine.Object.FindObjectsOfType<Portal>())
                 {
                     var dm = po.GetComponent<Damageable>();
-                    if (po.outerSpawner || (dm != null && dm.hitPoints <= 0)) continue;
+                    if (po.outerSpawner || (dm != null && dm.hitPoints <= 0 && PortalsAllDestroyed())) continue;   // a dead portal that has not crumbled yet is still a target: enemies camping there keep its queue from draining
                     float pd = Mathf.Abs(po.transform.position.x - home);
                     int ps = po.transform.position.x < home ? -1 : 1;
                     if (!FieldClear(home, ps)) continue;             // enemies (e.g. boulder throwers) in front of that wall: other side

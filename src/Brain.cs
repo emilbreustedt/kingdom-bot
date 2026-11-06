@@ -325,6 +325,13 @@ namespace KingdomBot
                 PayAt(wall); return;
             }
 
+            // ---------- 8c. farms (income) before more recruits once there is a decent army ----------
+            if (archers >= 10 && budget >= 6)
+            {
+                var farm = Find(payables, x => x is PayableUpgrade && x.name.StartsWith("Farmhouse") && SafeCanPay(x) && Between(x.transform.position.x, leftSafe - 2f, rightSafe + 2f), home);
+                if (farm != null) { Status = "Farm (" + farm.price + ")"; PayAt(farm); return; }
+            }
+
             // ---------- 9a. recruit beggars (only while the army is below the cap) ----------
             int army = archers + workers + farmers;
             if (Time.time >= _noRecruitUntil && budget >= 2 && peasants < 2 && hour < k.dayEnd - 4f && army < archerCap + WorkerTarget(day, archers, acrePhase) + 3)
@@ -343,11 +350,7 @@ namespace KingdomBot
             }
 
             // ---------- 9b. farms + trees for income ----------
-            if (archers >= 6 && budget >= 6)
-            {
-                var farm = Find(payables, x => x is PayableUpgrade && x.name.StartsWith("Farmhouse") && SafeCanPay(x) && Between(x.transform.position.x, leftSafe + 1f, rightSafe - 1f), home);
-                if (farm != null) { Status = "Farm (" + farm.price + ")"; PayAt(farm); return; }
-            }
+
             if (workers > 0 && budget >= 3 && !acrePhase && gap < 200f)
             {
                 var tree = EdgeTree(payables, k);
@@ -451,6 +454,13 @@ namespace KingdomBot
                 if (shrine != null && budget >= shrine.price && Mathf.Abs(shrine.transform.position.x - home) < 140f)
                 { Status = "Assault prep: mason shrine (stone)"; Cool(shrine.GetInstanceID(), 30f); Push("goto " + F(PayX(shrine)) + " 0.3 40"); Push("payid " + shrine.GetInstanceID() + " " + F(PayX(shrine))); Push("goto " + F(home) + " 1 40"); return true; }
             }
+            if (!assault && day >= 10 && archers >= 8)
+            {
+                // castle up to "Castle4" (-> level that turns nearby walls to stone and upgrades towers)
+                var c4 = Find(payables, x => x is PayableUpgrade && x.name.StartsWith("Castle") && SafeCanPay(x)
+                                              && CastleIndex(x.name) >= 1 && CastleIndex(x.name) <= 4);
+                if (c4 != null && budget >= c4.price) { Status = "Defence: castle " + c4.name.Replace("(Clone)", "") + " (" + c4.price + ")"; PayAt(c4); return true; }
+            }
             if (_armyFirst && !assault) return false;
             // outer wall ring: the border banner (needed to send knights) only exists if the outermost wall
             // is far enough from the campfire -> keep a wall >= 14 units out on both sides
@@ -465,7 +475,7 @@ namespace KingdomBot
                     {
                         if (!(p is PayableUpgrade) || !(p.name.StartsWith("Wall") || p.name.Contains("Wreck")) || IsBuiltWall(p) || OnCooldown(p.GetInstanceID()) || !SafeCanPay(p)) continue;
                         float rel = (p.transform.position.x - home) * side;
-                        if (rel < 14f || rel > 32f) continue;
+                        if (rel < 14f || rel > 40f) continue;
                         if (rel < bd) { bd = rel; best = p; }
                     }
                     if (best != null && budget >= best.price + 1) { Status = "Outer wall " + (side < 0 ? "left" : "right") + " (banner range)"; PayAt(best); return true; }
@@ -489,6 +499,13 @@ namespace KingdomBot
                 if (border != null && budget >= border.price) { Status = "Assault: knights CHARGE (" + border.name.Replace("(Clone)", "") + ")"; Cool(border.GetInstanceID(), 60f); PayAt(border); return true; }
             }
             return false;
+        }
+
+        static int CastleIndex(string name)
+        {
+            int i = 6, n;
+            if (name.Length > 6 && int.TryParse(name.Substring(6, 1), out n)) i = n;
+            return i;
         }
 
         bool GiftPending()
@@ -546,7 +563,7 @@ namespace KingdomBot
         {
             if (day == 0) return 1;
             if (acrePhase) return 6;                   // clearing for the acre
-            return Mathf.Max(3, archers / 3);
+            return Mathf.Clamp(archers / 4, 3, 6);
         }
 
         void PayAt(Payable py)

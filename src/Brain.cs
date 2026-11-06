@@ -212,6 +212,8 @@ namespace KingdomBot
                 int d = GameState.Day; float hr = GameState.Hour, pxx = GameState.PX, hm = kk.campfirePosition;
                 int bud = GameState.Coins - ((d >= 1 && hr >= kk.dayEnd - 8f) ? 4 : 0);
                 int arch = UnityEngine.Object.FindObjectsOfType<Archer>().Length;
+                // track boss nights: the morning after one is the recovery day (forum tip: best time for an assault)
+                if (!kk.isDaytime || hr >= kk.dayEnd - 1f) { foreach (var bo in UnityEngine.Object.FindObjectsOfType<Boss>()) { var be = bo.GetComponent<Enemy>(); if (be != null && IsLiveEnemy(be)) _bossNightDay = hr < 12f ? d - 1 : d; } }
                 bool night = hr >= kk.dayEnd - 1.5f || !kk.isDaytime;
                 var en = NearestEnemy(pxx);
                 bool danger = en != null && Mathf.Abs(en.transform.position.x - pxx) < 12f && !WallBetween(pxx, en.transform.position.x);
@@ -921,7 +923,21 @@ namespace KingdomBot
         }
         public int AssaultArmyCap = 25;
         public int MasterRunEndDay = 40;
-        public int MinChargeArchers = 16;   // escorts (4 per knight) + enough defenders at home   // after day 40 no "Safe in X" is reachable
+        public int MinChargeArchers = 16;
+        int _bossNightDay = -10;
+
+        /// <summary>No live enemy outside the walls within 60 units of either wall (a charge would run into it).</summary>
+        static bool FieldClear(float home)
+        {
+            float l = WallEdge(-1, home), r = WallEdge(1, home);
+            foreach (var e in UnityEngine.Object.FindObjectsOfType<Enemy>())
+            {
+                if (!IsLiveEnemy(e)) continue;
+                float x = e.transform.position.x;
+                if ((x < l && x > l - 60f) || (x > r && x < r + 60f)) return false;
+            }
+            return true;
+        }   // escorts (4 per knight) + enough defenders at home   // after day 40 no "Safe in X" is reachable
         public int BurstCoins = 50;   // castle 4 (8) + castle 5 (9) + 2 shields (12) + 4 banners (16) + purse; castle 5 earns ~1 coin/day, every charge (4) must come from the bank
 
         /// <summary>Coins the record strategy must leave alone while the assault saves for castle 4/5 and shields.</summary>
@@ -1130,7 +1146,8 @@ namespace KingdomBot
             bool armed = false;
             foreach (var kn in knights) { try { if ((bool)Acc.Call(kn, "CanCharge")) armed = true; } catch { } }
             // charge: pay the border banner while knights with archers are ready (and armed)
-            if (morning && armed && archers >= MinChargeArchers)
+            bool recovery = _bossNightDay == day - 1;
+            if (morning && armed && archers >= MinChargeArchers && (recovery || FieldClear(home)))
             {
                 // banner on the side of the nearest intact inner portal (each charge goes to that side's portal)
                 float bestPd = float.MaxValue; int pside = 0;

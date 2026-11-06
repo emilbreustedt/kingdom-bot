@@ -1198,7 +1198,7 @@ namespace KingdomBot
                         if (p is PayableUpgrade && p.name.StartsWith("Wall") && !IsBuiltWall(p) && r < sd) { sd = r; spot = p; }
                         else if (p.name.StartsWith("Tree") && r < td) { td = r; tree = p; }
                     }
-                    var pick = spot ?? tree;
+                    var pick = spot ?? (portalRel - outerRel < 140f ? tree : null);   // clearing a whole forest for a far portal eats the charge money
                     if (pick != null && budget - AssaultReserve(false) >= pick.price + 2)
                     {
                         Status = "Forward wall " + (side < 0 ? "left" : "right") + (spot != null ? "" : ": cut tree") + " (portal gap " + (portalRel - outerRel).ToString("0") + ")";

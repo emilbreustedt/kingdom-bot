@@ -774,13 +774,13 @@ namespace KingdomBot
                 for (int side = -1; side <= 1; side += 2)
                 {
                     float outer = WallEdge(side, home);
-                    if (Mathf.Abs(outer - home) >= 14f) continue;
+                    if (Mathf.Abs(outer - home) >= 11f) continue;
                     Payable best = null; float bd = float.MaxValue;
                     foreach (var p in payables)
                     {
                         if (!(p is PayableUpgrade) || !(p.name.StartsWith("Wall") || p.name.Contains("Wreck")) || IsBuiltWall(p) || OnCooldown(p.GetInstanceID()) || !SafeCanPay(p)) continue;
                         float rel = (p.transform.position.x - home) * side;
-                        if (rel < 14f || rel > 40f) continue;
+                        if (rel < 11f || rel > 40f) continue;
                         if (rel < bd) { bd = rel; best = p; }
                     }
                     if (best != null && budget >= best.price + 1) { Status = "Outer wall " + (side < 0 ? "left" : "right") + " (banner range)"; PayAt(best); return true; }

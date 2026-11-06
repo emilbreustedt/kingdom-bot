@@ -439,8 +439,8 @@ namespace KingdomBot
                         // shield shops stand next to each other and are interchangeable: any selected shield shop will do
                         bool match = sel != null && (sel.GetInstanceID() == id || (sel is PayableShield && IdIsShield(id)));
                         if (match && payable && _matchFrames < 3) { _matchFrames++; c.Dir = 0; break; }   // stand still first: a moving king slides out of the trigger mid-payment
+                        if (!(match && payable)) _matchFrames = 0;
                         if (match && payable) { id = sel.GetInstanceID(); _payTarget = id; _started = true; _t0 = Time.time; c.Dir = 0; c.Pay = true; }
-                        else _matchFrames = 0;
                         else if (Time.time - _t0 > 10f)
                         {
                             string tinfo = "?";

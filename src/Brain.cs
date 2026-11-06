@@ -811,7 +811,7 @@ namespace KingdomBot
             }
             // while saving the army must keep growing: bows for idle peasants, then recruit beggars (hand-over)
             int archersNow = UnityEngine.Object.FindObjectsOfType<Archer>().Length;
-            int armyCap = item != null && item.name.StartsWith("Mason") ? 10 : 30;   // stone tech first: castle 5 / knights depend on it
+            int armyCap = item != null && item.name.StartsWith("Mason") ? 10 : (Mode == "master" && GameState.Day >= 12 ? AssaultArmyCap : 30);   // stone tech first: castle 5 / knights depend on it
             if (archersNow < Mathf.Min(2 * day + 4, armyCap) && hour < k.dayEnd - 5f)
             {
                 int peasants = UnityEngine.Object.FindObjectsOfType<Peasant>().Length, onDisplay = 0; PayableShop bow = null;
@@ -919,7 +919,7 @@ namespace KingdomBot
             if (RunType == "challenge") { Push("walkto " + F(b.transform.position.x) + " 0.3 25"); Push("handtap " + b.GetInstanceID()); Push("wait 1.5"); }
             else { Push("walkto " + F(b.transform.position.x) + " 0.8 25"); Push("tap 1"); Push("wait 2.5"); }
         }
-        public int AssaultArmyCap = 30;
+        public int AssaultArmyCap = 25;
         public int BurstCoins = 45;   // castle 4 (8) + castle 5 (9) + 2 shields (12) + recruits (2) + banner (4) + purse (3) + slack
 
         /// <summary>Coins the record strategy must leave alone while the assault saves for castle 4/5 and shields.</summary>

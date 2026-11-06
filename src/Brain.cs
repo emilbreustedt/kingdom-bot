@@ -109,9 +109,19 @@ namespace KingdomBot
         /// <summary>Special runs end as soon as none of their achievements is reachable any more (only in auto).</summary>
         void CheckRunEnd()
         {
-            if (NormalizeRunType(ConfigMode) != "auto" || _newGameAt > 0f || RunType == "main") return;
+            if (NormalizeRunType(ConfigMode) != "auto" || _newGameAt > 0f) return;
             var am = Managers.achievements; if (am == null || am.flags == null) return;
             int dayC = am.counters[1];
+            if (RunType == "main")
+            {
+                // assault phase: after day 40 no "Safe in X" is reachable any more (Day C is already done) -> next attempt
+                if (Mode == "master" && dayC > 40 && Campaign.Missing("SAFE_IN_40") && !Campaign.Missing("SURVIVED_UNTIL_DAY_100"))
+                {
+                    Plugin.Log("Run finished (assault, day " + dayC + ", portals left) -> new game");
+                    _newGameAt = Time.unscaledTime + 6f;
+                }
+                return;
+            }
             bool possible;
             if (RunType == "early")
                 possible = (dayC == 0 && Campaign.Missing(Campaign.FirstDay))
@@ -207,11 +217,11 @@ namespace KingdomBot
                 bool ready = (d >= 12 && arch >= 15) || d >= 20;
                 if (ready && !night && !danger && AssaultStep(UnityEngine.Object.FindObjectsOfType<Payable>(), d, hr, bud, arch, hm, pxx)) return;
             }
-            if (Mode == "master" && GameState.Player != null && (int)Managers.game.gameState == 2 && (EconomyStep() || DefenseStep())) return;
+            // (master now shares the survival basis below; economy/defence extras are no longer used)
             // survival: stone walls decide late survival (L3/L4 = 200/300 HP vs 50 HP). Follow a wall schedule and save for
             // the next step during the day if needed; otherwise the record strategy plays as usual.
             if ((Mode == "survive" || Mode == "master") && GameState.Player != null && (int)Managers.game.gameState == 2 && AvoidIntruder()) return;
-            if (Mode == "survive" && GameState.Player != null && (int)Managers.game.gameState == 2 && WallSchedule()) return;
+            if ((Mode == "survive" || Mode == "master") && GameState.Player != null && (int)Managers.game.gameState == 2 && WallSchedule()) return;
             if (Mode == "survive" || Mode == "master" || Mode == "feast")
             {
                 if (_legacy == null) _legacy = new LegacyBrain(_pl);
@@ -856,6 +866,8 @@ namespace KingdomBot
             return false;
         }
 
+        public int KnightArmor = 4;
+
         /// <summary>Portal assault (master mode): returns true if it queued an action.</summary>
         bool AssaultStep(Payable[] payables, int day, float hour, int budget, int archers, float home, float px)
         {
@@ -917,8 +929,24 @@ namespace KingdomBot
             // shields -> knights
             var shield = Find(payables, x => x is PayableShield && SafeCanPay(x), home);
             if (shield != null && budget >= shield.price) { Status = "Assault: buy shield (" + shield.price + ")"; PayAt(shield); return true; }
-            // charge: pay the border banner while knights with archers are ready
-            if (morning)
+            // arm the knights: coins in a knight's purse are knocked out before he loses his shield
+            var knights = UnityEngine.Object.FindObjectsOfType<Knight>();
+            Knight poor = null; int poorCoins = 99;
+            foreach (var kn in knights)
+            {
+                int kc = 0; try { kc = Acc.Wallet(kn).coins; } catch { }
+                if (kc < KnightArmor && kc < poorCoins && !OnCooldown(kn.GetInstanceID())) { poorCoins = kc; poor = kn; }
+            }
+            if (poor != null && budget >= 3 && k.isDaytime)
+            {
+                Cool(poor.GetInstanceID(), 6f);
+                Status = "Assault: arm knight (" + poorCoins + "/" + KnightArmor + " coins)";
+                Push("walkto " + F(poor.transform.position.x) + " 0.6 20"); Push("tap 2"); Push("wait 1.5"); return true;
+            }
+            bool armed = knights.Length > 0;
+            foreach (var kn in knights) { int kc = 0; try { kc = Acc.Wallet(kn).coins; } catch { } if (kc < 2) armed = false; }
+            // charge: pay the border banner while knights with archers are ready (and armed)
+            if (morning && armed)
             {
                 var border = Find(payables, x => x is PayableBorder && SafeCanPay(x), px);
                 if (border != null && budget >= border.price) { Status = "Assault: knights CHARGE (" + border.name.Replace("(Clone)", "") + ")"; Cool(border.GetInstanceID(), 60f); PayAt(border); return true; }

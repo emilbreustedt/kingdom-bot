@@ -826,12 +826,13 @@ namespace KingdomBot
             // while saving the army must keep growing: bows for idle peasants, then recruit beggars (hand-over)
             int archersNow = UnityEngine.Object.FindObjectsOfType<Archer>().Length;
             int armyCap = item != null && item.name.StartsWith("Mason") ? 10 : (Mode == "master" && GameState.Day >= 12 ? AssaultArmyCap : 30);   // stone tech first: castle 5 / knights depend on it
+            int armyCoins = archersNow < MinChargeArchers ? GameState.Coins : coins;   // a weak army is rebuilt even from the assault reserve
             if (archersNow < Mathf.Min(2 * day + 4, armyCap) && hour < k.dayEnd - 5f)
             {
                 int peasants = UnityEngine.Object.FindObjectsOfType<Peasant>().Length, onDisplay = 0; PayableShop bow = null;
                 foreach (var py in payables) { var sh = py as PayableShop; if (sh == null) continue; onDisplay += sh.GetItemCount(); if (sh.name.Contains("Bow")) bow = sh; }
-                if (peasants > onDisplay && ShieldsWaiting() == 0 && bow != null && SafeCanPay(bow) && coins >= bow.price) { Status = "Army while saving: buy bow"; PayAt(bow); return true; }
-                if (peasants < onDisplay + 2 && peasants < 4 && coins >= 4)
+                if (peasants > onDisplay && ShieldsWaiting() == 0 && bow != null && SafeCanPay(bow) && armyCoins >= bow.price) { Status = "Army while saving: buy bow"; PayAt(bow); return true; }
+                if (peasants < onDisplay + 2 && peasants < 4 && armyCoins >= 4)
                 {
                     var b = NearestBeggar(px, home - 150f, home + 150f);
                     if (b != null) { Cool(b.GetInstanceID(), 10f); Status = "Army while saving: recruit"; Recruit(b); return true; }

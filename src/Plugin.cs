@@ -375,6 +375,7 @@ namespace KingdomBot
         public bool Idle { get { return _cur == null && _q.Count == 0; } }
         /// <summary>true while creeping onto a payable (game speed is lowered for precision)</summary>
         int _payTarget, _matchFrames;
+        float _payStartDist = -1f;
         static bool IdIsShield(int id)
         {
             foreach (var ps in UnityEngine.Object.FindObjectsOfType<PayableShield>()) if (ps.GetInstanceID() == id) return true;
@@ -393,7 +394,7 @@ namespace KingdomBot
             if (_cur == null)
             {
                 if (_q.Count == 0) { c.Dir = 0; c.Sprint = false; c.Pay = false; return; }
-                _cur = _q.Dequeue(); _t0 = Time.time; _u0 = Time.unscaledTime; _n = 0; _started = false; _payTarget = 0; _matchFrames = 0; _lastCoinIdx = -1; _pressFrames = 0;
+                _cur = _q.Dequeue(); _t0 = Time.time; _u0 = Time.unscaledTime; _n = 0; _started = false; _payTarget = 0; _matchFrames = 0; _payStartDist = -1f; _lastCoinIdx = -1; _pressFrames = 0;
             }
             var parts = _cur.Split(' ');
             var p = GameState.Player;
@@ -431,6 +432,7 @@ namespace KingdomBot
                     c.Dir = 0; c.Sprint = false;
                     int id = int.Parse(parts[1]);
                     var sel = Acc.Selected(p);
+                    if (_payStartDist < 0f) _payStartDist = parts.Length > 2 ? Mathf.Abs(F(parts[2]) - px) : 0f;   // timeout grows with the distance still to walk
                     if (!_started)
                     {
                         // only press once the intended payable is selected (selection updates every frame)
@@ -441,7 +443,7 @@ namespace KingdomBot
                         if (match && payable && _matchFrames < 3) { _matchFrames++; c.Dir = 0; break; }   // stand still first: a moving king slides out of the trigger mid-payment
                         if (!(match && payable)) _matchFrames = 0;
                         if (match && payable) { id = sel.GetInstanceID(); _payTarget = id; _started = true; _t0 = Time.time; c.Dir = 0; c.Pay = true; }
-                        else if (Time.time - _t0 > 10f)
+                        else if (Time.time - _t0 > 10f + _payStartDist * 1.5f)
                         {
                             string tinfo = "?";
                             foreach (var tp in UnityEngine.Object.FindObjectsOfType<Payable>())

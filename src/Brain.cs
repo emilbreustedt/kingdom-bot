@@ -148,7 +148,7 @@ namespace KingdomBot
                 _coinsAtTap = -1;
             }
             int dNow = GameState.Day;
-            if (dNow < _lastDaySeen || _lastDaySeen < 0) { _lastCastleUpgradeDay = -1; _cooldown.Clear(); _mapChecked = false; ChooseModeForRun(_lastDaySeen < 0 && dNow > 0); }
+            if (dNow < _lastDaySeen || _lastDaySeen < 0) { _lastCastleUpgradeDay = -1; _cooldown.Clear(); _mapChecked = false; _mainMapChecked = false; ChooseModeForRun(_lastDaySeen < 0 && dNow > 0); }
             if (dNow != _lastDaySeen && Managers.achievements != null && Managers.achievements.flags != null)
             {
                 var am = Managers.achievements;
@@ -190,6 +190,7 @@ namespace KingdomBot
             if (Mode == "pacifist") { ThinkPacifist(); return; }
             if (Mode == "army1") { ThinkArmy1(false); return; }
             if (Mode == "feast") { ThinkArmy1(true); return; }   // feast: maximum archers early - they hunt deer on their own in safe daytime
+            if (RunType == "main" && GameState.Player != null && (int)Managers.game.gameState == 2 && GameState.Day == 0 && MainMapCheck()) return;
             if (Mode == "master" && GameState.Player != null && (int)Managers.game.gameState == 2)
             {
                 // master = record-run defence (LegacyBrain) + portal assault steps on top
@@ -501,6 +502,30 @@ namespace KingdomBot
             }
             Status = "Pacifist: waiting (day counter " + dayC + ", kills " + (am != null ? am.counters[5] : -1) + ", dropped " + (am != null && am.flags[5]) + ")";
             if (Mathf.Abs(px - home) > 3f) Push("walkto " + F(home) + " 1 6"); else Push("wait 1");
+        }
+
+        // ---------------- main: reroll maps with portals close to the camp (forum: "restart bad maps") ----------------
+        int _mainRerolls; bool _mainMapChecked;
+        public float MinPortalDistance = 100f;
+        bool MainMapCheck()
+        {
+            if (_mainMapChecked || NormalizeRunType(ConfigMode) == "main" && false) return false;
+            _mainMapChecked = true;
+            var k = Managers.kingdom; float home = k.campfirePosition;
+            float left = 1e6f, right = 1e6f; int camps = 0;
+            foreach (var po in UnityEngine.Object.FindObjectsOfType<Portal>())
+            {
+                if (po.outerSpawner) continue;
+                float d = po.transform.position.x - home;
+                if (d < 0) left = Mathf.Min(left, -d); else right = Mathf.Min(right, d);
+            }
+            foreach (var bc in UnityEngine.Object.FindObjectsOfType<BeggarCamp>()) if (Mathf.Abs(bc.transform.position.x - home) < 90f) camps++;
+            bool good = left >= MinPortalDistance && right >= MinPortalDistance && camps >= 3;
+            Plugin.Log(string.Format("main map check: nearest portals L {0:0} / R {1:0}, camps within 90: {2} -> {3} (reroll {4})", left, right, camps, good ? "keep" : "reroll", _mainRerolls));
+            if (good || _mainRerolls >= 30) { _mainRerolls = 0; return false; }
+            _mainRerolls++; _lastDaySeen = -1; _pl.Queue.Clear();
+            Acc.Call(Managers.game, "Restart");
+            Status = "main: reroll map"; Push("wait 2"); return true;
         }
 
         // ---------------- army1: ON_THE_FIRST_DAY (8 archers before the first dawn) ----------------

@@ -180,6 +180,12 @@ namespace KingdomBot
                 }
                 foreach (var b in UnityEngine.Object.FindObjectsOfType<PayableBorder>())
                     Log("BORDER x" + b.transform.position.x.ToString("0.0") + " canPay=" + b.CanPay() + " range=" + b.knightRange);
+                foreach (var fh in UnityEngine.Object.FindObjectsOfType<Farmhouse>())
+                    Log("FARMHOUSE x" + fh.transform.position.x.ToString("0.0") + " level=" + fh.level + " name=" + fh.name);
+                var sbp = new System.Text.StringBuilder("PAYABLE LIST (campfire x" + Managers.kingdom.campfirePosition.ToString("0") + "):");
+                foreach (var p in UnityEngine.Object.FindObjectsOfType<Payable>())
+                    sbp.Append(" " + p.name.Replace("(Clone)", "") + "@" + p.transform.position.x.ToString("0") + (p.CanPay() ? "" : "!"));
+                Log(sbp.ToString());
                 var pm = Managers.payables;
                 if (pm != null) Log("PAYABLES enabledByDefault=" + Acc.Get<bool>(pm, "_enabledByDefault"));
                 var tm = Managers.tutorial;

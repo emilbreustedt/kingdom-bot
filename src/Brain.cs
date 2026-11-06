@@ -750,8 +750,10 @@ namespace KingdomBot
             int coins = GameState.Coins;
             var payables = UnityEngine.Object.FindObjectsOfType<Payable>();
             Payable item = null; string what = null;
+            // 0. farms = the only income that scales; they come first from day 6
+            if (day >= 6) { var farm = FarmTarget(payables, home); if (farm != null) { item = farm; what = "farm"; } }
             // 1. stone tech first (wall levels 3+ need it)
-            if (Managers.techUpgrades != null && !Managers.techUpgrades.stoneBuilding)
+            if (item == null && Managers.techUpgrades != null && !Managers.techUpgrades.stoneBuilding)
             {
                 var shrine = Find(payables, x => x is PayableUpgrade && x.name.StartsWith("Mason") && SafeCanPay(x));
                 if (shrine != null && Mathf.Abs(shrine.transform.position.x - home) < 140f && hour < k.dayEnd - 9f) { item = shrine; what = "mason shrine (stone)"; }
@@ -766,20 +768,6 @@ namespace KingdomBot
                     if (outer == null || outer.level >= target) continue;
                     var up = UpgradeOf(payables, outer);
                     if (up != null && outer.level < bestLvl) { bestLvl = outer.level; item = up; what = "outer wall " + (side < 0 ? "left" : "right") + " L" + outer.level + "->" + (outer.level + 1); }
-                }
-            }
-            // 2b. farms = the only income that scales; save for them once the walls are on schedule
-            if (item == null && day >= 6)
-            {
-                bool scytheShop = false;
-                foreach (var py in payables) if (py is PayableShop && py.name.Contains("Scythe")) scytheShop = true;
-                int farmsBuilt = 0;
-                foreach (var fh in UnityEngine.Object.FindObjectsOfType<Farmhouse>()) if (fh.level > 0 && Mathf.Abs(fh.transform.position.x - home) < 60f) farmsBuilt++;
-                int farmers = UnityEngine.Object.FindObjectsOfType<Farmer>().Length;
-                if (scytheShop && (farmsBuilt == 0 || (farmsBuilt == 1 && farmers >= 3 && day >= 12)))
-                {
-                    var farm = Find(payables, x => x is PayableUpgrade && x.name.StartsWith("Farmhouse") && SafeCanPay(x) && Mathf.Abs(x.transform.position.x - home) < 55f, home);
-                    if (farm != null) { item = farm; what = "farm"; }
                 }
             }
             // 3. towers next to the outer walls: archers in a guard slot are immune to troll/boss hits
@@ -902,6 +890,19 @@ namespace KingdomBot
         public bool UseMerchant = false;   // 4 coins every other day = ~half of the late-game income; not worth it
         public int KnightTarget = 4;
 
+        /// <summary>Farmhouse payable to build next (first farm once scythes are sold, second one from day 12), or null.</summary>
+        Payable FarmTarget(Payable[] payables, float home)
+        {
+            bool scytheShop = false;
+            foreach (var py in payables) if (py is PayableShop && py.name.Contains("Scythe")) scytheShop = true;
+            if (!scytheShop) return null;
+            int farmsBuilt = 0;
+            foreach (var fh in UnityEngine.Object.FindObjectsOfType<Farmhouse>()) if (fh.level > 0 && Mathf.Abs(fh.transform.position.x - home) < 60f) farmsBuilt++;
+            int farmers = UnityEngine.Object.FindObjectsOfType<Farmer>().Length;
+            if (!(farmsBuilt == 0 || (farmsBuilt == 1 && farmers >= 3 && GameState.Day >= 12))) return null;
+            return Find(payables, x => x is PayableUpgrade && x.name.StartsWith("Farmhouse") && SafeCanPay(x) && Mathf.Abs(x.transform.position.x - home) < 55f, home);
+        }
+
         /// <summary>Shields lying at a shield shop (bought, not yet taken by a peasant).</summary>
         static int ShieldsWaiting()
         {
@@ -972,6 +973,8 @@ namespace KingdomBot
             bool morning = k.isDaytime && hour < k.dayEnd - 9f;
             bool wallsOk = WallsOnSide(-1, home) > 0 && WallsOnSide(1, home) > 0;
 
+            // farm first (wall schedule saves for it), then the castle
+            if (day >= 6 && FarmTarget(payables, home) != null) return false;
             // castle first from day 8 (level 5 = shield shops) - only when attacking; survive upgrades normally
             if (assault && day >= 8 && archers >= 6)
             {

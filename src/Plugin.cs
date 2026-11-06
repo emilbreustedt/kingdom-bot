@@ -21,7 +21,7 @@ namespace KingdomBot
         public readonly CommandQueue Queue = new CommandQueue();
         public Brain Brain;
 
-        float _nextDump, _nextCmdPoll, _nextGuard, _nextIntroPoke;
+        float _nextDump, _nextCmdPoll, _nextGuard, _nextIntroPoke, _notPlayingSince = -1;
         string _status = "";
 
         void Awake()
@@ -72,6 +72,14 @@ namespace KingdomBot
                     }
                 }
             }
+
+            // game time only starts when the king crosses a trigger near the start; if the bot heads elsewhere, start it ourselves
+            if (gm != null && (int)gm.gameState == 2 && BotActive && Managers.director != null && !Managers.director.playing)
+            {
+                if (_notPlayingSince < 0) _notPlayingSince = Time.unscaledTime;
+                else if (Time.unscaledTime - _notPlayingSince > 6f) { try { Acc.Call(gm, "StartTime"); Log("Game time started"); } catch (Exception e) { Log("StartTime failed: " + e.Message); } _notPlayingSince = -1; }
+            }
+            else _notPlayingSince = -1;
 
             var player = GameState.Player;
             if (player != null)

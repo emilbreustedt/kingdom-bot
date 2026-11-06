@@ -253,7 +253,7 @@ namespace KingdomBot
 
             // ---------- 9a. recruit beggars (only while the army is below the cap) ----------
             int army = archers + workers + farmers;
-            if (Time.time >= _noRecruitUntil && budget >= 2 && peasants < 2 && hour < k.dayEnd - 4f && army < archerCap + WorkerTarget(day, archers, acrePhase) + 3)
+            if (Time.time >= _noRecruitUntil && budget >= 2 && peasants < 3 && hour < k.dayEnd - 4f && army < archerCap + WorkerTarget(day, archers, acrePhase) + 3)
             {
                 // reach: 35 beyond the walls, but at least 60 around the fire while there is time left today
                 float reach = hour < k.dayEnd - 7f ? 100f : 35f;
@@ -264,7 +264,7 @@ namespace KingdomBot
                     float bx = b.transform.position.x;
                     Cool(b.GetInstanceID(), 8f);
                     _lastTap = Time.time; _coinsAtTap = coins;
-                    Push("walkto " + F(bx) + " 0.8 25"); Push("tap 1"); Push("wait 2.5"); return;
+                    Push("walkto " + F(bx) + " 0.3 25"); Push("handtap " + b.GetInstanceID()); Push("wait 1.5"); return;   /* coin straight into the beggar's hands */
                 }
             }
 

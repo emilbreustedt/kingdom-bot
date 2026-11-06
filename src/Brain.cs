@@ -622,20 +622,25 @@ namespace KingdomBot
             if (en != null && Mathf.Abs(en.transform.position.x - px) < 15f) return false;
             int coins = GameState.Coins;
             var payables = UnityEngine.Object.FindObjectsOfType<Payable>();
+            // merchant: one payment = a whole shop restocked for free (forum tip: pay him on every visit)
+            var merchant = Find(payables, x => x is Merchant && SafeCanPay(x) && Mathf.Abs(x.transform.position.x - home) < 60f, px);
+            if (merchant != null && coins >= merchant.price + 2) { Status = "Economy: pay the merchant (" + merchant.price + ")"; PayAt(merchant); return true; }
             PayableShop scythe = null; int onDisplay = 0;
             foreach (var py in payables) { var sh = py as PayableShop; if (sh == null) continue; onDisplay += sh.GetItemCount(); if (sh.name.Contains("Scythe")) scythe = sh; }
             if (scythe == null) return false;                               // castle level 2+ needed
-            bool farmBuilt = false;
-            foreach (var fh in UnityEngine.Object.FindObjectsOfType<Farmhouse>()) if (fh.level > 0 && Mathf.Abs(fh.transform.position.x - home) < 45f) farmBuilt = true;
-            if (!farmBuilt)
+            int farmsBuilt = 0;
+            foreach (var fh in UnityEngine.Object.FindObjectsOfType<Farmhouse>()) if (fh.level > 0 && Mathf.Abs(fh.transform.position.x - home) < 60f) farmsBuilt++;
+            bool farmBuilt = farmsBuilt > 0;
+            int farmersNow = UnityEngine.Object.FindObjectsOfType<Farmer>().Length;
+            if (farmsBuilt == 0 || (farmsBuilt == 1 && farmersNow >= 3 && day >= 12))
             {
-                var farm = Find(payables, x => x is PayableUpgrade && x.name.StartsWith("Farmhouse") && SafeCanPay(x) && Mathf.Abs(x.transform.position.x - home) < 40f, home);
+                var farm = Find(payables, x => x is PayableUpgrade && x.name.StartsWith("Farmhouse") && SafeCanPay(x) && Mathf.Abs(x.transform.position.x - home) < 55f, home);
                 if (farm != null && coins >= farm.price + 1) { Status = "Economy: build farm (" + farm.price + ")"; PayAt(farm); return true; }
-                return false;
+                if (!farmBuilt) return false;
             }
             int farmers = UnityEngine.Object.FindObjectsOfType<Farmer>().Length;
             int peasants = UnityEngine.Object.FindObjectsOfType<Peasant>().Length;
-            if (farmers < 2 && peasants > onDisplay && SafeCanPay(scythe) && coins >= scythe.price + 1)
+            if (farmers < Mathf.Min(6, 3 * farmsBuilt) && peasants > onDisplay && SafeCanPay(scythe) && coins >= scythe.price + 1)
             { Status = "Economy: buy scythe (farmers " + farmers + ")"; PayAt(scythe); return true; }
             return false;
         }

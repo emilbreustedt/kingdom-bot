@@ -370,7 +370,7 @@ namespace KingdomBot
             if (Time.time >= _noRecruitUntil && budget >= 2 && peasants < 2 && hour < k.dayEnd - 4f && army < archerCap + WorkerTarget(day, archers, acrePhase) + 3)
             {
                 // reach: 35 beyond the walls, but at least 60 around the fire while there is time left today
-                float reach = hour < k.dayEnd - 7f ? 60f : 35f;
+                float reach = hour < k.dayEnd - 7f ? 100f : 35f;
                 var b = NearestBeggar(px, Mathf.Min(leftSafe - 35f, home - reach), Mathf.Max(rightSafe + 35f, home + reach));
                 if (b != null)
                 {

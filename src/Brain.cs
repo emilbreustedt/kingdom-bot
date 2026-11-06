@@ -802,8 +802,8 @@ namespace KingdomBot
                 }
             }
             // 3. towers next to the outer walls: archers in a guard slot are immune to troll/boss hits
-            // (not in the assault mode - guides for Safe in 25: "Do not build any towers", they cost the knight money)
-            if (item == null && day >= 9 && Mode != "master")
+            // (guides say "no towers" for fast wins, but without them a boss broke in on day 27 and took the crown)
+            if (item == null && day >= 9)
             {
                 int ttarget = day >= 20 ? 3 : day >= 14 ? 2 : 1, bestT = 99;
                 for (int side = -1; side <= 1; side += 2)

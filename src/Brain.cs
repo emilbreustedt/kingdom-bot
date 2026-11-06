@@ -932,7 +932,7 @@ namespace KingdomBot
         public bool UseMerchant = false;
         // Farms (tree clearing + wall beyond the farm + scythes) cost more than they earned in tests: the army stayed
         // at ~12 archers by day 30 instead of 25-30. Off by default.
-        public bool UseFarms = true;      // guides: 1 farm + 4 farmers after day 5 is the basis of a fast win
+        public bool UseFarms = false;     // tested twice: farm runs had ~9 archers on day 20 (vs ~25) - clearing for the farm wall destroys beggar camps
         public bool FarmClearTrees = true;   // only a few trees (<= 4) for a spot right in front of the walls
         public int FarmerTarget = 4;
         public int FarmWallTreeCap = 6;

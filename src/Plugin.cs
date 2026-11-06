@@ -374,6 +374,12 @@ namespace KingdomBot
 
         public bool Idle { get { return _cur == null && _q.Count == 0; } }
         /// <summary>true while creeping onto a payable (game speed is lowered for precision)</summary>
+        int _payTarget;
+        static bool IdIsShield(int id)
+        {
+            foreach (var ps in UnityEngine.Object.FindObjectsOfType<PayableShield>()) if (ps.GetInstanceID() == id) return true;
+            return false;
+        }
         public bool Positioning { get { return _cur != null && ((_cur.StartsWith("payid") && !_started) || _cur.StartsWith("handtap")); } }
         public void Clear() { _q.Clear(); _cur = null; }
         public void Enqueue(string c) { _q.Enqueue(c); }
@@ -387,7 +393,7 @@ namespace KingdomBot
             if (_cur == null)
             {
                 if (_q.Count == 0) { c.Dir = 0; c.Sprint = false; c.Pay = false; return; }
-                _cur = _q.Dequeue(); _t0 = Time.time; _u0 = Time.unscaledTime; _n = 0; _started = false; _lastCoinIdx = -1; _pressFrames = 0;
+                _cur = _q.Dequeue(); _t0 = Time.time; _u0 = Time.unscaledTime; _n = 0; _started = false; _payTarget = 0; _lastCoinIdx = -1; _pressFrames = 0;
             }
             var parts = _cur.Split(' ');
             var p = GameState.Player;
@@ -430,7 +436,9 @@ namespace KingdomBot
                         // only press once the intended payable is selected (selection updates every frame)
                         // press only if the target can really be paid now - pressing on an unpayable target drops a coin
                         bool payable = false; try { payable = sel != null && sel.CanPay() && GameState.Coins > 0; } catch { }
-                        if (sel != null && sel.GetInstanceID() == id && payable) { _started = true; _t0 = Time.time; c.Dir = 0; c.Pay = true; }
+                        // shield shops stand next to each other and are interchangeable: any selected shield shop will do
+                        bool match = sel != null && (sel.GetInstanceID() == id || (sel is PayableShield && IdIsShield(id)));
+                        if (match && payable) { id = sel.GetInstanceID(); _payTarget = id; _started = true; _t0 = Time.time; c.Dir = 0; c.Pay = true; }
                         else if (Time.time - _t0 > 7f) { Plugin.Log("payid: target not selected (" + (sel != null ? sel.name : "none") + ")"); done = true; }
                         else if (parts.Length > 2)
                         {
@@ -450,6 +458,7 @@ namespace KingdomBot
                     int ps = Acc.PayState(p);
                     // never release in the "Holding" phase (state 1): releasing there drops a coin on the ground
                     if (ps == 1 && Time.time - _t0 < 6f) { c.Pay = true; break; }
+                    if (_payTarget != 0) id = _payTarget;
                     if (sel != null && sel.GetInstanceID() != id && ps != 3) { Plugin.Log("payid: wrong selection " + sel.name); c.Pay = false; done = true; break; }
                     if (sel == null && Time.time - _t0 > 0.6f && ps != 3) { c.Pay = false; done = true; break; }
                     if (ps == 3 || (ps == 0 && Time.time - _t0 > 1f) || Time.time - _t0 > 12f) { c.Pay = false; done = true; }

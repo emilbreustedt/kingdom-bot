@@ -415,11 +415,15 @@ namespace KingdomBot
                         // press only if the target can really be paid now - pressing on an unpayable target drops a coin
                         bool payable = false; try { payable = sel != null && sel.CanPay() && GameState.Coins > 0; } catch { }
                         if (sel != null && sel.GetInstanceID() == id && payable) { _started = true; _t0 = Time.time; c.Dir = 0; c.Pay = true; }
-                        else if (Time.time - _t0 > 4f) { Plugin.Log("payid: target not selected (" + (sel != null ? sel.name : "none") + ")"); done = true; }
+                        else if (Time.time - _t0 > 7f) { Plugin.Log("payid: target not selected (" + (sel != null ? sel.name : "none") + ")"); done = true; }
                         else if (parts.Length > 2)
                         {
                             // creep towards the target until its trigger selects it (we may have stopped just outside at high speed)
                             float tx = F(parts[2]);
+                            // a neighbouring payable (e.g. a tower next to the castle) holds the selection: sweep +-1.5
+                            // around the target until the target's trigger wins
+                            if (Time.time - _t0 > 1f && sel != null && sel.GetInstanceID() != id)
+                                tx += Mathf.PingPong((Time.time - _t0) * 1.5f, 3f) - 1.5f;
                             float dx = tx - px;
                             if (Mathf.Abs(dx) > 0.05f) c.Dir = dx > 0 ? 1 : -1;
                             // step-walk: move every other frame to avoid overshooting narrow triggers

@@ -1,5 +1,5 @@
 # Updates the bot without losing the current run: save & quit -> build -> start again (the game loads the AUTO save).
-param([string]$GamePath = (& "$PSScriptRoot\tools\find-game.ps1"))
+param([string]$GamePath = (& "$PSScriptRoot\tools\find-game.ps1"), [switch]$Force)
 $ErrorActionPreference = 'Stop'
 $proc = Get-Process Kingdom -ErrorAction SilentlyContinue | Where-Object { $_.Path -like "$GamePath*" }
 if ($proc) {

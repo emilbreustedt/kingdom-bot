@@ -192,7 +192,7 @@ namespace KingdomBot
                     var arObj = Acc.Get<object>(kn, "_archers");
                     int arCount = arObj != null ? (int)arObj.GetType().GetProperty("Count").GetValue(arObj, null) : -1;
                     bool cc = false; try { cc = (bool)Acc.Call(kn, "CanCharge"); } catch { }
-                    Log("KNIGHT x" + kn.transform.position.x.ToString("0.0") + " side=" + kn.side + " state=" + cur + " archers=" + arCount + "/" + kn.maxArchers + " canCharge=" + cc);
+                    Log("KNIGHT x" + kn.transform.position.x.ToString("0.0") + " side=" + kn.side + " state=" + cur + " archers=" + arCount + "/" + kn.maxArchers + " canCharge=" + cc + " coins=" + (Acc.Wallet(kn) != null ? Acc.Wallet(kn).coins : -1) + " hp=" + (kn.GetComponent<Damageable>() != null ? kn.GetComponent<Damageable>().hitPoints : -1));
                 }
                 foreach (var b in UnityEngine.Object.FindObjectsOfType<PayableBorder>())
                     Log("BORDER x" + b.transform.position.x.ToString("0.0") + " canPay=" + b.CanPay() + " range=" + b.knightRange);

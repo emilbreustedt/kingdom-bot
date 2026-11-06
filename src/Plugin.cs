@@ -402,7 +402,7 @@ namespace KingdomBot
 
         public bool Idle { get { return _cur == null && _q.Count == 0; } }
         /// <summary>true while creeping onto a payable (game speed is lowered for precision)</summary>
-        int _payTarget, _matchFrames;
+        int _payTarget, _matchFrames, _lastPs = -1;
         float _payStartDist = -1f;
         static bool IdIsShield(int id)
         {
@@ -422,7 +422,7 @@ namespace KingdomBot
             if (_cur == null)
             {
                 if (_q.Count == 0) { c.Dir = 0; c.Sprint = false; c.Pay = false; return; }
-                _cur = _q.Dequeue(); _t0 = Time.time; _u0 = Time.unscaledTime; _n = 0; _started = false; _payTarget = 0; _matchFrames = 0; _payStartDist = -1f; _lastCoinIdx = -1; _pressFrames = 0;
+                _cur = _q.Dequeue(); _t0 = Time.time; _u0 = Time.unscaledTime; _n = 0; _started = false; _payTarget = 0; _matchFrames = 0; _payStartDist = -1f; _lastPs = -1; _lastCoinIdx = -1; _pressFrames = 0;
             }
             var parts = _cur.Split(' ');
             var p = GameState.Player;
@@ -519,6 +519,7 @@ namespace KingdomBot
                         break;
                     }
                     int ps = Acc.PayState(p);
+                    if (ps != _lastPs) { Plugin.Log("payid trace: state " + Acc.PayStateName(p) + " coins " + GameState.Coins + " t " + (Time.time - _t0).ToString("0.00") + " sel " + (sel != null ? sel.name.Replace("(Clone)", "") : "none")); _lastPs = ps; }
                     // never release in the "Holding" phase (state 1): releasing there drops a coin on the ground
                     // keep holding through "Holding" (1) AND "Transaction" (2): releasing during the transaction cancelled
                     // expensive purchases (castle 5 for 9 coins) half-way and the coins were lost

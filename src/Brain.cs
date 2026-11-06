@@ -188,7 +188,8 @@ namespace KingdomBot
             UpdatePhase();
             CheckRunEnd();
             if (Mode == "pacifist") { ThinkPacifist(); return; }
-            if (Mode == "army1") { ThinkArmy1(); return; }
+            if (Mode == "army1") { ThinkArmy1(false); return; }
+            if (Mode == "feast") { ThinkArmy1(true); return; }   // feast: maximum archers early - they hunt deer on their own in safe daytime
             if (Mode == "master" && GameState.Player != null && (int)Managers.game.gameState == 2)
             {
                 // master = record-run defence (LegacyBrain) + portal assault steps on top
@@ -204,7 +205,6 @@ namespace KingdomBot
                 bool ready = (d >= 12 && arch >= 15) || d >= 20;
                 if (ready && !night && !danger && AssaultStep(UnityEngine.Object.FindObjectsOfType<Payable>(), d, hr, bud, arch, hm, pxx)) return;
             }
-            if (Mode == "feast" && GameState.Player != null && (int)Managers.game.gameState == 2 && FeastStep()) return;
             if ((Mode == "survive" || Mode == "master") && GameState.Player != null && (int)Managers.game.gameState == 2 && EconomyStep()) return;
             if (Mode == "survive" || Mode == "master" || Mode == "feast")
             {
@@ -505,14 +505,14 @@ namespace KingdomBot
 
         // ---------------- army1: ON_THE_FIRST_DAY (8 archers before the first dawn) ----------------
         int _rerolls; bool _mapChecked;
-        void ThinkArmy1()
+        void ThinkArmy1(bool feast)
         {
             var k = Managers.kingdom; var am = Managers.achievements;
             float px = GameState.PX, home = k.campfirePosition;
             int coins = GameState.Coins;
             _safeMode = true;
             // 1. map check: enough coins on the ground and in chests near the start? otherwise reroll the map
-            if (!_mapChecked)
+            if (!_mapChecked && !feast)
             {
                 int avail = coins;
                 foreach (var c in UnityEngine.Object.FindObjectsOfType<Coin>()) if (!c.pickedUp && Mathf.Abs(c.transform.position.x - home) < 70f) avail++;
@@ -531,6 +531,9 @@ namespace KingdomBot
             var e = NearestEnemy(px);
             if (e != null && Mathf.Abs(e.transform.position.x - px) < 10f && !WallBetween(px, e.transform.position.x))
             { Status = "army1: dodge"; Push("goto " + F(px + (px > e.transform.position.x ? 14f : -14f)) + " 1 2"); return; }
+            // night: stay by the fire (feast runs over several days)
+            if (feast && (!k.isDaytime || GameState.Hour >= k.dayEnd - 1.5f))
+            { Status = "Feast: night at the fire"; if (Mathf.Abs(px - home) > 2f) Push("goto " + F(home) + " 1 6"); else Push("wait 1"); return; }
             // 3. coins & chests
             foreach (var ch in UnityEngine.Object.FindObjectsOfType<Chest>())
             {
@@ -548,12 +551,13 @@ namespace KingdomBot
             PayableShop bow = null; int onDisplay = 0;
             foreach (var py in payables) { var sh = py as PayableShop; if (sh == null) continue; onDisplay += sh.GetItemCount(); if (sh.name.Contains("Bow")) bow = sh; }
             if (peasants > onDisplay && bow != null && SafeCanPay(bow) && coins >= bow.price) { Status = "army1: buy bow (" + archersMade + "/8)"; PayAt(bow); return; }
-            if (archersMade + peasants + onDisplay < 8 && coins >= 3)
+            int target = feast ? 15 : 8;
+            if (archersMade + peasants + onDisplay < target && coins >= 3)
             {
                 var b = NearestBeggar(px, home - 100f, home + 100f);
                 if (b != null) { Cool(b.GetInstanceID(), 8f); _lastTap = Time.time; Status = "army1: recruit (" + archersMade + "/8)"; Push("goto " + F(b.transform.position.x) + " 0.8 25"); Push("tap 1"); Push("wait 2"); return; }
             }
-            Status = "army1: waiting (" + archersMade + "/8 archers, " + coins + " coins)";
+            Status = (feast ? "Feast: waiting (deer " + (am != null ? am.counters[4] : -1) + ", " : "army1: waiting (") + archersMade + " archers, " + coins + " coins)";
             if (Mathf.Abs(px - home) > 3f) Push("walkto " + F(home) + " 1 6"); else Push("wait 1");
         }
 

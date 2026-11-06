@@ -175,7 +175,9 @@ namespace KingdomBot
                 var en = NearestEnemy(pxx);
                 bool danger = en != null && Mathf.Abs(en.transform.position.x - pxx) < 12f && !WallBetween(pxx, en.transform.position.x);
                 _armyFirst = false;
-                if (!night && !danger && AssaultStep(UnityEngine.Object.FindObjectsOfType<Payable>(), d, hr, bud, arch, hm, pxx)) return;
+                // assault only once the defence is solid (the castle rush + shields cost ~40 coins)
+                bool ready = (d >= 12 && arch >= 15) || d >= 20;
+                if (ready && !night && !danger && AssaultStep(UnityEngine.Object.FindObjectsOfType<Payable>(), d, hr, bud, arch, hm, pxx)) return;
             }
             if (Mode == "survive" || Mode == "master")
             {

@@ -943,8 +943,11 @@ namespace KingdomBot
         /// elsewhere a normal tap, which works more reliably.</summary>
         void Recruit(Beggar b)
         {
-            if (RunType == "challenge") { Push("walkto " + F(b.transform.position.x) + " 0.3 25"); Push("handtap " + b.GetInstanceID()); Push("wait 1.5"); }
-            else { Push("walkto " + F(b.transform.position.x) + " 0.8 25"); Push("tap 1"); Push("wait 2.5"); }
+            // far beggars (camps 80+ away): gallop close first - walking (speed 2) with a 25 s timeout never arrived
+            float bx = b.transform.position.x, dist = Mathf.Abs(bx - GameState.PX);
+            if (dist > 12f) Push("goto " + F(bx + (GameState.PX < bx ? -4f : 4f)) + " 1.5 " + F(Mathf.Max(30f, dist * 0.6f)));
+            if (RunType == "challenge") { Push("walkto " + F(bx) + " 0.3 25"); Push("handtap " + b.GetInstanceID()); Push("wait 1.5"); }
+            else { Push("walkto " + F(bx) + " 0.8 25"); Push("tap 1"); Push("wait 2.5"); }
         }
         public int AssaultArmyCap = 25;
         public int MasterRunEndDay = 40;   // after day 40 no "Safe in X" is reachable (runs with all portals destroyed continue)

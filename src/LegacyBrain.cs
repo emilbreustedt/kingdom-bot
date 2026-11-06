@@ -265,6 +265,8 @@ namespace KingdomBot
                     float bx = b.transform.position.x;
                     Cool(b.GetInstanceID(), 8f);
                     _lastTap = Time.time; _coinsAtTap = coins;
+                    float bd = Mathf.Abs(bx - GameState.PX);   // far camps: gallop close first (walking timed out)
+                    if (bd > 12f) Push("goto " + F(bx + (GameState.PX < bx ? -4f : 4f)) + " 1.5 " + F(Mathf.Max(30f, bd * 0.6f)));
                     Push("walkto " + F(bx) + " 0.8 25"); Push("tap 1"); Push("wait 2.5"); return;
                 }
             }

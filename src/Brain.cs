@@ -841,7 +841,12 @@ namespace KingdomBot
             var b = Plugin.Instance != null ? Plugin.Instance.Brain : null;
             if (b == null) return true;
             int n;
-            return payableName.Length > 6 && int.TryParse(payableName.Substring(6, 1), out n) ? n <= (b.Mode == "master" ? 5 : 3) : true;
+            if (!(payableName.Length > 6 && int.TryParse(payableName.Substring(6, 1), out n))) return true;
+            if (b.Mode != "master") return n <= 3;
+            // master: castle 4 cuts the daily chest (5-7 -> 4, castle 5 -> 1). Bank first, then buy castle 4, castle 5
+            // and the shields in one go.
+            if (n == 4) return GameState.Coins >= b.BurstCoins;
+            return n <= 5;
         }
 
         public static Wall OuterWall(int side, float home)
@@ -905,7 +910,8 @@ namespace KingdomBot
         // at ~12 archers by day 30 instead of 25-30. Off by default.
         public bool UseFarms = false;   // 4 coins every other day = ~half of the late-game income; not worth it
         public int KnightTarget = 4;
-        public int AssaultArmyCap = 20;   // while saving for castle/shields the army only grows to this size (else nothing is ever saved)
+        public int AssaultArmyCap = 20;
+        public int BurstCoins = 35;       // castle 4 (8) + castle 5 (12) + 2 shields (12) + purse   // while saving for castle/shields the army only grows to this size (else nothing is ever saved)
 
         /// <summary>Farmhouse payable to build next (first farm once scythes are sold, second one from day 12), or null.</summary>
         Payable FarmTarget(Payable[] payables, float home)
@@ -972,14 +978,21 @@ namespace KingdomBot
                 }
             }
             Payable item = null; string what = null;
-            var castle = Find(payables, x => x is PayableUpgrade && x.name.StartsWith("Castle") && SafeCanPay(x) && CastleAllowed(x.name));
-            if (castle != null) { item = castle; what = "castle " + castle.name.Replace("(Clone)", ""); }
+            var castle = Find(payables, x => x is PayableUpgrade && x.name.StartsWith("Castle") && SafeCanPay(x) && CastleIndex(x.name) <= 5);
+            int target = 0;
+            if (castle != null)
+            {
+                item = castle; what = "castle " + castle.name.Replace("(Clone)", "");
+                target = CastleIndex(castle.name) == 4 ? BurstCoins : castle.price + 3;
+                if (CastleIndex(castle.name) == 4) what = "castle 4+5 and shields";
+            }
             else if (UnityEngine.Object.FindObjectsOfType<Knight>().Length < KnightTarget)
             {
                 var sh = Find(payables, x => x is PayableShield && SafeCanPay(x), home);
                 if (sh != null) { item = sh; what = "shield"; }
             }
-            if (item == null || coins >= item.price + 3) return false;     // nothing to save for / affordable: AssaultStep buys it
+            if (target == 0 && item != null) target = item.price + 3;
+            if (item == null || coins >= target) return false;     // nothing to save for / affordable: AssaultStep buys it
             // keep the army growing while saving (same as the wall schedule)
             int archersNow = UnityEngine.Object.FindObjectsOfType<Archer>().Length;
             var payablesAll = payables;
@@ -996,7 +1009,7 @@ namespace KingdomBot
             }
             var c = NearestCoin(px, home - 40f, home + 40f);
             if (c != null) { Cool(c.GetInstanceID(), 1e7f); Status = "Saving for " + what + ": coin"; Push("goto " + F(c.transform.position.x) + " 0.3 15"); return true; }
-            Status = "Saving for " + what + " (" + coins + "/" + (item.price + 3) + ")";
+            Status = "Saving for " + what + " (" + coins + "/" + target + ")";
             float l = WallEdge(-1, home), r = WallEdge(1, home);
             Push("walkto " + F(px < home ? r - 1f : l + 1f) + " 1 20");
             return true;
@@ -1055,6 +1068,7 @@ namespace KingdomBot
                 }
             }
 
+            if (assault && !finalWave && AssaultSaving(payables, day, hour, home, px)) return true;
             // catapults (workshop, castle level 3+): defensive artillery at the border, pushed there by workers
             if (UnityEngine.Object.FindObjectsOfType<Worker>().Length >= 2)
             {
@@ -1062,7 +1076,6 @@ namespace KingdomBot
                 if (ws != null && budget >= ws.price + 3) { Status = "Buy catapult (" + ws.price + ")"; PayAt(ws); return true; }
             }
             if (finalWave || !assault) return false;   // survive mode / all inner portals gone: only defend
-            if (AssaultSaving(payables, day, hour, home, px)) return true;
             // shields -> knights
             var shield = Find(payables, x => x is PayableShield && SafeCanPay(x), home);
             if (shield != null && budget >= shield.price + 3) { Status = "Assault: buy shield (" + shield.price + ")"; PayAt(shield); return true; }

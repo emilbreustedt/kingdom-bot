@@ -4,6 +4,13 @@
 param([switch]$Minimize, [int]$Width = 1600, [int]$Height = 900, [string]$GamePath = (& "$PSScriptRoot\tools\find-game.ps1"), [string]$AppId = "368230")
 $game = $GamePath
 if (Get-Process Kingdom -ErrorAction SilentlyContinue) { Write-Output 'A Kingdom game (Classic or New Lands) is already running.'; return }
+# keep the previous run's log (BepInEx overwrites LogOutput.log on every start): last 10 in BepInEx\KingdomBot\logs
+$log = "$game\BepInEx\LogOutput.log"
+if (Test-Path $log) {
+    $arch = "$game\BepInEx\KingdomBot\logs"; New-Item -ItemType Directory -Force $arch | Out-Null
+    Copy-Item $log "$arch\LogOutput-$(Get-Date -Format 'yyyyMMdd-HHmmss').log"
+    Get-ChildItem $arch -Filter 'LogOutput-*.log' | Sort-Object Name -Descending | Select-Object -Skip 10 | Remove-Item
+}
 # lets Kingdom.exe be started directly (Steam must be running; achievements still count)
 Set-Content "$game\steam_appid.txt" $AppId -Encoding ascii
 

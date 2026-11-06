@@ -1084,6 +1084,9 @@ namespace KingdomBot
                 {
                     float outer = WallEdge(side, home);
                     if (Mathf.Abs(outer - home) >= 11f) continue;
+                    bool bannerHere = false;   // the banner already stands on this side (e.g. outer wall is a wreck) -> nothing to do
+                    foreach (var bo in UnityEngine.Object.FindObjectsOfType<PayableBorder>()) if ((bo.transform.position.x - home) * side > 0) bannerHere = true;
+                    if (bannerHere) continue;
                     Payable best = null; float bd = float.MaxValue;
                     foreach (var p in payables)
                     {

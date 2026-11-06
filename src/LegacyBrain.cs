@@ -373,6 +373,13 @@ namespace KingdomBot
         static float WallEdge(int side, float home)
         {
             float edge = home + side * 6f;
+            try
+            {
+                var ow = Managers.kingdom.outerWall;   // walls far from the camera are deactivated and not found below
+                var ww = ow != null ? (side < 0 ? ow.left : ow.right) : null;
+                if (ww != null) { float wx = ww.transform.position.x; if (side < 0 && wx < edge) edge = wx; if (side > 0 && wx > edge) edge = wx; }
+            }
+            catch { }
             foreach (var w in UnityEngine.Object.FindObjectsOfType<Wall>())
             {
                 float x = w.transform.position.x;

@@ -196,6 +196,20 @@ namespace KingdomBot
                 }
                 foreach (var b in UnityEngine.Object.FindObjectsOfType<PayableBorder>())
                     Log("BORDER x" + b.transform.position.x.ToString("0.0") + " canPay=" + b.CanPay() + " range=" + b.knightRange);
+                {
+                    var grass = UnityEngine.Object.FindObjectsOfType<Grass>();
+                    var stages = new int[8]; int tall = 0; float gmin = 1e6f, gmax = -1e6f;
+                    foreach (var g in grass)
+                    {
+                        int st0 = 0; try { st0 = g.stage; } catch { }
+                        if (st0 >= 0 && st0 < 8) stages[st0]++;
+                        if (Acc.Get<GameObject>(g, "_tallGrass") != null) tall++;
+                        gmin = Mathf.Min(gmin, g.transform.position.x); gmax = Mathf.Max(gmax, g.transform.position.x);
+                    }
+                    var bx = new System.Text.StringBuilder();
+                    foreach (var bu in UnityEngine.Object.FindObjectsOfType<Bunny>()) bx.Append(" " + bu.transform.position.x.ToString("0"));
+                    Log("GRASS patches=" + grass.Length + " x" + gmin.ToString("0") + ".." + gmax.ToString("0") + " stages=" + string.Join("/", Array.ConvertAll(stages, v => v.ToString())) + " tall=" + tall + " | bunnies at" + bx);
+                }
                 foreach (var st in UnityEngine.Object.FindObjectsOfType<Steed>())
                     Log("STEED " + st.name.Replace("(Clone)", "") + " x" + st.transform.position.x.ToString("0") + " price=" + st.price + " walk=" + st.walkSpeed + " run=" + st.runSpeed + " runStamina=" + st.runStaminaRate + " walkStamina=" + st.walkStaminaRate + " forest=" + st.forestSpeedMultiplier + " tired=" + st.tiredDuration + " eatDelay=" + st.eatDelay + " eatDuration=" + st.eatDuration + " wellFed=" + st.wellFedDuration + " standStamina=" + st.standStaminaRate);
                 try

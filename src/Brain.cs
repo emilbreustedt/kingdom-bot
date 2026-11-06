@@ -243,6 +243,7 @@ namespace KingdomBot
             // income: farms + merchant (archers barely hunt in the late game - waves keep the kingdom "unsafe")
             if ((Mode == "survive" || Mode == "master") && GameState.Player != null && (int)Managers.game.gameState == 2 && GameState.Day >= 6 && UseFarms && EconomyStep()) return;
             if ((Mode == "survive" || Mode == "master") && GameState.Player != null && (int)Managers.game.gameState == 2 && WallSchedule()) return;
+            if ((Mode == "survive" || Mode == "master") && GameState.Player != null && (int)Managers.game.gameState == 2 && GrassStep()) return;
             if (Mode == "survive" || Mode == "master" || Mode == "feast")
             {
                 if (_legacy == null) _legacy = new LegacyBrain(_pl);
@@ -940,12 +941,48 @@ namespace KingdomBot
         public int AssaultArmyCap = 25;
         public int MasterRunEndDay = 40;   // after day 40 no "Safe in X" is reachable (runs with all portals destroyed continue)
         public int MinChargeArchers = 16;
+        public float GrassStrip = 30f;   // tree-free strip in front of the outer walls (rabbits / hunting income)
 
         /// <summary>
         /// Horse care (tips from the user): the fast horse (3 coins) gallops a bit faster and much longer; a horse that
         /// stands still on grass eats and recovers stamina faster. Buy the fast horse early if it is near, and let the
         /// horse graze when stamina is low and nothing is happening nearby.
         /// </summary>
+        /// <summary>
+        /// Hunting income (tip from the user): rabbits live in tall grass, which only grows on cleared land. Keep a strip
+        /// of ~30 units in front of each outer wall free of trees so rabbits appear within the archers' reach. At most one
+        /// tree per side and day, only from spare coins.
+        /// </summary>
+        bool GrassStep()
+        {
+            var k = Managers.kingdom;
+            int day = GameState.Day; float hour = GameState.Hour, px = GameState.PX, home = k.campfirePosition;
+            if (day < 10 || !k.isDaytime || hour < 8f || hour > k.dayEnd - 6f) return false;
+            if (UnityEngine.Object.FindObjectsOfType<Worker>().Length < 2) return false;
+            int spare = GameState.Coins - (Mode == "master" ? AssaultReserve(true) : 0);
+            var payables = UnityEngine.Object.FindObjectsOfType<Payable>();
+            for (int side = -1; side <= 1; side += 2)
+            {
+                if (OnCooldown(777100 + side) || !FieldClear(home, side)) continue;
+                float outer = WallEdge(side, home), forest = side < 0 ? k.leftForest : k.rightForest;
+                if ((forest - outer) * side >= GrassStrip) continue;
+                Payable tree = null; float td = float.MaxValue;
+                foreach (var p in payables)
+                {
+                    if (!p.name.StartsWith("Tree") || OnCooldown(p.GetInstanceID()) || !SafeCanPay(p)) continue;
+                    float rel = (p.transform.position.x - outer) * side;
+                    if (rel < 0f || rel > GrassStrip + 10f) continue;
+                    if (rel < td) { td = rel; tree = p; }
+                }
+                if (tree == null || spare < tree.price + 4) continue;
+                Cool(777100 + side, 200f);   // ~ one game day
+                Cool(tree.GetInstanceID(), 120f);
+                Status = "Grass for rabbits " + (side < 0 ? "left" : "right") + ": cut tree (forest " + ((forest - outer) * side).ToString("0") + " from the wall)";
+                PayAt(tree); return true;
+            }
+            return false;
+        }
+
         bool HorseStep()
         {
             var k = Managers.kingdom; var p = GameState.Player;

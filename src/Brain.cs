@@ -686,7 +686,7 @@ namespace KingdomBot
             {
                 var shrine = Find(payables, x => x is PayableUpgrade && x.name.StartsWith("Mason") && SafeCanPay(x));
                 if (shrine != null && coins >= shrine.price + 3 && Mathf.Abs(shrine.transform.position.x - home) < 220f)
-                { Status = "Defence: mason shrine (stone)"; Cool(shrine.GetInstanceID(), 30f); Push("goto " + F(PayX(shrine)) + " 0.3 40"); Push("payid " + shrine.GetInstanceID() + " " + F(PayX(shrine))); Push("goto " + F(home) + " 1 40"); return true; }
+                { Status = "Defence: mason shrine (stone)"; Cool(shrine.GetInstanceID(), 30f); Push("goto " + F(PayX(shrine)) + " 0.3 120"); Push("payid " + shrine.GetInstanceID() + " " + F(PayX(shrine))); Push("goto " + F(home) + " 1 40"); return true; }
             }
             if (workers < 1) return false;
             // Archers always stand at the OUTERMOST wall of their side -> that wall must be the strongest one.
@@ -805,7 +805,7 @@ namespace KingdomBot
             if (item != null && coins >= item.price + 4 && !tooEarly)   // keep a small purse: coins are knocked out before the crown
             {
                 Status = "Defence: " + what + " (" + item.price + ")";
-                if (item.name.StartsWith("Mason")) { Cool(item.GetInstanceID(), 30f); Push("goto " + F(PayX(item)) + " 0.3 40"); Push("payid " + item.GetInstanceID() + " " + F(PayX(item))); Push("goto " + F(home) + " 1 40"); }
+                if (item.name.StartsWith("Mason")) { Cool(item.GetInstanceID(), 30f); Push("goto " + F(PayX(item)) + " 0.3 120"); Push("payid " + item.GetInstanceID() + " " + F(PayX(item))); Push("goto " + F(home) + " 1 40"); }
                 else { if (item.name.StartsWith("Tree") || what.StartsWith("wall beyond the farm")) Cool(item.GetInstanceID(), 120f); PayAt(item); }
                 return true;
             }
@@ -1023,8 +1023,8 @@ namespace KingdomBot
             if (Managers.techUpgrades != null && !Managers.techUpgrades.stoneBuilding && archers >= 8 && morning && !_armyFirst)
             {
                 var shrine = Find(payables, x => x is PayableUpgrade && x.name.StartsWith("Mason") && SafeCanPay(x));
-                if (shrine != null && budget >= shrine.price && Mathf.Abs(shrine.transform.position.x - home) < 220f)
-                { Status = "Assault prep: mason shrine (stone)"; Cool(shrine.GetInstanceID(), 30f); Push("goto " + F(PayX(shrine)) + " 0.3 40"); Push("payid " + shrine.GetInstanceID() + " " + F(PayX(shrine))); Push("goto " + F(home) + " 1 40"); return true; }
+                if (shrine != null && hour >= 7f && budget >= shrine.price + 3 && Mathf.Abs(shrine.transform.position.x - home) < 220f)
+                { Status = "Assault prep: mason shrine (stone)"; Cool(shrine.GetInstanceID(), 30f); Push("goto " + F(PayX(shrine)) + " 0.3 120"); Push("payid " + shrine.GetInstanceID() + " " + F(PayX(shrine))); Push("goto " + F(home) + " 1 40"); return true; }
             }
             if (!assault && day >= 10 && archers >= 8)
             {

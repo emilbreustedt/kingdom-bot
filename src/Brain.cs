@@ -163,7 +163,10 @@ namespace KingdomBot
             if (dNow != _lastDaySeen && Managers.achievements != null && Managers.achievements.flags != null)
             {
                 var am = Managers.achievements;
-                Plugin.Log(string.Format("== Day {0} (Modus {1}) Flags: FreeWall={2} LitFire={3} Galloped={4} CoinOnGround={5} PortalsDestroyed={6} | Archers={7} Deer={8} Kills={9} Land={10}",
+                int begs = UnityEngine.Object.FindObjectsOfType<Beggar>().Length, peas = UnityEngine.Object.FindObjectsOfType<Peasant>().Length;
+                int arcs = UnityEngine.Object.FindObjectsOfType<Archer>().Length, wrks = UnityEngine.Object.FindObjectsOfType<Worker>().Length, kns = UnityEngine.Object.FindObjectsOfType<Knight>().Length;
+                Plugin.Log(string.Format("== POP day {0}: beggars {1} peasants {2} archers {3} (made {4}) workers {5} knights {6} coins {7}", dNow, begs, peas, arcs, am.counters[3], wrks, kns, GameState.Player != null ? GameState.Coins : -1));
+                Plugin.Log(string.Format("== Day {0} (mode {1}) Flags: FreeWall={2} LitFire={3} Galloped={4} CoinOnGround={5} PortalsDestroyed={6} | Archers={7} Deer={8} Kills={9} Land={10}",
                     dNow, Mode, am.flags[2], am.flags[3], am.flags[4], am.flags[5], am.flags[7], am.counters[3], am.counters[4], am.counters[5], am.counters[7]));
             }
             _lastDaySeen = dNow;
@@ -789,6 +792,19 @@ namespace KingdomBot
                 if (item.name.StartsWith("Mason")) { Cool(item.GetInstanceID(), 30f); Push("goto " + F(PayX(item)) + " 0.3 40"); Push("payid " + item.GetInstanceID() + " " + F(PayX(item))); Push("goto " + F(home) + " 1 40"); }
                 else PayAt(item);
                 return true;
+            }
+            // while saving the army must keep growing: bows for idle peasants, then recruit beggars (hand-over)
+            int archersNow = UnityEngine.Object.FindObjectsOfType<Archer>().Length;
+            if (archersNow < Mathf.Min(2 * day + 4, 30) && hour < k.dayEnd - 5f)
+            {
+                int peasants = UnityEngine.Object.FindObjectsOfType<Peasant>().Length, onDisplay = 0; PayableShop bow = null;
+                foreach (var py in payables) { var sh = py as PayableShop; if (sh == null) continue; onDisplay += sh.GetItemCount(); if (sh.name.Contains("Bow")) bow = sh; }
+                if (peasants > onDisplay && bow != null && SafeCanPay(bow) && coins >= bow.price) { Status = "Army while saving: buy bow"; PayAt(bow); return true; }
+                if (peasants + onDisplay < 2 && coins >= 3)
+                {
+                    var b = NearestBeggar(px, home - 150f, home + 150f);
+                    if (b != null) { Cool(b.GetInstanceID(), 10f); Status = "Army while saving: recruit"; Push("walkto " + F(b.transform.position.x) + " 0.3 25"); Push("handtap " + b.GetInstanceID()); Push("wait 1.5"); return true; }
+                }
             }
             // save: collect coins and taxes instead of spending
             var c = NearestCoin(px, home - 40f, home + 40f);

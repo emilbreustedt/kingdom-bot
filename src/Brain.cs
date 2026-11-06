@@ -757,7 +757,7 @@ namespace KingdomBot
             var en = NearestEnemy(px);
             if (en != null && Mathf.Abs(en.transform.position.x - px) < 15f) return false;
             if (UnityEngine.Object.FindObjectsOfType<Worker>().Length < 1) return false;   // walls need builders
-            int coins = GameState.Coins;
+            int coins = GameState.Coins - (Mode == "master" ? AssaultReserve(false) : 0);   // castle 5 / shields / banner first
             var payables = UnityEngine.Object.FindObjectsOfType<Payable>();
             Payable item = null; string what = null;
             // 0. farms = the only income that scales; they come first from day 6
@@ -923,14 +923,19 @@ namespace KingdomBot
         public int BurstCoins = 35;
 
         /// <summary>Coins the record strategy must leave alone while the assault saves for castle 4/5 and shields.</summary>
-        public static int AssaultReserve()
+        public static int ShieldsWaitingPublic() { return ShieldsWaiting(); }
+
+        public static int AssaultReserve() { return AssaultReserve(true); }
+        /// <param name="includeBank">false: the 35-coin bank before castle 4 is not reserved (walls still get built
+        /// while banking); castle 5, shields and the banner are.</param>
+        public static int AssaultReserve(bool includeBank)
         {
             var b = Plugin.Instance != null ? Plugin.Instance.Brain : null;
             if (b == null || b.Mode != "master" || GameState.Day < 12) return 0;
             Payable castle = null;
             foreach (var x in UnityEngine.Object.FindObjectsOfType<Payable>())
                 if (x is PayableUpgrade && x.name.StartsWith("Castle") && CastleIndex(x.name) >= 4 && CastleIndex(x.name) <= 5) { castle = x; break; }
-            if (castle != null) return CastleIndex(castle.name) == 4 ? b.BurstCoins : castle.price + 3;
+            if (castle != null) return CastleIndex(castle.name) == 4 ? (includeBank ? b.BurstCoins : 0) : castle.price + 3;
             if (UnityEngine.Object.FindObjectsOfType<Knight>().Length + ShieldsWaiting() < b.KnightTarget) return 9;
             return 7;   // banner (4) + purse
         }       // castle 4 (8) + castle 5 (12) + 2 shields (12) + purse   // while saving for castle/shields the army only grows to this size (else nothing is ever saved)

@@ -1092,7 +1092,7 @@ namespace KingdomBot
                         if (rel < 11f || rel > 40f) continue;
                         if (rel < bd) { bd = rel; best = p; }
                     }
-                    if (best != null && budget >= best.price + 1) { Status = "Outer wall " + (side < 0 ? "left" : "right") + " (banner range)"; PayAt(best); return true; }
+                    if (best != null && budget >= best.price + 1) { Status = "Outer wall " + (side < 0 ? "left" : "right") + " (banner range)"; PayAt(best); Cool(best.GetInstanceID(), 120f); return true; }
                 }
             }
 

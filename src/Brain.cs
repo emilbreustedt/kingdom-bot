@@ -926,7 +926,7 @@ namespace KingdomBot
         // Farms (tree clearing + wall beyond the farm + scythes) cost more than they earned in tests: the army stayed
         // at ~12 archers by day 30 instead of 25-30. Off by default.
         public bool UseFarms = false;   // 4 coins every other day = ~half of the late-game income; not worth it
-        public int KnightTarget = 4;
+        public int KnightTarget = 3;   // 3 knights destroy portals reliably; every shield (6) is a banner payment less at castle 5 (~1 coin/day)
 
         /// <summary>Recruit a beggar: hand-over (coin never touches the ground) only in the challenge run (Eighth Day);
         /// elsewhere a normal tap, which works more reliably.</summary>

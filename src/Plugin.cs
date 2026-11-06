@@ -439,7 +439,19 @@ namespace KingdomBot
                         // shield shops stand next to each other and are interchangeable: any selected shield shop will do
                         bool match = sel != null && (sel.GetInstanceID() == id || (sel is PayableShield && IdIsShield(id)));
                         if (match && payable) { id = sel.GetInstanceID(); _payTarget = id; _started = true; _t0 = Time.time; c.Dir = 0; c.Pay = true; }
-                        else if (Time.time - _t0 > 10f) { Plugin.Log("payid: target not selected (" + (sel != null ? sel.name : "none") + ")"); done = true; }
+                        else if (Time.time - _t0 > 10f)
+                        {
+                            string tinfo = "?";
+                            foreach (var tp in UnityEngine.Object.FindObjectsOfType<Payable>())
+                                if (tp.GetInstanceID() == id)
+                                {
+                                    var col = tp.GetComponent<Collider2D>();
+                                    bool cp = false; try { cp = tp.CanPay(); } catch { }
+                                    tinfo = tp.name.Replace("(Clone)", "") + " x" + tp.transform.position.x.ToString("0.0") + (col != null ? " col " + col.bounds.min.x.ToString("0.0") + ".." + col.bounds.max.x.ToString("0.0") + " enabled=" + col.enabled : " no collider") + " canPay=" + cp + " active=" + tp.isActiveAndEnabled;
+                                }
+                            Plugin.Log("payid: target not selected (" + (sel != null ? sel.name : "none") + ") player x" + px.ToString("0.0") + " target " + tinfo);
+                            done = true;
+                        }
                         else if (parts.Length > 2)
                         {
                             // creep towards the target until its trigger selects it (we may have stopped just outside at high speed)

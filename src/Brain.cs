@@ -91,6 +91,7 @@ namespace KingdomBot
             int dayC = am != null && am.counters != null ? am.counters[1] : GameState.Day;
             string phase = "master";
             if (RunType == "main" && Campaign.Missing("SURVIVED_UNTIL_DAY_100")) phase = "survive";   // pure record strategy for Day C
+            else if (RunType == "main" && dayC <= 2 && BootDays) phase = "boot";   // days 0-2: loot chests, recruit, bows (army1 logic) - guide: archers first
             if (RunType == "early")
             {
                 if (dayC == 0 && Campaign.Missing(Campaign.FirstDay)) phase = "army1";
@@ -216,6 +217,7 @@ namespace KingdomBot
             CheckRunEnd();
             if (Mode == "pacifist") { ThinkPacifist(); return; }
             if (Mode == "army1") { ThinkArmy1(false); return; }
+            if (Mode == "boot") { if (GameState.Player != null && (int)Managers.game.gameState == 2 && HorseStep()) return; ThinkArmy1(false, true); return; }
             if (Mode == "feast") { ThinkArmy1(true); return; }   // feast: maximum archers early - they hunt deer on their own in safe daytime
             if (RunType == "main" && GameState.Player != null && (int)Managers.game.gameState == 2 && GameState.Day == 0 && MainMapCheck()) return;
             if ((Mode == "survive" || Mode == "master") && GameState.Player != null && (int)Managers.game.gameState == 2 && HorseStep()) return;
@@ -587,15 +589,16 @@ namespace KingdomBot
         }
         int _rerolls; bool _mapChecked;
         public float Army1Range = 130f;
+        public bool BootDays = true;
         public float Army1Check = 80f;    // day 0 is short: 24 coins (8 recruits + 8 bows) must lie within ~80 of the camp, otherwise reroll   // guide: run to the camps on both sides (four camps incl. the town centre) and loot chests on the way
-        void ThinkArmy1(bool feast)
+        void ThinkArmy1(bool feast, bool boot = false)
         {
             var k = Managers.kingdom; var am = Managers.achievements;
             float px = GameState.PX, home = k.campfirePosition;
             int coins = GameState.Coins;
             _safeMode = true;
             // 1. map check: enough coins on the ground and in chests near the start? otherwise reroll the map
-            if (!_mapChecked && !feast)
+            if (!_mapChecked && !feast && !boot)
             {
                 int avail = coins;
                 foreach (var c in UnityEngine.Object.FindObjectsOfType<Coin>()) if (!c.pickedUp && Mathf.Abs(c.transform.position.x - home) < Army1Check) avail++;
@@ -615,7 +618,7 @@ namespace KingdomBot
             if (e != null && Mathf.Abs(e.transform.position.x - px) < 10f && !WallBetween(px, e.transform.position.x))
             { Status = "army1: dodge"; Push("goto " + F(px + (px > e.transform.position.x ? 14f : -14f)) + " 1 2"); return; }
             // night: stay by the fire (feast runs over several days)
-            if (feast && (!k.isDaytime || GameState.Hour >= k.dayEnd - 1.5f))
+            if ((feast || boot) && (!k.isDaytime || GameState.Hour >= k.dayEnd - 1.5f))
             { Status = "Feast: night at the fire"; if (Mathf.Abs(px - home) > 2f) Push("goto " + F(home) + " 1 6"); else Push("wait 1"); return; }
             // feast: herding has priority once a small army exists (guide: herd deer towards the archers)
             if (feast && am != null && am.counters[3] >= 6 && FeastStep()) return;
@@ -636,7 +639,7 @@ namespace KingdomBot
             PayableShop bow = null; int onDisplay = 0;
             foreach (var py in payables) { var sh = py as PayableShop; if (sh == null) continue; onDisplay += sh.GetItemCount(); if (sh.name.Contains("Bow")) bow = sh; }
             if (peasants > onDisplay && bow != null && SafeCanPay(bow) && coins >= bow.price) { Status = "army1: buy bow (" + archersMade + "/8)"; PayAt(bow); return; }
-            int target = feast ? 15 : 8;
+            int target = boot ? 12 : feast ? 15 : 8;
             if (archersMade + peasants + onDisplay < target && coins >= 3)
             {
                 var b = NearestBeggar(px, home - Army1Range, home + Army1Range);

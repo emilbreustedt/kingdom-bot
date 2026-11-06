@@ -905,6 +905,7 @@ namespace KingdomBot
         // at ~12 archers by day 30 instead of 25-30. Off by default.
         public bool UseFarms = false;   // 4 coins every other day = ~half of the late-game income; not worth it
         public int KnightTarget = 4;
+        public int AssaultArmyCap = 20;   // while saving for castle/shields the army only grows to this size (else nothing is ever saved)
 
         /// <summary>Farmhouse payable to build next (first farm once scythes are sold, second one from day 12), or null.</summary>
         Payable FarmTarget(Payable[] payables, float home)
@@ -982,7 +983,7 @@ namespace KingdomBot
             // keep the army growing while saving (same as the wall schedule)
             int archersNow = UnityEngine.Object.FindObjectsOfType<Archer>().Length;
             var payablesAll = payables;
-            if (archersNow < Mathf.Min(2 * day + 4, 30) && hour < k.dayEnd - 5f)
+            if (archersNow < Mathf.Min(2 * day + 4, AssaultArmyCap) && hour < k.dayEnd - 5f)
             {
                 int peasants = UnityEngine.Object.FindObjectsOfType<Peasant>().Length, onDisplay = 0; PayableShop bow = null;
                 foreach (var py in payablesAll) { var shp = py as PayableShop; if (shp == null) continue; onDisplay += shp.GetItemCount(); if (shp.name.Contains("Bow")) bow = shp; }

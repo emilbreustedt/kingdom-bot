@@ -218,7 +218,7 @@ namespace KingdomBot
             }
 
             // ---------- 5. castle (achievement timing handled above; later when affordable: lvl 4 = stone walls) ----------
-            var castle = Find(payables, x => x is PayableUpgrade && x.name.StartsWith("Castle") && SafeCanPay(x));
+            var castle = Find(payables, x => x is PayableUpgrade && x.name.StartsWith("Castle") && SafeCanPay(x) && Brain.CastleAllowed(x.name));
             bool wallsOk = WallsOnSide(-1, home) > 0 && WallsOnSide(1, home) > 0;
             if (castle != null && !GiftPending() && day >= 2 && wallsOk && archers >= 8 && budget >= castle.price + 2)
             {

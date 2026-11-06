@@ -146,6 +146,7 @@ namespace KingdomBot
                 if (l.StartsWith("mode ")) { Brain.ConfigMode = Brain.NormalizeRunType(l.Substring(5)); Log("Run type for the next run: " + Brain.ConfigMode); continue; }
                 if (l == "achievements") { Log(Campaign.Summary()); continue; }
                 if (l == "debug") { DebugDump(); continue; }
+                if (l == "gamedata") { try { GameData.Write(Path.Combine(Dir, "gamedata.txt")); Log("gamedata written"); } catch (Exception e) { Log("gamedata failed: " + e); } continue; }
                 if (l == "clear") { Queue.Clear(); Ctl.Reset(); continue; }
                 if (l.StartsWith("speed ")) { Speed = float.Parse(l.Substring(6), System.Globalization.CultureInfo.InvariantCulture); continue; }
                 Queue.Enqueue(l);

@@ -1,0 +1,41 @@
+== WALLS (Holder.wallPrefabs)
+0: Wall1 level=1 hp=25 stone=False repairRate=1 repairAboveMax=4 bonusHpMult=1.8 minIntact=0.7
+1: Wall2 level=2 hp=50 stone=False repairRate=5 repairAboveMax=10 bonusHpMult=1.8 minIntact=0.5
+2: Wall3 level=3 hp=200 stone=True repairRate=1 repairAboveMax=10 bonusHpMult=1.8 minIntact=0.5
+3: Wall4 level=4 hp=300 stone=True repairRate=1 repairAboveMax=14 bonusHpMult=1.8 minIntact=0.4
+== TOWERS (Holder.towerPrefabs)
+0: Tower1 level=1 guardSlots=1 hp=-
+1: Tower2 level=2 guardSlots=1 hp=-
+2: Tower3 level=3 guardSlots=2 hp=-
+3: Tower4 level=4 guardSlots=3 hp=-
+== UNITS
+archer: hp=0 shootRange=5.5 prep=0.4 interval=1.3 cooldown=0.3 cooldownWithKnight=1.3 fleeRange=4 perfect=0.99 maxPursue=12
+arrow: damage=1 perfectMult=2
+Archer: hp=0 demoteAtCoins=0 grabbable=True
+Worker: hp=0 demoteAtCoins=0 grabbable=True
+Knight: hp=0 demoteAtCoins=1 grabbable=False
+Farmer: hp=0 demoteAtCoins=0 grabbable=True
+Peasant: hp=0 demoteAtCoins=0 grabbable=True
+knight: attackDamage=6 cooldown=1.2 range=0.4 maxArchers=4
+== ENEMIES
+Troll: hp=1 hitDamage=1 toughHp=4 walk=2 run=2.8 attackCooldown=1
+Ogre: hp=20 hitDamage=5 walk=1.2 bashCooldown=1.5
+Squid: hp=12 attackCooldown=4 speed=1.2 scanRange=5
+Boss: hp=70 hitDamage=20 walk=1.2
+== WAVES (enemies per wave and day: TrollWeak/Medium/Tough/Ogre/Squid/Boss)
+Boss: d1=15(15/0/0/0/0/0/0) d3=15(15/0/0/0/0/0/0) d5=16(16/0/0/0/0/0/0) d8=23(19/0/4/0/0/0/0) d10=26(21/0/5/0/0/0/0) d12=29(23/0/6/0/0/0/0) d15=31(23/0/7/0/1/0/0) d18=27(17/0/9/0/1/0/0) d20=1(0/0/0/0/0/1/0) d25=29(0/0/25/0/3/1/0) d30=30(0/0/25/0/3/2/0) d35=32(0/0/26/0/4/2/0) d40=35(0/0/27/0/5/3/0) d45=35(0/0/27/0/5/3/0) d50=38(0/0/28/0/6/4/0) d60=40(0/0/29/0/7/4/0) d70=45(0/0/31/0/9/5/0) d80=47(0/0/32/0/10/5/0) d90=50(0/0/33/0/11/6/0) d100=58(0/0/35/0/13/10/0) 
+Debug [both sides] [special]: d1=19(10/0/4/0/1/4/0) d3=25(10/0/4/0/1/10/0) d5=25(10/0/4/0/1/10/0) d8=25(10/0/4/0/1/10/0) d10=25(10/0/4/0/1/10/0) d12=25(10/0/4/0/1/10/0) d15=25(10/0/4/0/1/10/0) d18=25(10/0/4/0/1/10/0) d20=25(10/0/4/0/1/10/0) d25=25(10/0/4/0/1/10/0) d30=25(10/0/4/0/1/10/0) d35=25(10/0/4/0/1/10/0) d40=25(10/0/4/0/1/10/0) d45=25(10/0/4/0/1/10/0) d50=25(10/0/4/0/1/10/0) d60=25(10/0/4/0/1/10/0) d70=25(10/0/4/0/1/10/0) d80=25(10/0/4/0/1/10/0) d90=25(10/0/4/0/1/10/0) d100=25(10/0/4/0/1/10/0) 
+Final [both sides] [special]: d1=68(25/0/18/0/16/5/4) d3=68(25/0/18/0/16/5/4) d5=68(25/0/18/0/16/5/4) d8=64(25/0/18/0/16/5/0) d10=64(25/0/18/0/16/5/0) d12=64(25/0/18/0/16/5/0) d15=64(25/0/18/0/16/5/0) d18=64(25/0/18/0/16/5/0) d20=64(25/0/18/0/16/5/0) d25=64(25/0/18/0/16/5/0) d30=64(25/0/18/0/16/5/0) d35=64(25/0/18/0/16/5/0) d40=64(25/0/18/0/16/5/0) d45=64(25/0/18/0/16/5/0) d50=64(25/0/18/0/16/5/0) d60=64(25/0/18/0/16/5/0) d70=64(25/0/18/0/16/5/0) d80=62(23/0/18/0/16/5/0) d90=60(21/0/18/0/16/5/0) d100=58(19/0/18/0/16/5/0) 
+Killer [both sides] [special]: d1=1(0/0/0/0/0/0/1) d3=1(0/0/0/0/0/0/1) d5=1(0/0/0/0/0/0/1) d8=1(0/0/0/0/0/0/1) d10=1(0/0/0/0/0/0/1) d12=1(0/0/0/0/0/0/1) d15=1(0/0/0/0/0/0/1) d18=6(0/0/0/5/0/0/1) d20=6(0/0/0/5/0/0/1) d25=9(0/0/0/8/0/0/1) d30=9(0/0/0/8/0/0/1) d35=9(0/0/0/8/0/0/1) d40=10(0/0/0/9/0/0/1) d45=10(0/0/0/9/0/0/1) d50=11(0/0/0/10/0/0/1) d60=12(0/0/0/11/0/0/1) d70=12(0/0/0/11/0/0/1) d80=13(0/0/0/12/0/0/1) d90=14(0/0/0/13/0/0/1) d100=15(0/0/0/14/0/0/1) 
+Portal Collapse: d1=50(30/0/15/0/4/1/0) d3=0(0/0/0/0/0/0/0) d5=0(0/0/0/0/0/0/0) d8=0(0/0/0/0/0/0/0) d10=0(0/0/0/0/0/0/0) d12=0(0/0/0/0/0/0/0) d15=0(0/0/0/0/0/0/0) d18=0(0/0/0/0/0/0/0) d20=0(0/0/0/0/0/0/0) d25=0(0/0/0/0/0/0/0) d30=0(0/0/0/0/0/0/0) d35=0(0/0/0/0/0/0/0) d40=0(0/0/0/0/0/0/0) d45=0(0/0/0/0/0/0/0) d50=0(0/0/0/0/0/0/0) d60=0(0/0/0/0/0/0/0) d70=0(0/0/0/0/0/0/0) d80=0(0/0/0/0/0/0/0) d90=0(0/0/0/0/0/0/0) d100=0(0/0/0/0/0/0/0) 
+Portal Defense: d1=1(1/0/0/0/0/0/0) d3=1(1/0/0/0/0/0/0) d5=1(1/0/0/0/0/0/0) d8=1(1/0/0/0/0/0/0) d10=1(1/0/0/0/0/0/0) d12=1(1/0/0/0/0/0/0) d15=1(1/0/0/0/0/0/0) d18=1(1/0/0/0/0/0/0) d20=1(1/0/0/0/0/0/0) d25=2(2/0/0/0/0/0/0) d30=2(2/0/0/0/0/0/0) d35=2(2/0/0/0/0/0/0) d40=2(2/0/0/0/0/0/0) d45=2(2/0/0/0/0/0/0) d50=2(2/0/0/0/0/0/0) d60=3(3/0/0/0/0/0/0) d70=4(3/0/1/0/0/0/0) d80=4(3/0/1/0/0/0/0) d90=4(3/0/1/0/0/0/0) d100=8(7/0/1/0/0/0/0) 
+Recovery: d1=0(0/0/0/0/0/0/0) d3=0(0/0/0/0/0/0/0) d5=0(0/0/0/0/0/0/0) d8=0(0/0/0/0/0/0/0) d10=0(0/0/0/0/0/0/0) d12=0(0/0/0/0/0/0/0) d15=0(0/0/0/0/0/0/0) d18=0(0/0/0/0/0/0/0) d20=0(0/0/0/0/0/0/0) d25=0(0/0/0/0/0/0/0) d30=0(0/0/0/0/0/0/0) d35=0(0/0/0/0/0/0/0) d40=0(0/0/0/0/0/0/0) d45=0(0/0/0/0/0/0/0) d50=0(0/0/0/0/0/0/0) d60=0(0/0/0/0/0/0/0) d70=0(0/0/0/0/0/0/0) d80=0(0/0/0/0/0/0/0) d90=0(0/0/0/0/0/0/0) d100=0(0/0/0/0/0/0/0) 
+Regular [both sides]: d1=1(1/0/0/0/0/0/0) d3=3(3/0/0/0/0/0/0) d5=5(5/0/0/0/0/0/0) d8=10(8/0/2/0/0/0/0) d10=13(10/0/3/0/0/0/0) d12=15(12/0/3/0/0/0/0) d15=20(15/0/5/0/0/0/0) d18=24(18/0/6/0/0/0/0) d20=27(20/0/7/0/0/0/0) d25=29(21/0/8/0/0/0/0) d30=33(23/0/9/0/1/0/0) d35=36(25/0/10/0/1/0/0) d40=37(26/0/10/0/1/0/0) d45=40(28/0/10/0/2/0/0) d50=43(30/0/11/0/2/0/0) d60=55(40/0/12/0/3/0/0) d70=66(50/0/13/0/3/0/0) d80=78(60/0/14/0/4/0/0) d90=90(70/0/16/0/4/0/0) d100=104(80/0/19/0/5/0/0) 
+== DAY CYCLE (Director)
+start: The Tunnel Through
+regular: Aurora(Regular), First Light(Regular), Glow(Regular), The Wings March(Regular), Vigil(Regular), Empty(Regular), Such Is Time(Regular), Meadow(Regular), Glean(Regular), Daydream(Regular), The Flats(Regular), Andromeda(Regular), Spire(Regular), Bloom(Regular), Together(Regular), The Tunnel Through(Regular), Azurite(Regular)
+boss: Blight(Boss), Fallow(Boss), Opal(Boss), Talisman(Boss)
+recovery: The Bottom(Recovery), Pith(Recovery), Rest(Recovery), Still(Recovery)
+numRegularDays: 3..4  killerDay: Talisman Killer
+secondsPerInGameHour: 10
+== CASTLE DAILY COINS by level: 0=5 1=6 2=6 3=7 4=4 5=1 6=1 

@@ -208,8 +208,15 @@ namespace KingdomBot
                 if (ready && !night && !danger && AssaultStep(UnityEngine.Object.FindObjectsOfType<Payable>(), d, hr, bud, arch, hm, pxx)) return;
             }
             if (Mode == "master" && GameState.Player != null && (int)Managers.game.gameState == 2 && (EconomyStep() || DefenseStep())) return;
-            // survival: the record strategy hoards coins late (40+); only that surplus goes into stone + outer wall upgrades
-            if (Mode == "survive" && GameState.Player != null && (int)Managers.game.gameState == 2 && GameState.Coins >= 20 && DefenseStep()) return;
+            // survival: stone walls decide late survival (L3/L4 = 200/300 HP vs 50 HP). Upgrade the outer walls whenever the
+            // army is large enough for the day (or money piles up); otherwise the record strategy recruits first.
+            if (Mode == "survive" && GameState.Player != null && (int)Managers.game.gameState == 2)
+            {
+                int d0 = GameState.Day;
+                int archersNow = UnityEngine.Object.FindObjectsOfType<Archer>().Length;
+                bool armyOk = archersNow >= Mathf.Min(2 * d0 + 4, 30);
+                if ((armyOk || GameState.Coins >= 20) && DefenseStep()) return;
+            }
             if (Mode == "survive" || Mode == "master" || Mode == "feast")
             {
                 if (_legacy == null) _legacy = new LegacyBrain(_pl);
@@ -682,6 +689,18 @@ namespace KingdomBot
                 if (w != null && coins >= w.price + 8) { Status = "Defence: 2nd wall " + (side < 0 ? "left" : "right"); PayAt(w); return true; }
             }
             return false;
+        }
+
+        /// <summary>
+        /// Castle levels above 3 cut the daily chest (level 0-3: 5-7 coins, level 4: 4, level 5-6: 1) - only the assault
+        /// phase needs them (knights). Payable "CastleN" builds castle level N.
+        /// </summary>
+        public static bool CastleAllowed(string payableName)
+        {
+            var b = Plugin.Instance != null ? Plugin.Instance.Brain : null;
+            if (b == null || b.Mode == "master") return true;
+            int n;
+            return payableName.Length > 6 && int.TryParse(payableName.Substring(6, 1), out n) ? n <= 3 : true;
         }
 
         public static Wall OuterWall(int side, float home)

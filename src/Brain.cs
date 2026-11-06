@@ -819,7 +819,7 @@ namespace KingdomBot
                 if (peasants < onDisplay + 2 && peasants < 4 && coins >= 3)
                 {
                     var b = NearestBeggar(px, home - 150f, home + 150f);
-                    if (b != null) { Cool(b.GetInstanceID(), 10f); Status = "Army while saving: recruit"; Push("walkto " + F(b.transform.position.x) + " 0.3 25"); Push("handtap " + b.GetInstanceID()); Push("wait 1.5"); return true; }
+                    if (b != null) { Cool(b.GetInstanceID(), 10f); Status = "Army while saving: recruit"; Recruit(b); return true; }
                 }
             }
             if (item == null) return false;                 // nothing to save for: the rest of the brain spends
@@ -910,6 +910,14 @@ namespace KingdomBot
         // at ~12 archers by day 30 instead of 25-30. Off by default.
         public bool UseFarms = false;   // 4 coins every other day = ~half of the late-game income; not worth it
         public int KnightTarget = 4;
+
+        /// <summary>Recruit a beggar: hand-over (coin never touches the ground) only in the challenge run (Eighth Day);
+        /// elsewhere a normal tap, which works more reliably.</summary>
+        void Recruit(Beggar b)
+        {
+            if (RunType == "challenge") { Push("walkto " + F(b.transform.position.x) + " 0.3 25"); Push("handtap " + b.GetInstanceID()); Push("wait 1.5"); }
+            else { Push("walkto " + F(b.transform.position.x) + " 0.8 25"); Push("tap 1"); Push("wait 2.5"); }
+        }
         public int AssaultArmyCap = 20;
         public int BurstCoins = 35;       // castle 4 (8) + castle 5 (12) + 2 shields (12) + purse   // while saving for castle/shields the army only grows to this size (else nothing is ever saved)
 
@@ -974,7 +982,7 @@ namespace KingdomBot
                 if (peasantsNow < ShieldsWaiting() && coins >= 1 && hour < k.dayEnd - 5f)
                 {
                     var b = NearestBeggar(px, home - 150f, home + 150f);
-                    if (b != null) { Cool(b.GetInstanceID(), 10f); Status = "Assault: recruit a peasant for the shield"; Push("walkto " + F(b.transform.position.x) + " 0.3 25"); Push("handtap " + b.GetInstanceID()); Push("wait 1.5"); return true; }
+                    if (b != null) { Cool(b.GetInstanceID(), 10f); Status = "Assault: recruit a peasant for the shield"; Recruit(b); return true; }
                 }
             }
             Payable item = null; string what = null;
@@ -1004,7 +1012,7 @@ namespace KingdomBot
                 if (peasants < onDisplay + 2 && peasants < 4 && coins >= 3)
                 {
                     var b = NearestBeggar(px, home - 150f, home + 150f);
-                    if (b != null) { Cool(b.GetInstanceID(), 10f); Status = "Army while saving: recruit"; Push("walkto " + F(b.transform.position.x) + " 0.3 25"); Push("handtap " + b.GetInstanceID()); Push("wait 1.5"); return true; }
+                    if (b != null) { Cool(b.GetInstanceID(), 10f); Status = "Army while saving: recruit"; Recruit(b); return true; }
                 }
             }
             var c = NearestCoin(px, home - 40f, home + 40f);

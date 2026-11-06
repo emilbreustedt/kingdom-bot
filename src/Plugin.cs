@@ -465,7 +465,13 @@ namespace KingdomBot
                         // never stand around paying while an enemy is close (daytime squids took the crown during a long payid)
                         bool danger = false;
                         foreach (var en in UnityEngine.Object.FindObjectsOfType<Enemy>())
-                            if (Brain.IsLiveEnemy(en) && Mathf.Abs(en.transform.position.x - px) < 8f && !Brain.WallBetween(px, en.transform.position.x)) { danger = true; break; }
+                        {
+                            if (!Brain.IsLiveEnemy(en) || Mathf.Abs(en.transform.position.x - px) >= 8f || Brain.WallBetween(px, en.transform.position.x)) continue;
+                            // a troll hit only costs a coin: with a purse, small enemies are no reason to abort (the banner
+                            // payment at the outer wall was aborted every day); big ones and squids (grab) still are
+                            bool big = en.GetComponent<Boss>() != null || en.GetComponent<Ogre>() != null || en.GetComponent<Squid>() != null;
+                            if (big || GameState.Coins < 6) { danger = true; break; }
+                        }
                         if (danger) { Plugin.Log("payid: aborted, enemy close (player x" + px.ToString("0.0") + ")"); c.Dir = 0; c.Pay = false; done = true; break; }
                     }
                     if (_payStartDist < 0f) _payStartDist = parts.Length > 2 ? Mathf.Abs(F(parts[2]) - px) : 0f;   // timeout grows with the distance still to walk

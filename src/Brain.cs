@@ -616,14 +616,16 @@ namespace KingdomBot
             // night: stay by the fire (feast runs over several days)
             if (feast && (!k.isDaytime || GameState.Hour >= k.dayEnd - 1.5f))
             { Status = "Feast: night at the fire"; if (Mathf.Abs(px - home) > 2f) Push("goto " + F(home) + " 1 6"); else Push("wait 1"); return; }
-            // 3. coins & chests
+            // feast: herding has priority once a small army exists (guide: herd deer towards the archers)
+            if (feast && am != null && am.counters[3] >= 6 && FeastStep()) return;
+            // 3. coins & chests close by (far ones only when coins are needed - see below)
             foreach (var ch in AllChests())
             {
                 float cx = ch.transform.position.x;
-                if (!ch.isEmpty && !OnCooldown(ch.GetInstanceID()) && Mathf.Abs(cx - home) < Army1Range) { Cool(ch.GetInstanceID(), 60f); Status = "army1: chest (" + ch.coins + ")"; Push("goto " + F(cx) + " 0.3 " + F(10f + Mathf.Abs(cx - px) * 0.6f)); Push("wait 1"); return; }
+                if (!ch.isEmpty && !OnCooldown(ch.GetInstanceID()) && Mathf.Abs(cx - px) < 25f) { Cool(ch.GetInstanceID(), 60f); Status = "army1: chest near (" + ch.coins + ")"; Push("goto " + F(cx) + " 0.3 15"); Push("wait 1"); return; }
             }
-            var coin = NearestCoin(px, home - Army1Range, home + Army1Range);
-            if (coin != null && !(coin.droppedByPlayer && Time.time - _lastTap < 15f)) { Cool(coin.GetInstanceID(), 1e7f); Status = "army1: coin"; Push("goto " + F(coin.transform.position.x) + " 0.3 20"); return; }
+            var coin = NearestCoin(px, px - 25f, px + 25f);
+            if (coin != null && !(coin.droppedByPlayer && Time.time - _lastTap < 15f)) { Cool(coin.GetInstanceID(), 1e7f); Status = "army1: coin"; Push("goto " + F(coin.transform.position.x) + " 0.3 15"); return; }
             // 4. fire (opens the bow shop)
             var fire = Find(payables, x => x is PayableUpgrade && x.name.StartsWith("Castle0") && SafeCanPay(x));
             if (fire != null && coins >= fire.price) { Status = "army1: light fire"; PayAt(fire); return; }
@@ -640,6 +642,17 @@ namespace KingdomBot
                 if (b != null) { Cool(b.GetInstanceID(), 8f); _lastTap = Time.time; Status = "army1: recruit (" + archersMade + "/8)"; Push("goto " + F(b.transform.position.x) + " 0.8 " + F(10f + Mathf.Abs(b.transform.position.x - px) * 0.6f)); Push("tap 1"); Push("wait 2"); return; }
             }
             if (feast && FeastStep()) return;   // guide: herd deer towards the archers, 10th deer exactly on day 4
+            // far chests and coins (the bot starts with 0 coins: 8 archers need ~24)
+            Chest far = null; float fd = 1e6f;
+            foreach (var ch in AllChests())
+            {
+                float cx = ch.transform.position.x;
+                if (ch.isEmpty || OnCooldown(ch.GetInstanceID()) || Mathf.Abs(cx - home) > Army1Range) continue;
+                if (Mathf.Abs(cx - px) < fd) { fd = Mathf.Abs(cx - px); far = ch; }
+            }
+            if (far != null) { Cool(far.GetInstanceID(), 60f); float cx = far.transform.position.x; Status = "army1: chest (" + far.coins + ")"; Push("goto " + F(cx) + " 0.3 " + F(10f + Mathf.Abs(cx - px) * 0.6f)); Push("wait 1"); return; }
+            var coinFar = NearestCoin(px, home - Army1Range, home + Army1Range);
+            if (coinFar != null && !(coinFar.droppedByPlayer && Time.time - _lastTap < 15f)) { Cool(coinFar.GetInstanceID(), 1e7f); Status = "army1: coin far"; Push("goto " + F(coinFar.transform.position.x) + " 0.3 " + F(10f + Mathf.Abs(coinFar.transform.position.x - px) * 0.6f)); return; }
             Status = (feast ? "Feast: waiting (deer " + (am != null ? am.counters[4] : -1) + ", " : "army1: waiting (") + archersMade + " archers, " + coins + " coins)";
             if (Mathf.Abs(px - home) > 3f) Push("walkto " + F(home) + " 1 6"); else Push("wait 1");
         }

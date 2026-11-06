@@ -115,7 +115,7 @@ namespace KingdomBot
             if (RunType == "main")
             {
                 // assault phase: after day 40 no "Safe in X" is reachable any more (Day C is already done) -> next attempt
-                if (Mode == "master" && dayC > MasterRunEndDay && Campaign.Missing("SAFE_IN_40") && !Campaign.Missing("SURVIVED_UNTIL_DAY_100"))
+                if (Mode == "master" && dayC > MasterRunEndDay && !PortalsAllDestroyed() && Campaign.Missing("SAFE_IN_40") && !Campaign.Missing("SURVIVED_UNTIL_DAY_100"))
                 {
                     Plugin.Log("Run finished (assault, day " + dayC + ", portals left) -> new game");
                     _newGameAt = Time.unscaledTime + 6f;
@@ -935,6 +935,12 @@ namespace KingdomBot
         public int AssaultArmyCap = 25;
         public int MasterRunEndDay = 40;
         public int MinChargeArchers = 16;
+
+        /// <summary>The game's PortalsDestroyed flag (all inner portals gone): the run continues to the final wave / win.</summary>
+        static bool PortalsAllDestroyed()
+        {
+            try { var f = Managers.achievements.flags; return f != null && f.Length > 7 && f[7]; } catch { return false; }
+        }
         int _bossNightDay = -10;
 
         /// <summary>No live enemy outside the walls within 60 units of either wall (a charge would run into it).</summary>

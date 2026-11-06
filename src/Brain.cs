@@ -115,7 +115,7 @@ namespace KingdomBot
             if (RunType == "main")
             {
                 // assault phase: after day 40 no "Safe in X" is reachable any more (Day C is already done) -> next attempt
-                if (Mode == "master" && dayC > MasterRunEndDay && !PortalsAllDestroyed() && Campaign.Missing("SAFE_IN_40") && !Campaign.Missing("SURVIVED_UNTIL_DAY_100"))
+                if (Mode == "master" && dayC > MasterRunEndDay && !PortalsAllDestroyed() && !InnerPortalsDead() && Campaign.Missing("SAFE_IN_40") && !Campaign.Missing("SURVIVED_UNTIL_DAY_100"))
                 {
                     Plugin.Log("Run finished (assault, day " + dayC + ", portals left) -> new game");
                     _newGameAt = Time.unscaledTime + 6f;
@@ -945,6 +945,20 @@ namespace KingdomBot
         {
             try { var f = Managers.achievements.flags; return f != null && f.Length > 7 && f[7]; } catch { return false; }
         }
+
+        /// <summary>Every inner portal is at 0 HP (some may not have crumbled yet).</summary>
+        static bool InnerPortalsDead()
+        {
+            int alive = 0, total = 0;
+            foreach (var po in UnityEngine.Object.FindObjectsOfType<Portal>())
+            {
+                if (po.outerSpawner) continue;
+                total++;
+                var dm = po.GetComponent<Damageable>();
+                if (dm == null || dm.hitPoints > 0) alive++;
+            }
+            return alive == 0;
+        }
         int _bossNightDay = -10;
 
         /// <summary>No live enemy outside the walls within 60 units of either wall (a charge would run into it).</summary>
@@ -1158,26 +1172,29 @@ namespace KingdomBot
 
             // forward launch point (forum tip): knights die on the long way to far portals -> move the outer wall (and
             // with it the banner) towards the nearest intact portal on a side once the gap is large
-            if (assault && !finalWave && UnityEngine.Object.FindObjectsOfType<Knight>().Length >= 1 && UnityEngine.Object.FindObjectsOfType<Worker>().Length >= 2 && hour >= 12f && hour < k.dayEnd - 5f)   // afternoons: mornings are for charges
+            if (assault && !finalWave && (UnityEngine.Object.FindObjectsOfType<Knight>().Length >= 1 || InnerPortalsDead()) && UnityEngine.Object.FindObjectsOfType<Worker>().Length >= 2 && hour >= 12f && hour < k.dayEnd - 5f)   // afternoons: mornings are for charges
             {
                 for (int side = -1; side <= 1; side += 2)
                 {
-                    float portalRel = float.MaxValue;
+                    float portalRel = float.MaxValue; bool deadTarget = false;
                     foreach (var po in UnityEngine.Object.FindObjectsOfType<Portal>())
                     {
                         var dm = po.GetComponent<Damageable>();
-                        if (po.outerSpawner || (dm != null && dm.hitPoints <= 0)) continue;
+                        if (po.outerSpawner) continue;
+                        bool dead = dm != null && dm.hitPoints <= 0;
                         float r = (po.transform.position.x - home) * side;
-                        if (r > 0 && r < portalRel) portalRel = r;
+                        if (r > 0 && r < portalRel) { portalRel = r; deadTarget = dead; }
                     }
                     float outerRel = (WallEdge(side, home) - home) * side;
-                    if (portalRel == float.MaxValue || portalRel - outerRel < ForwardGap) continue;
+                    // dead but not crumbled: enemies camping there block its collapse -> bring the archers (outermost wall) close
+                    float gapNeeded = deadTarget ? 45f : ForwardGap;
+                    if (portalRel == float.MaxValue || portalRel - outerRel < gapNeeded) continue;
                     Payable spot = null, tree = null; float sd = float.MaxValue, td = float.MaxValue;
                     foreach (var p in payables)
                     {
                         if (OnCooldown(p.GetInstanceID()) || !SafeCanPay(p)) continue;
                         float r = (p.transform.position.x - home) * side;
-                        if (r <= outerRel + 8f || r >= portalRel - 60f) continue;
+                        if (r <= outerRel + 8f || r >= portalRel - (deadTarget ? 25f : 60f)) continue;
                         if (p is PayableUpgrade && p.name.StartsWith("Wall") && !IsBuiltWall(p) && r < sd) { sd = r; spot = p; }
                         else if (p.name.StartsWith("Tree") && r < td) { td = r; tree = p; }
                     }

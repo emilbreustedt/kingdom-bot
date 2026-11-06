@@ -800,7 +800,8 @@ namespace KingdomBot
                 }
             }
             // 3. towers next to the outer walls: archers in a guard slot are immune to troll/boss hits
-            if (item == null && day >= 9)
+            // (not in the assault mode - guides for Safe in 25: "Do not build any towers", they cost the knight money)
+            if (item == null && day >= 9 && Mode != "master")
             {
                 int ttarget = day >= 20 ? 3 : day >= 14 ? 2 : 1, bestT = 99;
                 for (int side = -1; side <= 1; side += 2)
@@ -913,13 +914,14 @@ namespace KingdomBot
             int farmersNow = UnityEngine.Object.FindObjectsOfType<Farmer>().Length;
             if (farmsBuilt == 0 || (farmsBuilt == 1 && farmersNow >= 3 && day >= 12))
             {
-                var farm = Find(payables, x => x is PayableUpgrade && x.name.StartsWith("Farmhouse") && SafeCanPay(x) && Mathf.Abs(x.transform.position.x - home) < 55f, home);
+                var farm = FarmTarget(payables, home);
+                if (farm != null && !farm.name.StartsWith("Farmhouse")) farm = null;
                 if (farm != null && coins >= farm.price + 1) { Status = "Economy: build farm (" + farm.price + ")"; PayAt(farm); return true; }
                 if (!farmBuilt) return false;
             }
             int farmers = UnityEngine.Object.FindObjectsOfType<Farmer>().Length;
             int peasants = UnityEngine.Object.FindObjectsOfType<Peasant>().Length;
-            if (farmers < Mathf.Min(6, 3 * farmsBuilt) && !FarmsExposed(home) && peasants > onDisplay && SafeCanPay(scythe) && coins >= scythe.price + 1)
+            if (farmers < Mathf.Min(FarmerTarget, 4 * farmsBuilt) && !FarmsExposed(home) && peasants > onDisplay && SafeCanPay(scythe) && coins >= scythe.price + 1)
             { Status = "Economy: buy scythe (farmers " + farmers + ")"; PayAt(scythe); return true; }
             return false;
         }
@@ -928,7 +930,9 @@ namespace KingdomBot
         public bool UseMerchant = false;
         // Farms (tree clearing + wall beyond the farm + scythes) cost more than they earned in tests: the army stayed
         // at ~12 archers by day 30 instead of 25-30. Off by default.
-        public bool UseFarms = false;   // 4 coins every other day = ~half of the late-game income; not worth it
+        public bool UseFarms = true;      // guides: 1 farm + 4 farmers after day 5 is the basis of a fast win
+        public bool FarmClearTrees = false;
+        public int FarmerTarget = 4;   // 4 coins every other day = ~half of the late-game income; not worth it
         public int KnightTarget = 3;   // 3 knights destroy portals reliably; every shield (6) is a banner payment less at castle 5 (~1 coin/day)
 
         /// <summary>Recruit a beggar: hand-over (coin never touches the ground) only in the challenge run (Eighth Day);
@@ -1093,9 +1097,14 @@ namespace KingdomBot
             int farmsBuilt = 0;
             foreach (var fh in UnityEngine.Object.FindObjectsOfType<Farmhouse>()) if (fh.level > 0 && Mathf.Abs(fh.transform.position.x - home) < 60f) farmsBuilt++;
             int farmers = UnityEngine.Object.FindObjectsOfType<Farmer>().Length;
-            if (!(farmsBuilt == 0 || (farmsBuilt == 1 && farmers >= 3 && GameState.Day >= 12))) return null;
-            var farm = Find(payables, x => x is PayableUpgrade && x.name.StartsWith("Farmhouse") && SafeCanPay(x) && Mathf.Abs(x.transform.position.x - home) < 55f, home);
+            if (farmsBuilt > 0) return null;   // one farm with 4 farmers (guide: "you don't need more than 4 farmers")
+            // only a farmhouse spot inside the walls or at most 20 in front of them (the wall then goes beyond the farm);
+            // no forest clearing for a farm (that cost the army a lot in the first farm test)
+            float lw = WallEdge(-1, home), rw = WallEdge(1, home);
+            var farm = Find(payables, x => x is PayableUpgrade && x.name.StartsWith("Farmhouse") && SafeCanPay(x)
+                                           && x.transform.position.x > lw - 20f && x.transform.position.x < rw + 20f, home);
             if (farm != null) return farm;
+            if (!FarmClearTrees) return null;
             // farmhouse spots only become payable inside the buildable (cleared) land: cut the trees between the camp
             // and the nearest spot, fewest trees first
             Payable bestTree = null; int bestCount = 99;

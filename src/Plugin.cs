@@ -196,6 +196,8 @@ namespace KingdomBot
                 }
                 foreach (var b in UnityEngine.Object.FindObjectsOfType<PayableBorder>())
                     Log("BORDER x" + b.transform.position.x.ToString("0.0") + " canPay=" + b.CanPay() + " range=" + b.knightRange);
+                foreach (var st in UnityEngine.Object.FindObjectsOfType<Steed>())
+                    Log("STEED " + st.name.Replace("(Clone)", "") + " x" + st.transform.position.x.ToString("0") + " price=" + st.price + " walk=" + st.walkSpeed + " run=" + st.runSpeed + " runStamina=" + st.runStaminaRate + " walkStamina=" + st.walkStaminaRate + " forest=" + st.forestSpeedMultiplier + " tired=" + st.tiredDuration + " eatDelay=" + st.eatDelay + " eatDuration=" + st.eatDuration + " wellFed=" + st.wellFedDuration + " standStamina=" + st.standStaminaRate);
                 try
                 {
                     var am = Managers.achievements;

@@ -217,6 +217,7 @@ namespace KingdomBot
             if (Mode == "army1") { ThinkArmy1(false); return; }
             if (Mode == "feast") { ThinkArmy1(true); return; }   // feast: maximum archers early - they hunt deer on their own in safe daytime
             if (RunType == "main" && GameState.Player != null && (int)Managers.game.gameState == 2 && GameState.Day == 0 && MainMapCheck()) return;
+            if ((Mode == "survive" || Mode == "master") && GameState.Player != null && (int)Managers.game.gameState == 2 && HorseStep()) return;
             if (Mode == "master" && GameState.Player != null && (int)Managers.game.gameState == 2)
             {
                 // master = record-run defence (LegacyBrain) + portal assault steps on top
@@ -938,6 +939,40 @@ namespace KingdomBot
         public int AssaultArmyCap = 25;
         public int MasterRunEndDay = 40;   // after day 40 no "Safe in X" is reachable (runs with all portals destroyed continue)
         public int MinChargeArchers = 16;
+
+        /// <summary>
+        /// Horse care (tips from the user): the fast horse (3 coins) gallops a bit faster and much longer; a horse that
+        /// stands still on grass eats and recovers stamina faster. Buy the fast horse early if it is near, and let the
+        /// horse graze when stamina is low and nothing is happening nearby.
+        /// </summary>
+        bool HorseStep()
+        {
+            var k = Managers.kingdom; var p = GameState.Player;
+            int day = GameState.Day; float hour = GameState.Hour, px = GameState.PX, home = k.campfirePosition;
+            if (!k.isDaytime || hour > k.dayEnd - 4f) return false;
+            var en = NearestEnemy(px);
+            bool quiet = en == null || Mathf.Abs(en.transform.position.x - px) > 40f;
+            // 1. fast horse: days 0-3, within 90 of the camp, 3 coins + purse
+            if (day <= 3 && quiet && !OnCooldown(777001))
+            {
+                foreach (var st in UnityEngine.Object.FindObjectsOfType<Steed>())
+                {
+                    if (!st.name.Contains("Fast") || st.transform.parent == p.transform) continue;
+                    if (Mathf.Abs(st.transform.position.x - home) > 90f || !SafeCanPay(st) || GameState.Coins < st.price + 2) continue;
+                    Cool(777001, 60f);
+                    Status = "Fast horse (" + st.price + ")";
+                    PayAt(st); return true;
+                }
+            }
+            // 2. graze: low stamina, daytime, quiet -> stand still a moment so the horse eats
+            if (p.stamina < 0.25f && quiet && day >= 1 && !OnCooldown(777002))
+            {
+                Cool(777002, 40f);
+                Status = "Horse grazing (stamina " + p.stamina.ToString("0.00") + ")";
+                Push("wait 4"); return true;
+            }
+            return false;
+        }
         public float ForwardGap = 9999f;   // forward walls towards living portals made runs worse (archers spread thin, coins spent); only used for dead, uncrumbled portals
 
         /// <summary>The game's PortalsDestroyed flag (all inner portals gone): the run continues to the final wave / win.</summary>

@@ -920,7 +920,7 @@ namespace KingdomBot
             else { Push("walkto " + F(b.transform.position.x) + " 0.8 25"); Push("tap 1"); Push("wait 2.5"); }
         }
         public int AssaultArmyCap = 20;
-        public int BurstCoins = 35;
+        public int BurstCoins = 45;   // castle 4 (8) + castle 5 (9) + 2 shields (12) + recruits (2) + banner (4) + purse (3) + slack
 
         /// <summary>Coins the record strategy must leave alone while the assault saves for castle 4/5 and shields.</summary>
         public static int ShieldsWaitingPublic() { return ShieldsWaiting(); }

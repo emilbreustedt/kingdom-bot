@@ -520,11 +520,13 @@ namespace KingdomBot
                     }
                     int ps = Acc.PayState(p);
                     // never release in the "Holding" phase (state 1): releasing there drops a coin on the ground
-                    if (ps == 1 && Time.time - _t0 < 6f) { c.Pay = true; break; }
+                    // keep holding through "Holding" (1) AND "Transaction" (2): releasing during the transaction cancelled
+                    // expensive purchases (castle 5 for 9 coins) half-way and the coins were lost
+                    if ((ps == 1 || ps == 2) && Time.time - _t0 < 15f) { c.Pay = true; break; }
                     if (_payTarget != 0) id = _payTarget;
                     if (sel != null && sel.GetInstanceID() != id && ps != 3) { Plugin.Log("payid: wrong selection " + sel.name); c.Pay = false; done = true; break; }
                     if (sel == null && Time.time - _t0 > 0.6f && ps != 3) { Plugin.Log("payid: selection lost while paying (player x" + px.ToString("0.0") + ")"); c.Pay = false; done = true; break; }
-                    if (ps == 3 || (ps == 0 && Time.time - _t0 > 1f) || Time.time - _t0 > 12f) { c.Pay = false; done = true; }
+                    if (ps == 3 || (ps == 0 && Time.time - _t0 > 1f) || Time.time - _t0 > 16f) { c.Pay = false; done = true; }
                     break;
                 }
                 case "handtap":   // handtap <beggarId>: drop one coin only while standing right over that beggar (coin never touches the ground)

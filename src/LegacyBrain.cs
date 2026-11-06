@@ -256,7 +256,7 @@ namespace KingdomBot
             if (Time.time >= _noRecruitUntil && budget >= 2 && peasants < 3 && hour < k.dayEnd - 4f && army < archerCap + WorkerTarget(day, archers, acrePhase) + 3)
             {
                 // reach: 35 beyond the walls, but at least 60 around the fire while there is time left today
-                float reach = hour < k.dayEnd - 7f ? 100f : 35f;
+                float reach = hour < k.dayEnd - 10f ? 150f : (hour < k.dayEnd - 7f ? 100f : 35f);   /* far camps only in the morning */
                 var b = NearestBeggar(px, Mathf.Min(leftSafe - 35f, home - reach), Mathf.Max(rightSafe + 35f, home + reach));
                 if (b != null)
                 {
@@ -498,6 +498,9 @@ namespace KingdomBot
             {
                 float x = b.transform.position.x;
                 if (x < minX || x > maxX || OnCooldown(b.GetInstanceID())) continue;
+                bool nearPortal = false;
+                foreach (var po in UnityEngine.Object.FindObjectsOfType<Portal>()) if (Mathf.Abs(po.transform.position.x - x) < 25f) nearPortal = true;
+                if (nearPortal) continue;
                 float d = Mathf.Abs(x - px);
                 if (d < bd) { bd = d; best = b; }
             }

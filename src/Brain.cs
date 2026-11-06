@@ -1598,7 +1598,7 @@ namespace KingdomBot
             return best;
         }
 
-        static bool WallBetween(float a, float b)
+        public static bool WallBetween(float a, float b)
         {
             float lo = Mathf.Min(a, b), hi = Mathf.Max(a, b);
             foreach (var w in UnityEngine.Object.FindObjectsOfType<Wall>())

@@ -465,7 +465,7 @@ namespace KingdomBot
                         // never stand around paying while an enemy is close (daytime squids took the crown during a long payid)
                         bool danger = false;
                         foreach (var en in UnityEngine.Object.FindObjectsOfType<Enemy>())
-                            if (Brain.IsLiveEnemy(en) && Mathf.Abs(en.transform.position.x - px) < 8f) { danger = true; break; }
+                            if (Brain.IsLiveEnemy(en) && Mathf.Abs(en.transform.position.x - px) < 8f && !Brain.WallBetween(px, en.transform.position.x)) { danger = true; break; }
                         if (danger) { Plugin.Log("payid: aborted, enemy close (player x" + px.ToString("0.0") + ")"); c.Dir = 0; c.Pay = false; done = true; break; }
                     }
                     if (_payStartDist < 0f) _payStartDist = parts.Length > 2 ? Mathf.Abs(F(parts[2]) - px) : 0f;   // timeout grows with the distance still to walk

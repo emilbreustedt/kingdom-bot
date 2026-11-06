@@ -25,6 +25,7 @@ namespace KingdomBot.NewLands
         }
 
         public static T Get<T>(object o, string name) { return (T)Field(o.GetType(), name).GetValue(o); }
+        public static void Set(object o, string name, object value) { Field(o.GetType(), name).SetValue(o, value); }
         public static int GetInt(object o, string name) { return Convert.ToInt32(Field(o.GetType(), name).GetValue(o)); }
 
         public static object Call(object o, string name, params object[] args)

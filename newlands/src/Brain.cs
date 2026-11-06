@@ -17,7 +17,16 @@ namespace KingdomBot.NewLands
         float _gameOverAt = -1f;
 
         public Brain(Plugin pl) { _pl = pl; }
-        public bool MaySprint { get { return GameState.Day >= 8; } }   // ON_THE_NINTH_DAY: no gallop before day 9
+        /// <summary>ON_THE_NINTH_DAY needs day 9 reached WITHOUT galloping, then a gallop. Once unlocked: gallop freely.</summary>
+        public bool MaySprint { get { return Unlocked("ON_THE_NINTH_DAY") || GameState.Day >= 9; } }
+
+        public static bool Unlocked(string id)
+        {
+            var am = Managers.achievements;
+            if (am == null || am.achievements == null) return false;
+            foreach (var a in am.achievements) if (a != null && a.steamID == id) return a.completed;
+            return false;
+        }
 
         void Push(string c) { _pl.Queue.Enqueue(c); }
         bool OnCooldown(int id) { float t; return _cooldown.TryGetValue(id, out t) && Time.time < t; }
@@ -40,11 +49,18 @@ namespace KingdomBot.NewLands
         {
             var g = Managers.game; var k = Managers.kingdom; var p = GameState.Player;
             if (g == null || k == null || p == null) { Status = "no game"; return; }
-            if ((int)g.state == 3)   // ended
+            if ((int)g.state == 3)   // land ended: won (escaped by boat) or lost (crown)
             {
-                if (_gameOverAt < 0) _gameOverAt = Time.unscaledTime;
-                if (Time.unscaledTime - _gameOverAt > 10f) { _gameOverAt = -1; _pl.Queue.Clear(); g.Restart(); Status = "restart"; }
-                else Status = "game over";
+                if (_gameOverAt < 0) { _gameOverAt = Time.unscaledTime; Plugin.Log("Land ended: " + g.result + " on day " + k.day + " (land " + g.currentLand + ")"); }
+                _pl.Queue.Clear();
+                try { Acc.Set(g, "_continueButtonPressed", true); } catch { }          // skip credits / "press to continue"
+                if ((int)g.menuState == 3)                                               // map: next land is already queued
+                {
+                    var map = UnityEngine.Object.FindObjectOfType<Map>();
+                    if (map != null && Time.unscaledTime - _gameOverAt > 4f) { map.OnButtonAction(); _gameOverAt = -1; Status = "map: next land"; return; }
+                }
+                if (Time.unscaledTime - _gameOverAt > 40f) { _gameOverAt = -1; g.Restart(); Status = "restart"; return; }
+                Status = g.result + ": waiting for the map";
                 return;
             }
             _gameOverAt = -1;
@@ -102,9 +118,27 @@ namespace KingdomBot.NewLands
                 if (b != null) { Cool(b.GetInstanceID(), 8f); Status = "Recruit beggar"; Push("walkto " + F(b.transform.position.x) + " 0.8 25"); Push("tap 1"); Push("wait 2.5"); return; }
             }
 
-            // 7. patrol for taxes
+            // 7. escape: wreck -> wharf (boat parts) -> beach (sail away = land won)
+            if (EscapeStep(payables, coins, day, workers, home)) return;
+
+            // 8. patrol for taxes
             Status = "Patrol";
             Push("walkto " + F(px < home ? home + 10f : home - 10f) + " 1 20");
+        }
+
+        bool EscapeStep(Payable[] payables, int coins, int day, int workers, float home)
+        {
+            // sail as soon as the boat waits at the beach
+            foreach (var py in payables)
+                if (py is Beach && CanPay(py) && coins >= py.price) { Status = "ESCAPE: pay the beach, sail away"; PayAt(py); return true; }
+            if (workers < 2 || day < 2) return false;
+            // keep paying the wharf (each payment stacks a boat part for the workers)
+            foreach (var py in payables)
+                if (py is Wharf && CanPay(py) && coins >= py.price + 1) { Status = "Boat: wharf part (" + py.price + ")"; PayAt(py); return true; }
+            // repair the wreck once there is money for it
+            var wreck = Find(payables, x => x is PayableUpgrade && x.name.StartsWith("Wreck") && CanPay(x), home);
+            if (wreck != null && coins >= wreck.price + 2) { Status = "Boat: repair wreck (" + wreck.price + ")"; PayAt(wreck); return true; }
+            return false;
         }
 
         public bool ShouldInterrupt()

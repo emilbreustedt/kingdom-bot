@@ -460,8 +460,19 @@ namespace KingdomBot
                             float tx = F(parts[2]);
                             // a neighbouring payable (e.g. a tower next to the castle) holds the selection: sweep +-1.5
                             // around the target until the target's trigger wins
-                            if (Time.time - _t0 > 1f && sel != null && sel.GetInstanceID() != id)
-                                tx += Mathf.PingPong((Time.time - _t0) * 2f, 6f) - 3f;
+                            if (sel != null && sel.GetInstanceID() != id)
+                            {
+                                // a neighbouring payable holds the selection: aim at the far side of the target's trigger
+                                // (away from the neighbour); if that does not help, sweep
+                                Collider2D tcol = null;
+                                foreach (var tp in UnityEngine.Object.FindObjectsOfType<Payable>()) if (tp.GetInstanceID() == id) { tcol = tp.GetComponent<Collider2D>(); break; }
+                                if (tcol != null)
+                                {
+                                    float cx = tcol.bounds.center.x, side = cx >= sel.transform.position.x ? 1f : -1f;
+                                    tx = cx + side * tcol.bounds.extents.x * 0.7f;
+                                }
+                                if (Time.time - _t0 > 5f) tx += Mathf.PingPong((Time.time - _t0) * 2f, 6f) - 3f;
+                            }
                             float dx = tx - px;
                             if (Mathf.Abs(dx) > 0.05f) c.Dir = dx > 0 ? 1 : -1;
                             // step-walk: move every other frame to avoid overshooting narrow triggers

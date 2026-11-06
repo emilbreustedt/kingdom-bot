@@ -752,6 +752,8 @@ namespace KingdomBot
             Payable item = null; string what = null;
             // 0. farms = the only income that scales; they come first from day 6
             if (day >= 6) { var farm = FarmTarget(payables, home); if (farm != null) { item = farm; what = farm.name.StartsWith("Tree") ? "farmland (cut tree)" : "farm"; } }
+            // 0b. a farm outside the walls loses its farmers every night: next wall goes up beyond the farm
+            if (item == null) { var fw = FarmWall(payables, home); if (fw != null) { item = fw; what = "wall beyond the farm"; } }
             // 1. stone tech first (wall levels 3+ need it)
             if (item == null && Managers.techUpgrades != null && !Managers.techUpgrades.stoneBuilding)
             {
@@ -793,7 +795,7 @@ namespace KingdomBot
             {
                 Status = "Defence: " + what + " (" + item.price + ")";
                 if (item.name.StartsWith("Mason")) { Cool(item.GetInstanceID(), 30f); Push("goto " + F(PayX(item)) + " 0.3 40"); Push("payid " + item.GetInstanceID() + " " + F(PayX(item))); Push("goto " + F(home) + " 1 40"); }
-                else { if (item.name.StartsWith("Tree")) Cool(item.GetInstanceID(), 60f); PayAt(item); }
+                else { if (item.name.StartsWith("Tree") || what == "wall beyond the farm") Cool(item.GetInstanceID(), 120f); PayAt(item); }
                 return true;
             }
             // while saving the army must keep growing: bows for idle peasants, then recruit beggars (hand-over)
@@ -881,7 +883,7 @@ namespace KingdomBot
             }
             int farmers = UnityEngine.Object.FindObjectsOfType<Farmer>().Length;
             int peasants = UnityEngine.Object.FindObjectsOfType<Peasant>().Length;
-            if (farmers < Mathf.Min(6, 3 * farmsBuilt) && peasants > onDisplay && SafeCanPay(scythe) && coins >= scythe.price + 1)
+            if (farmers < Mathf.Min(6, 3 * farmsBuilt) && !FarmsExposed(home) && peasants > onDisplay && SafeCanPay(scythe) && coins >= scythe.price + 1)
             { Status = "Economy: buy scythe (farmers " + farmers + ")"; PayAt(scythe); return true; }
             return false;
         }
@@ -1175,6 +1177,48 @@ namespace KingdomBot
         }
 
         /// <summary>Outermost intact wall on a side (or the kingdom border if none).</summary>
+        /// <summary>True if a built farm stands outside (or right at) the outer wall: farmers there die at night.</summary>
+        static bool FarmsExposed(float home)
+        {
+            foreach (var fh in UnityEngine.Object.FindObjectsOfType<Farmhouse>())
+            {
+                if (fh.level <= 0) continue;
+                float x = fh.transform.position.x; int side = x < home ? -1 : 1;
+                if ((WallEdge(side, home) - home) * side < (x - home) * side + 4f) return true;
+            }
+            return false;
+        }
+
+        /// <summary>Unbuilt wall spot just beyond a farm that stands outside the outer wall (or null).</summary>
+        Payable FarmWall(Payable[] payables, float home)
+        {
+            for (int side = -1; side <= 1; side += 2)
+            {
+                float farRel = 0f;
+                foreach (var fh in UnityEngine.Object.FindObjectsOfType<Farmhouse>())
+                {
+                    float rel = (fh.transform.position.x - home) * side;
+                    if (fh.level > 0 && rel > farRel && rel < 70f) farRel = rel;
+                }
+                if (farRel <= 0f || (WallEdge(side, home) - home) * side > farRel + 6f) continue;
+                // a wall construction site beyond the farm already exists -> nothing to do on this side
+                bool pending = false;
+                foreach (var b in UnityEngine.Object.FindObjectsOfType<WorkableBuilding>())
+                    if (b.name.Contains("Wall") && (b.transform.position.x - home) * side > farRel + 6f) pending = true;
+                if (pending) continue;
+                Payable best = null; float bd = float.MaxValue;
+                foreach (var p in payables)
+                {
+                    if (!(p is PayableUpgrade) || !p.name.StartsWith("Wall") || IsBuiltWall(p) || OnCooldown(p.GetInstanceID()) || !SafeCanPay(p)) continue;
+                    float rel = (p.transform.position.x - home) * side;
+                    if (rel < farRel + 6f || rel > farRel + 35f) continue;
+                    if (rel < bd) { bd = rel; best = p; }
+                }
+                if (best != null) return best;
+            }
+            return null;
+        }
+
         static float WallEdge(int side, float home)
         {
             float edge = home + side * 6f;

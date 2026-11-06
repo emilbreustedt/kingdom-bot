@@ -66,6 +66,13 @@ namespace KingdomBot.NewLands
                 }
                 sb.Append("]");
             }
+            // coins lying around + coins carried by units (taxes are paid when the player passes)
+            var gc = new List<string>();
+            foreach (var c in UnityEngine.Object.FindObjectsOfType<Coin>()) gc.Add(N(c.transform.position.x));
+            sb.Append(",\"groundCoins\":[" + string.Join(",", gc.ToArray()) + "]");
+            int carried = 0;
+            foreach (var w in UnityEngine.Object.FindObjectsOfType<Wallet>()) if (GameState.Player == null || w.gameObject != GameState.Player.gameObject) carried += w.coins;
+            sb.Append(",\"unitCoins\":" + carried);
             // payables
             sb.Append(",\"payables\":[");
             bool first = true;

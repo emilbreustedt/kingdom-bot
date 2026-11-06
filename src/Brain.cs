@@ -1160,7 +1160,7 @@ namespace KingdomBot
             foreach (var kn in knights) { try { if ((bool)Acc.Call(kn, "CanCharge")) armed = true; } catch { } }
             // charge: pay the border banner while knights with archers are ready (and armed)
             bool recovery = _bossNightDay == day - 1;
-            if (morning && armed && archers >= MinChargeArchers && (recovery || FieldClear(home, -1) || FieldClear(home, 1)))
+            if (morning && hour >= 7f && armed && archers >= MinChargeArchers && (recovery || FieldClear(home, -1) || FieldClear(home, 1)))
             {
                 // banner on the side of the nearest intact inner portal (each charge goes to that side's portal)
                 float bestPd = float.MaxValue; int pside = 0;
@@ -1171,6 +1171,7 @@ namespace KingdomBot
                     float pd = Mathf.Abs(po.transform.position.x - home);
                     int ps = po.transform.position.x < home ? -1 : 1;
                     if (!FieldClear(home, ps)) continue;             // enemies (e.g. boulder throwers) in front of that wall: other side
+                    if (Acc.Get<bool>(po, "_opened")) continue;      // an open portal destroyed while spawning never crumbles (PortalsDestroyed stays unset)
                     if (pd < bestPd) { bestPd = pd; pside = ps; }
                 }
                 if (pside == 0) return false;

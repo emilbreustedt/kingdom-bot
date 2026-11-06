@@ -182,6 +182,7 @@ namespace KingdomBot
             // coins in the purse are the buffer against hits at night (coins get knocked out before the crown)
             if (day >= 1 && hour >= k.dayEnd - 8f) reserve = 4;
             if (GiftPending() && castleAny != null) reserve = Mathf.Max(reserve, castleAny.price);
+            reserve = Mathf.Max(reserve, Brain.AssaultReserve());   // master: the assault bank (castle 4/5 + shields) is not spent here
             int budget = coins - reserve;
             bool acrePhase = AcreRun && day <= 6 && (k.rightForest - k.leftForest) < AcreTarget + 5f;
             int archerCap = Mathf.Min(40, 6 + 3 * day);

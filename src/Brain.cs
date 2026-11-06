@@ -920,7 +920,20 @@ namespace KingdomBot
             else { Push("walkto " + F(b.transform.position.x) + " 0.8 25"); Push("tap 1"); Push("wait 2.5"); }
         }
         public int AssaultArmyCap = 20;
-        public int BurstCoins = 35;       // castle 4 (8) + castle 5 (12) + 2 shields (12) + purse   // while saving for castle/shields the army only grows to this size (else nothing is ever saved)
+        public int BurstCoins = 35;
+
+        /// <summary>Coins the record strategy must leave alone while the assault saves for castle 4/5 and shields.</summary>
+        public static int AssaultReserve()
+        {
+            var b = Plugin.Instance != null ? Plugin.Instance.Brain : null;
+            if (b == null || b.Mode != "master" || GameState.Day < 12) return 0;
+            Payable castle = null;
+            foreach (var x in UnityEngine.Object.FindObjectsOfType<Payable>())
+                if (x is PayableUpgrade && x.name.StartsWith("Castle") && CastleIndex(x.name) >= 4 && CastleIndex(x.name) <= 5) { castle = x; break; }
+            if (castle != null) return CastleIndex(castle.name) == 4 ? b.BurstCoins : castle.price + 3;
+            if (UnityEngine.Object.FindObjectsOfType<Knight>().Length + ShieldsWaiting() < b.KnightTarget) return 9;
+            return 7;   // banner (4) + purse
+        }       // castle 4 (8) + castle 5 (12) + 2 shields (12) + purse   // while saving for castle/shields the army only grows to this size (else nothing is ever saved)
 
         /// <summary>Farmhouse payable to build next (first farm once scythes are sold, second one from day 12), or null.</summary>
         Payable FarmTarget(Payable[] payables, float home)

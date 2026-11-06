@@ -18,7 +18,8 @@ namespace KingdomBot
         int _coinsAtTap = -1, _tapFails; float _noRecruitUntil;
         float _gameOverAt = -1f;
         public bool AutoRestart = true;
-        bool _safeMode;          // current plan is a retreat/home plan -> do not interrupt it
+        bool _safeMode;
+        bool _armyFirst;          // current plan is a retreat/home plan -> do not interrupt it
         public int Runs = 0;
         string _lastLogged = "";
 
@@ -246,6 +247,8 @@ namespace KingdomBot
             int budget = coins - reserve;
             bool acrePhase = (AcreRun || Mode == "acre") && day <= 6 && (k.rightForest - k.leftForest) < AcreTarget + 5f;
             int archerCap = Mathf.Min(40, 6 + 3 * day);
+            // army first: archers are income (hunting) and defence; extras only when the army is big enough or money piles up
+            _armyFirst = archers < Mathf.Min(archerCap, 30) * 0.75f && budget < 12;
 
             // shops
             int toolsOnDisplay = 0;
@@ -306,7 +309,7 @@ namespace KingdomBot
             }
 
             // ---------- 7. strengthen walls, then towers ----------
-            if (archers >= 8 && budget >= 3)
+            if (archers >= 8 && budget >= 3 && !_armyFirst)
             {
                 var up = Find(payables, x => x is PayableUpgrade && IsBuiltWall(x) && SafeCanPay(x) && x.price <= budget, home);
                 if (up != null) { Status = "Upgrade wall (" + up.price + ")"; PayAt(up); return; }
@@ -442,12 +445,13 @@ namespace KingdomBot
                 if (castle != null && budget >= castle.price) { Status = "Assault prep: castle " + castle.name.Replace("(Clone)", "") + " (" + castle.price + ")"; PayAt(castle); return true; }
             }
             // stone tech from the mason shrine (morning trip)
-            if (Managers.techUpgrades != null && !Managers.techUpgrades.stoneBuilding && archers >= 8 && morning)
+            if (Managers.techUpgrades != null && !Managers.techUpgrades.stoneBuilding && archers >= 8 && morning && !_armyFirst)
             {
                 var shrine = Find(payables, x => x is PayableUpgrade && x.name.StartsWith("Mason") && SafeCanPay(x));
                 if (shrine != null && budget >= shrine.price && Mathf.Abs(shrine.transform.position.x - home) < 140f)
                 { Status = "Assault prep: mason shrine (stone)"; Cool(shrine.GetInstanceID(), 30f); Push("goto " + F(PayX(shrine)) + " 0.3 40"); Push("payid " + shrine.GetInstanceID() + " " + F(PayX(shrine))); Push("goto " + F(home) + " 1 40"); return true; }
             }
+            if (_armyFirst && !assault) return false;
             // outer wall ring: the border banner (needed to send knights) only exists if the outermost wall
             // is far enough from the campfire -> keep a wall >= 14 units out on both sides
             if (UnityEngine.Object.FindObjectsOfType<Worker>().Length >= 1)

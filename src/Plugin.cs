@@ -196,6 +196,15 @@ namespace KingdomBot
                 }
                 foreach (var b in UnityEngine.Object.FindObjectsOfType<PayableBorder>())
                     Log("BORDER x" + b.transform.position.x.ToString("0.0") + " canPay=" + b.CanPay() + " range=" + b.knightRange);
+                try
+                {
+                    var am = Managers.achievements;
+                    foreach (var ach in am.achievements)
+                        Log("ACH " + ach.steamID + " counter=" + ach.triggeringCounter + " flag=" + ach.triggeringFlag + " x=" + ach.conditionX + " y=" + ach.conditionY
+                            + " series=" + (ach.series != null ? string.Join(",", ach.series.ConvertAll(v => v.ToString()).ToArray()) : "-")
+                            + " custom=" + (ach.customCheck != null && ach.customCheck.GetPersistentEventCount() > 0 ? ach.customCheck.GetPersistentMethodName(0) : "-"));
+                }
+                catch (Exception e) { Log("ACH dump failed: " + e.Message); }
                 foreach (var po in UnityEngine.Object.FindObjectsOfType<Portal>())
                 {
                     var d = po.GetComponent<Damageable>();

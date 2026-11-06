@@ -192,7 +192,7 @@ namespace KingdomBot
                     var arObj = Acc.Get<object>(kn, "_archers");
                     int arCount = arObj != null ? (int)arObj.GetType().GetProperty("Count").GetValue(arObj, null) : -1;
                     bool cc = false; try { cc = (bool)Acc.Call(kn, "CanCharge"); } catch { }
-                    Log("KNIGHT x" + kn.transform.position.x.ToString("0.0") + " side=" + kn.side + " state=" + cur + " archers=" + arCount + "/" + kn.maxArchers + " canCharge=" + cc + " coins=" + (Acc.Wallet(kn) != null ? Acc.Wallet(kn).coins : -1) + " hp=" + (kn.GetComponent<Damageable>() != null ? kn.GetComponent<Damageable>().hitPoints : -1));
+                    Log("KNIGHT x" + kn.transform.position.x.ToString("0.0") + " side=" + kn.side + " state=" + cur + " archers=" + arCount + "/" + kn.maxArchers + " canCharge=" + cc + " coins=" + (Acc.Wallet(kn) != null ? Acc.Wallet(kn).coins + "/" + Acc.Wallet(kn).maxCoins : "-") + GameState.CoinFields(kn) + " hp=" + (kn.GetComponent<Damageable>() != null ? kn.GetComponent<Damageable>().hitPoints : -1));
                 }
                 foreach (var b in UnityEngine.Object.FindObjectsOfType<PayableBorder>())
                     Log("BORDER x" + b.transform.position.x.ToString("0.0") + " canPay=" + b.CanPay() + " range=" + b.knightRange);
@@ -386,6 +386,15 @@ namespace KingdomBot
         public static Player Player { get { var k = Managers.kingdom; return k != null ? k.player : null; } }
         public static float PX { get { return Player.transform.position.x; } }
         public static int Coins { get { return Acc.Wallet(Player).coins; } }
+        public static string CoinFields(Component c)
+        {
+            var sb = new System.Text.StringBuilder();
+            foreach (var comp in c.GetComponents<Component>())
+                foreach (var f in comp.GetType().GetFields(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance))
+                    if (f.Name.IndexOf("oin", System.StringComparison.OrdinalIgnoreCase) >= 0 && (f.FieldType.IsPrimitive || f.FieldType.IsEnum))
+                        sb.Append(" " + comp.GetType().Name + "." + f.Name + "=" + f.GetValue(comp));
+            return sb.ToString();
+        }
         public static int MaxCoins { get { return Acc.Wallet(Player).maxCoins; } }
         public static int Day { get { return Managers.director != null ? Managers.director.currentDay : -1; } }
         public static float Hour { get { return Managers.director != null ? Managers.director.currentTime : -1; } }

@@ -801,7 +801,8 @@ namespace KingdomBot
                     }
                 }
             }
-            if (item != null && coins >= item.price + 4)   // keep a small purse: coins are knocked out before the crown
+            bool tooEarly = item != null && item.name.StartsWith("Mason") && hour < 7f;   // trolls still about at dawn
+            if (item != null && coins >= item.price + 4 && !tooEarly)   // keep a small purse: coins are knocked out before the crown
             {
                 Status = "Defence: " + what + " (" + item.price + ")";
                 if (item.name.StartsWith("Mason")) { Cool(item.GetInstanceID(), 30f); Push("goto " + F(PayX(item)) + " 0.3 40"); Push("payid " + item.GetInstanceID() + " " + F(PayX(item))); Push("goto " + F(home) + " 1 40"); }

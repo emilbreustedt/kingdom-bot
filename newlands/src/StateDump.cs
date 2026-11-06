@@ -58,7 +58,11 @@ namespace KingdomBot.NewLands
                     if (!f) sb.Append(","); f = false;
                     var reqs = new List<string>();
                     if (a.requirements != null) foreach (var r in a.requirements) reqs.Add(r.stat + " " + r.comparison + " " + N(r.val));
-                    sb.Append("{\"id\":" + S(a.steamID) + ",\"done\":" + B(a.completed) + ",\"req\":" + S(string.Join(" & ", reqs.ToArray())) + "}");
+                    var pre = new List<string>();
+                    if (a.prerequisites != null) foreach (var r in a.prerequisites) pre.Add(r.stat + " " + r.comparison + " " + N(r.val));
+                    bool preOk = false; try { preOk = Acc.Get<bool>(a, "_prereqComplete"); } catch { }
+                    sb.Append("{\"id\":" + S(a.steamID) + ",\"done\":" + B(a.completed) + ",\"req\":" + S(string.Join(" & ", reqs.ToArray()))
+                        + ",\"pre\":" + S(string.Join(" & ", pre.ToArray())) + ",\"preOk\":" + B(preOk) + "}");
                 }
                 sb.Append("]");
             }

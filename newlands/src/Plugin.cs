@@ -180,7 +180,7 @@ namespace KingdomBot.NewLands
         public static float PX { get { return Player.transform.position.x; } }
         public static int Coins { get { return Player.coins; } }
         public static int Day { get { return Managers.kingdom != null ? Managers.kingdom.day : -1; } }
-        public static float Hour { get { try { return Acc.Get<float>(Managers.game, "_currentTime"); } catch { return -1f; } } }
+        public static float Hour { get { return Managers.director != null ? Managers.director.currentTime : -1f; } }
     }
 
     /// <summary>Command queue (same commands as Classic). Pay positions use Payable.PlayerPayPoint().</summary>

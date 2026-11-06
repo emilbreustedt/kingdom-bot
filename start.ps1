@@ -1,11 +1,11 @@
 # Starts Kingdom windowed on the widest connected screen and optionally minimizes it.
 #   .\start.ps1            -> windowed on the widest screen (e.g. a 32:9 monitor)
 #   .\start.ps1 -Minimize  -> start, move, then minimize (bot keeps running)
-param([switch]$Minimize, [int]$Width = 1600, [int]$Height = 900, [string]$GamePath = (& "$PSScriptRoot\tools\find-game.ps1"))
+param([switch]$Minimize, [int]$Width = 1600, [int]$Height = 900, [string]$GamePath = (& "$PSScriptRoot\tools\find-game.ps1"), [string]$AppId = "368230")
 $game = $GamePath
-if (Get-Process Kingdom -ErrorAction SilentlyContinue) { Write-Output 'Kingdom läuft bereits.'; return }
+if (Get-Process Kingdom -ErrorAction SilentlyContinue) { Write-Output 'A Kingdom game (Classic or New Lands) is already running.'; return }
 # lets Kingdom.exe be started directly (Steam must be running; achievements still count)
-Set-Content "$game\steam_appid.txt" '368230' -Encoding ascii
+Set-Content "$game\steam_appid.txt" $AppId -Encoding ascii
 
 Add-Type -AssemblyName System.Windows.Forms
 Add-Type @'

@@ -210,6 +210,7 @@ namespace KingdomBot
             if (Mode == "master" && GameState.Player != null && (int)Managers.game.gameState == 2 && (EconomyStep() || DefenseStep())) return;
             // survival: stone walls decide late survival (L3/L4 = 200/300 HP vs 50 HP). Follow a wall schedule and save for
             // the next step during the day if needed; otherwise the record strategy plays as usual.
+            if ((Mode == "survive" || Mode == "master") && GameState.Player != null && (int)Managers.game.gameState == 2 && AvoidIntruder()) return;
             if (Mode == "survive" && GameState.Player != null && (int)Managers.game.gameState == 2 && WallSchedule()) return;
             if (Mode == "survive" || Mode == "master" || Mode == "feast")
             {
@@ -685,6 +686,40 @@ namespace KingdomBot
             return false;
         }
 
+        /// <summary>
+        /// An enemy got inside the walls (e.g. a boss that stays after dawn): the king keeps to the far side instead of
+        /// running "home" into it, and waits there until the archers have dealt with it.
+        /// </summary>
+        bool AvoidIntruder()
+        {
+            var k = Managers.kingdom; float px = GameState.PX, home = k.campfirePosition;
+            float l = WallEdge(-1, home), r = WallEdge(1, home);
+            Enemy worst = null; float wd = float.MaxValue;
+            foreach (var e in UnityEngine.Object.FindObjectsOfType<Enemy>())
+            {
+                if (!IsLiveEnemy(e)) continue;
+                float ex = e.transform.position.x;
+                if (ex <= l || ex >= r) continue;                    // only intruders
+                float d = Mathf.Abs(ex - px);
+                if (d < wd) { wd = d; worst = e; }
+            }
+            if (worst == null || wd > 22f) return false;
+            float ix = worst.transform.position.x;
+            float target = ix > home ? l + 1.5f : r - 1.5f;      // far side, still inside the walls
+            if (Mathf.Abs(target - ix) < 12f) target = ix > home ? l - 10f : r + 10f;   // too close anyway -> beyond the wall
+            _safeMode = true;
+            Status = "Intruder inside the walls - keep away (" + worst.name.Replace("(Clone)", "") + ")";
+            if (Mathf.Abs(px - target) > 2f) Push("goto " + F(target) + " 1 4"); else Push("wait 1");
+            return true;
+        }
+
+        /// <summary>Level of an existing tower behind a tower upgrade payable (0 = empty tower spot).</summary>
+        static int TowerLevelOf(Payable p)
+        {
+            var t = p.GetComponent<Tower>() ?? (p.transform.parent != null ? p.transform.parent.GetComponent<Tower>() : null);
+            return t != null ? t.level : 0;
+        }
+
         /// <summary>Target level of the outer walls per day (boss nights get much harder from ~day 10 and ~day 25).</summary>
         static int WallTarget(int day) { return day >= 14 ? 4 : day >= 9 ? 3 : day >= 4 ? 2 : 1; }
 
@@ -718,8 +753,27 @@ namespace KingdomBot
                     if (up != null && outer.level < bestLvl) { bestLvl = outer.level; item = up; what = "outer wall " + (side < 0 ? "left" : "right") + " L" + outer.level + "->" + (outer.level + 1); }
                 }
             }
+            // 3. towers next to the outer walls: archers in a guard slot are immune to troll/boss hits
+            if (item == null && day >= 9)
+            {
+                int ttarget = day >= 20 ? 3 : day >= 14 ? 2 : 1, bestT = 99;
+                for (int side = -1; side <= 1; side += 2)
+                {
+                    float outerX = WallEdge(side, home);
+                    // best tower payable on this side inside the outer wall: unbuilt spot (Tower0*) or upgrade of a low tower
+                    foreach (var p in payables)
+                    {
+                        if (!(p is PayableUpgrade) || !p.name.StartsWith("Tower") || !SafeCanPay(p) || OnCooldown(p.GetInstanceID())) continue;
+                        float rel = (p.transform.position.x - home) * side, outerRel = (outerX - home) * side;
+                        if (rel <= 0 || rel > outerRel + 0.5f) continue;
+                        int lvl = TowerLevelOf(p);
+                        if (lvl >= ttarget || lvl >= bestT) continue;
+                        bestT = lvl; item = p; what = "tower " + (side < 0 ? "left" : "right") + " L" + lvl + "->" + (lvl + 1);
+                    }
+                }
+            }
             if (item == null) return false;
-            if (coins >= item.price + 1)
+            if (coins >= item.price + 4)   // keep a small purse: coins are knocked out before the crown
             {
                 Status = "Defence: " + what + " (" + item.price + ")";
                 if (item.name.StartsWith("Mason")) { Cool(item.GetInstanceID(), 30f); Push("goto " + F(PayX(item)) + " 0.3 40"); Push("payid " + item.GetInstanceID() + " " + F(PayX(item))); Push("goto " + F(home) + " 1 40"); }
@@ -729,7 +783,7 @@ namespace KingdomBot
             // save: collect coins and taxes instead of spending
             var c = NearestCoin(px, home - 40f, home + 40f);
             if (c != null) { Cool(c.GetInstanceID(), 1e7f); Status = "Saving for " + what + ": coin"; Push("goto " + F(c.transform.position.x) + " 0.3 15"); return true; }
-            Status = "Saving for " + what + " (" + coins + "/" + (item.price + 1) + ")";
+            Status = "Saving for " + what + " (" + coins + "/" + (item.price + 4) + ")";
             float l = WallEdge(-1, home), r = WallEdge(1, home);
             Push("walkto " + F(px < home ? r - 1f : l + 1f) + " 1 20");   // ride along the walls past the archers (taxes)
             return true;

@@ -638,6 +638,11 @@ namespace KingdomBot
             int archersMade = am != null ? am.counters[3] : 0;
             PayableShop bow = null; int onDisplay = 0;
             foreach (var py in payables) { var sh = py as PayableShop; if (sh == null) continue; onDisplay += sh.GetItemCount(); if (sh.name.Contains("Bow")) bow = sh; }
+            if (boot && GameState.Day >= 1 && peasants > onDisplay && UnityEngine.Object.FindObjectsOfType<Worker>().Length < 2)
+            {
+                PayableShop hm = null; foreach (var py in payables) { var sh = py as PayableShop; if (sh != null && sh.name.Contains("Hammer")) hm = sh; }
+                if (hm != null && SafeCanPay(hm) && coins >= hm.price) { Status = "boot: buy hammer"; PayAt(hm); return; }
+            }
             if (peasants > onDisplay && bow != null && SafeCanPay(bow) && coins >= bow.price) { Status = "army1: buy bow (" + archersMade + "/8)"; PayAt(bow); return; }
             int target = boot ? 12 : feast ? 15 : 8;
             if (archersMade + peasants + onDisplay < target && coins >= 3)

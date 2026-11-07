@@ -118,7 +118,7 @@ Notes from reverse engineering (Kingdom: Classic 1.x):
 ## Status
 
 **Kingdom: Classic** — 31/34 achievements on the author's account, almost all earned by the bot, including
-Day C (day 100), Safe in 35/40, The Tenth Day and the Fourth Day Feast. Open: First Day Army, Safe in 25, Safe in 30.
+Day C (day 100), Safe in 35/40, The Tenth Day and the Fourth Day Feast. First Day Army earned 2026-11-07 (32/34). Open: Safe in 25, Safe in 30.
 
 What finally worked (all verified in the game, see the git history for details):
 
@@ -143,6 +143,8 @@ What finally worked (all verified in the game, see the git history for details):
   dawn, so evening archer coins are spent on a night trip to a camp. The merchant (always there on day 0, 4 coins)
   refills a *random* shop: bows = 4 free bows, hammers = builders. The bot rerolls the map in the hammer case.
   Template objects (`Chest` at x0 without parent, inactive pool coins) must be ignored.
+  **Earned** after: night recruiting up to 75 out, collecting archer coins at night, pre-buying bows at night
+  (dawn results then 4-8 archers; the 8 came on the 10th try).
 
 **Kingdom: New Lands** (`newlands/`) — the Classic strategy runs via a small compatibility layer (`Compat.cs`);
 first achievements earned: Day V/X/XV, Five Days, Ninth Day, Second Day Gift. Boat escape (wreck → wharf → beach,

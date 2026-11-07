@@ -849,7 +849,7 @@ namespace KingdomBot
             foreach (var ch in AllChests())
             {
                 float cx = ch.transform.position.x;
-                if (!ch.isEmpty && !OnCooldown(ch.GetInstanceID()) && Mathf.Abs(cx - px) < 25f) { Cool(ch.GetInstanceID(), 60f); Status = "army1: chest near (" + ch.coins + ")"; Push("goto " + F(cx) + " 0.3 15"); Push("wait 1"); return; }
+                if (!ch.isEmpty && ch.gameObject.activeInHierarchy && !OnCooldown(ch.GetInstanceID()) && Mathf.Abs(cx - px) < 25f) { Cool(ch.GetInstanceID(), 1e7f); Status = "army1: chest near (" + ch.coins + ")"; Push("goto " + F(cx) + " 0.3 15"); Push("wait 1"); return; }
             }
             var coin = NearestCoin(px, px - 25f, px + 25f);
             if (coin != null && !(coin.droppedByPlayer && Time.time - _lastTap < 15f)) { Cool(coin.GetInstanceID(), 1e7f); Status = "army1: coin"; Push("goto " + F(coin.transform.position.x) + " 0.3 15"); return; }
@@ -882,7 +882,7 @@ namespace KingdomBot
                 if (ch.isEmpty || OnCooldown(ch.GetInstanceID()) || Mathf.Abs(cx - home) > Army1Range) continue;
                 if (Mathf.Abs(cx - px) < fd) { fd = Mathf.Abs(cx - px); far = ch; }
             }
-            if (far != null && !TooLateFor(far.transform.position.x, home)) { Cool(far.GetInstanceID(), 60f); float cx = far.transform.position.x; Status = "army1: chest (" + far.coins + ")"; Push("goto " + F(cx) + " 0.3 " + F(10f + Mathf.Abs(cx - px) * 0.6f)); Push("wait 1"); return; }
+            if (far != null && !TooLateFor(far.transform.position.x, home)) { Cool(far.GetInstanceID(), 1e7f);   /* one visit per chest: inactive/template chests gave nothing and were revisited all day */ float cx = far.transform.position.x; Status = "army1: chest (" + far.coins + ")"; Push("goto " + F(cx) + " 0.3 " + F(10f + Mathf.Abs(cx - px) * 0.6f)); Push("wait 1"); return; }
             var coinFar = NearestCoin(px, home - Army1Range, home + Army1Range);
             if (coinFar != null && !TooLateFor(coinFar.transform.position.x, home) && !(coinFar.droppedByPlayer && Time.time - _lastTap < 15f)) { Cool(coinFar.GetInstanceID(), 1e7f); Status = "army1: coin far"; Push("goto " + F(coinFar.transform.position.x) + " 0.3 " + F(10f + Mathf.Abs(coinFar.transform.position.x - px) * 0.6f)); return; }
             Status = (feast ? "Feast: waiting (deer " + (am != null ? am.counters[4] : -1) + ", " : "army1: waiting (") + archersMade + " archers, " + coins + " coins)";

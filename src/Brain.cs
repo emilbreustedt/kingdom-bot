@@ -1732,7 +1732,9 @@ namespace KingdomBot
         }   // escorts (4 per knight) + enough defenders at home   // after day 40 no "Safe in X" is reachable
         public int BurstCoins = 50;   // castle 4 (8) + castle 5 (9) + 2 shields (12) + 4 banners (16) + purse; castle 5 earns ~1 coin/day, every charge (4) must come from the bank
         /// <summary>Bank needed before castle 4: the full bank early, a smaller one from day 24 (late income ~= upkeep, the bank plateaus ~40).</summary>
-        public int BankTarget() { int d = GameState.Day; if (TenthRush) return 9 + 6 + 4 + 3; return d >= 24 ? 38 : 40; }   /* castle 4 (8) + castle 5 (9) + 2 shields (12) + banner (4) + purse; 60 delayed the knights by days */   // the assault (3 shields + 5-8 charges) is paid from the bank: castle 5 earns ~1 coin/day
+        public int BankTarget() { int d = GameState.Day; if (TenthRush) return 9 + 6 + 4 + 3; return Mathf.Min(PurseCap, d >= 24 ? 38 : 40); }
+        /// <summary>The coin bag overflows at ~39 coins and every spilled coin falls into the water with p=0.5 (measured: 10 coins fell by day 13). Never save above this.</summary>
+        public int PurseCap = 34;   /* castle 4 (8) + castle 5 (9) + 2 shields (12) + banner (4) + purse; 60 delayed the knights by days */   // the assault (3 shields + 5-8 charges) is paid from the bank: castle 5 earns ~1 coin/day
 
         /// <summary>Coins the record strategy must leave alone while the assault saves for castle 4/5 and shields.</summary>
         public static int ShieldsWaitingPublic() { return ShieldsWaiting(); }
@@ -1754,7 +1756,7 @@ namespace KingdomBot
             Payable castle = null;
             foreach (var x in UnityEngine.Object.FindObjectsOfType<Payable>())
                 if (x is PayableUpgrade && x.name.StartsWith("Castle") && CastleIndex(x.name) >= 4 && CastleIndex(x.name) <= 5) { castle = x; break; }
-            if (castle != null) return CastleIndex(castle.name) == 4 ? (includeBank ? b.BankTarget() : 0) : castle.price + 2 * 6 + 4 * 4 + 3;   // castle 5 + 2 shields + 4 banners + purse
+            if (castle != null) return CastleIndex(castle.name) == 4 ? (includeBank ? b.BankTarget() : 0) : Mathf.Min(b.PurseCap, castle.price + 2 * 6 + 4 * 4 + 3);   // castle 5 + 2 shields + 4 banners + purse
             int missing = Mathf.Max(0, 2 - UnityEngine.Object.FindObjectsOfType<Knight>().Length - ShieldsWaiting());
             int inner = 0; foreach (var po in UnityEngine.Object.FindObjectsOfType<Portal>()) { var dm = po.GetComponent<Damageable>(); if (!po.outerSpawner && (dm == null || dm.hitPoints > 0)) inner++; }
             return missing * 6 + Mathf.Max(1, inner) * 4 + 3;   // shields for 2 knights + one banner per remaining portal + purse

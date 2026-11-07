@@ -1883,13 +1883,13 @@ namespace KingdomBot
             var k = Managers.kingdom; var pl = GameState.Player;
             Steed steed = pl != null ? Acc.Get<Steed>(pl, "_steed") : null;
             if (pl == null || steed == null || !k.isDaytime || GameState.Hour > k.dayEnd - 3f || OnCooldown(777300)) return false;
-            if (Acc.Get<float>(pl, "_wellFedTimer") > 0f || pl.stamina > 0.6f) return false;
+            if (Acc.Get<float>(pl, "_wellFedTimer") > 0f) return false;   // measured: 2 s on grass = 48 s gallop without stamina cost - always worth it
             float px = GameState.PX;
             var en = NearestEnemy(px); if (en != null && Mathf.Abs(en.transform.position.x - px) < 30f) return false;
             Cool(777300, 25f);
             float wait = Acc.Get<float>(steed, "eatDelay") + Acc.Get<float>(steed, "eatDuration") + 0.5f;
             if (Acc.GetInt(pl, "_groundType") == 1) { Status = "Horse: graze here"; Push("wait " + F(wait)); return true; }
-            Grass best = null; float bd = 15f;
+            Grass best = null; float bd = 10f;
             foreach (var g in UnityEngine.Object.FindObjectsOfType<Grass>()) { float d = Mathf.Abs(g.transform.position.x - px); if (d < bd) { bd = d; best = g; } }
             if (best == null) return false;
             Status = "Horse: graze (grass " + bd.ToString("0") + " away)"; Push("walkto " + F(best.transform.position.x) + " 0.5 8"); Push("wait " + F(wait));

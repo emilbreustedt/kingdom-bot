@@ -865,7 +865,7 @@ namespace KingdomBot
             // beggars before long trips (the mason shrine trip took 10 game hours with 38 coins in the purse)
             {
                 int arNow = UnityEngine.Object.FindObjectsOfType<Archer>().Length;
-                if (arNow < Mathf.Min(3 * day + 6, 25) && hour < k.dayEnd - 5f && GameState.Coins >= (item != null ? item.price : 0) + 6)
+                if (arNow < Mathf.Min(3 * day + 6, 20) && hour < k.dayEnd - 5f && GameState.Coins >= (item != null ? item.price : 0) + 6)
                 {
                     int pe = UnityEngine.Object.FindObjectsOfType<Peasant>().Length, disp = 0; PayableShop bw = null, hm = null;
                     foreach (var py in payables) { var sh = py as PayableShop; if (sh == null) continue; disp += sh.GetItemCount(); if (sh.name.Contains("Bow")) bw = sh; if (sh.name.Contains("Hammer")) hm = sh; }

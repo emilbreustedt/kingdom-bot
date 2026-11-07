@@ -105,7 +105,7 @@ namespace KingdomBot
             if (nearest != null && Mathf.Abs(nearest.transform.position.x - px) < 18f && !Between(px, leftSafe, rightSafe))
             {
                 Status = "Flucht vor Gegner"; _safeMode = true;
-                Push("goto " + F(home)); return;
+                Push("goto " + F(home) + " 2 20"); return;   // default timeout 90 s = 9 game hours: the king hung in this one command from h6.9 to h16.6
             }
             if (nearest != null && Mathf.Abs(nearest.transform.position.x - px) < 7f && !WallBetween(px, nearest.transform.position.x))
             {

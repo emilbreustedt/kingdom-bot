@@ -314,7 +314,7 @@ namespace KingdomBot
             if (nearest != null && Mathf.Abs(nearest.transform.position.x - px) < 18f && !Between(px, leftSafe, rightSafe))
             {
                 Status = "Fleeing enemy"; _safeMode = true;
-                Push("goto " + F(home)); return;
+                Push("goto " + F(home) + " 2 20"); return;
             }
             if (nearest != null && Mathf.Abs(nearest.transform.position.x - px) < 7f && !WallBetween(px, nearest.transform.position.x))
             {

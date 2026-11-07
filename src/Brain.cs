@@ -616,7 +616,7 @@ namespace KingdomBot
         {
             var l = new System.Collections.Generic.List<Chest>();
             foreach (var c in Resources.FindObjectsOfTypeAll<Chest>())
-                if (c != null && c.hideFlags == HideFlags.None && c.gameObject.hideFlags == HideFlags.None && c.transform.root.gameObject.activeSelf) l.Add(c);
+                if (c != null && c.hideFlags == HideFlags.None && c.gameObject.hideFlags == HideFlags.None && c.transform.parent != null && c.transform.root.gameObject.activeSelf) l.Add(c);   // parent==null: prefab template "Chest" at x0 (never gives coins)
             return l;
         }
         /// <summary>Knights stay on the side they were created on; once that side has no living inner portal they idle.
@@ -813,7 +813,7 @@ namespace KingdomBot
         int _rerolls; bool _mapChecked;
         public float Army1Range = 130f;
         public bool BootDays = true;
-        public float Army1Check = 80f;    // day 0 is short: 24 coins (8 recruits + 8 bows) must lie within ~80 of the camp, otherwise reroll   // guide: run to the camps on both sides (four camps incl. the town centre) and loot chests on the way
+        public float Army1Check = 110f;    // day 0 is short: 24 coins (8 recruits + 8 bows) must lie within ~80 of the camp, otherwise reroll   // guide: run to the camps on both sides (four camps incl. the town centre) and loot chests on the way
         void ThinkArmy1(bool feast, bool boot = false)
         {
             var k = Managers.kingdom; var am = Managers.achievements;

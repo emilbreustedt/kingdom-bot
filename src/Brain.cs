@@ -831,6 +831,7 @@ namespace KingdomBot
             float hoursNeeded = 2f * Mathf.Abs(x - home) / 30f + 2f;   // there and back at ~30 units per game hour, plus a margin
             return !k.isDaytime || GameState.Hour + hoursNeeded > k.dayEnd - 1f;
         }
+        static bool _chestTypeLogged;
         int _rerolls; bool _mapChecked;
         public float Army1Range = 130f;
         public bool BootDays = true;
@@ -847,8 +848,9 @@ namespace KingdomBot
                 int avail = coins;
                 foreach (var c in UnityEngine.Object.FindObjectsOfType<Coin>()) if (!c.pickedUp && Mathf.Abs(c.transform.position.x - home) < Army1Check) avail++;
                 foreach (var ch in AllChests()) if (!ch.isEmpty && Mathf.Abs(ch.transform.position.x - home) < Army1Check) avail += ch.coins;
+                if (!_chestTypeLogged) { _chestTypeLogged = true; var ct = typeof(Chest); var sb = new System.Text.StringBuilder("CHEST TYPE base=" + ct.BaseType + " methods:"); foreach (var m in ct.GetMethods(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.DeclaredOnly)) sb.Append(" " + m.Name); sb.Append(" fields:"); foreach (var f in ct.GetFields(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.DeclaredOnly)) sb.Append(" " + f.Name); Plugin.Log(sb.ToString()); }
                 foreach (var ch in AllChests())
-                    Plugin.Log("CHEST " + ch.name + " x" + ch.transform.position.x.ToString("0") + " coins=" + ch.coins + " empty=" + ch.isEmpty + " active=" + ch.gameObject.activeInHierarchy + " parent=" + (ch.transform.parent != null ? ch.transform.parent.name : "-") + " root=" + ch.transform.root.name);
+                    Plugin.Log("CHEST " + ch.name + " x" + ch.transform.position.x.ToString("0") + " spillRange=" + ch.spillRange + " coins=" + ch.coins + " empty=" + ch.isEmpty + " active=" + ch.gameObject.activeInHierarchy + " parent=" + (ch.transform.parent != null ? ch.transform.parent.name : "-") + " root=" + ch.transform.root.name);
                 _mapChecked = true;
                 Plugin.Log("army1: coins reachable on this map = " + avail + " (reroll " + _rerolls + ")");
                 if (avail < 18 && _rerolls < 300   /* maps have one chest per side at 100-215: 18 = ground coins + a near chest; archers add hunting coins (guide) */ && NormalizeRunType(ConfigMode) == "auto")
@@ -905,7 +907,7 @@ namespace KingdomBot
                 if (ch.isEmpty || OnCooldown(ch.GetInstanceID()) || Mathf.Abs(cx - home) > (feast ? Army1Range : 90f)) continue;   /* guide: a chest only if it lies between the camps */
                 if (Mathf.Abs(cx - px) < fd) { fd = Mathf.Abs(cx - px); far = ch; }
             }
-            if (far != null && !TooLateFor(far.transform.position.x, home)) { Cool(far.GetInstanceID(), 1e7f);   /* one visit per chest: inactive/template chests gave nothing and were revisited all day */ float cx = far.transform.position.x; Status = "army1: chest (" + far.coins + ")"; Push("goto " + F(cx) + " 0.3 " + F(10f + Mathf.Abs(cx - px) * 0.6f)); Push("wait 2.5"); Push("walkto " + F(cx - 3f) + " 0.3 4"); Push("walkto " + F(cx + 3f) + " 0.3 4"); return; }   /* coins spill around the chest: sweep them up */
+            if (far != null && !TooLateFor(far.transform.position.x, home)) { Cool(far.GetInstanceID(), 1e7f);   /* one visit per chest: inactive/template chests gave nothing and were revisited all day */ float cx = far.transform.position.x; Status = "army1: chest (" + far.coins + ")"; Push("goto " + F(cx) + " 0.3 " + F(10f + Mathf.Abs(cx - px) * 0.6f)); float sr = Mathf.Clamp(far.spillRange, 3f, 12f); Push("wait 2"); Push("walkto " + F(cx - sr) + " 0.3 " + F(4f + sr)); Push("walkto " + F(cx + sr) + " 0.3 " + F(4f + 2f * sr)); Push("walkto " + F(cx) + " 0.3 " + F(4f + sr)); return; }   /* OnTriggerEnter2D spills the coins within spillRange: sweep the whole range */
             var coinFar = NearestCoin(px, home - 60f, home + 60f);   /* FarCoin found phantom coins (4 h trips for nothing) */
             if (coinFar != null && !TooLateFor(coinFar.transform.position.x, home) && !(coinFar.droppedByPlayer && Time.time - _lastTap < 15f)) { Cool(coinFar.GetInstanceID(), 1e7f); Status = "army1: coin far"; Push("goto " + F(coinFar.transform.position.x) + " 0.3 " + F(10f + Mathf.Abs(coinFar.transform.position.x - px) * 0.6f)); return; }
             // guide: "collect coins from your archers" - hunting archers hand their coins to the king only when he passes by

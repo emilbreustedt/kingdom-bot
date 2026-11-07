@@ -1793,7 +1793,7 @@ namespace KingdomBot
             // no forest clearing for a farm (that cost the army a lot in the first farm test)
             float lw = WallEdge(-1, home), rw = WallEdge(1, home);
             var farm = Find(payables, x => x is PayableUpgrade && x.name.StartsWith("Farmhouse") && SafeCanPay(x)
-                                           && x.transform.position.x > lw - 20f && x.transform.position.x < rw + 20f, home);
+                                           && x.transform.position.x > lw + 3f && x.transform.position.x < rw - 3f, home);   /* only inside the walls: a farm 20 in front stayed exposed (farm wall never built), max 1 farmer, no late income */
             if (farm != null) return farm;
             if (!FarmClearTrees) return null;
             // farmhouse spots only become payable inside the buildable (cleared) land: cut the trees between the camp

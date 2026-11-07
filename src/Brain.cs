@@ -1962,7 +1962,7 @@ namespace KingdomBot
             if (Time.time >= _farmDiagAt) { _farmDiagAt = Time.time + 60f; Plugin.Log("FARM DIAG farms " + farms + " farmers " + farmers + " exposed " + FarmsExposed(home) + " -> scythe first"); }
             return sc;
         }
-        float _farmDiagAt, _grazeErrAt;
+        float _farmDiagAt, _grazeErrAt; int _chargeLateLog;
 
         /// <summary>User observation: by day the archers hunt OUTSIDE the walls and carry the coins - they hand them over only when
         /// the king passes by. Saving used to patrol inside the walls only. Ride out to them (and pick up coins out there) when it is safe.</summary>
@@ -2166,7 +2166,7 @@ namespace KingdomBot
             }
             bool lastPortalReady = LiveInnerPortals() != 1 || (archers >= FinalArchers && budget >= FinalBank);
             if (!lastPortalReady && morning && _finalPrepDay != day) { _finalPrepDay = day; Plugin.Log("FINAL PREP d" + day + ": last portal waits - archers " + archers + "/" + FinalArchers + " budget " + budget + "/" + FinalBank); }
-            if (lastPortalReady && k.isDaytime && hour < k.dayEnd - 7f && hour >= 7f && armed && archers >= ChargeArchers &&   /* coins arrive during the day (hunting): morning-only charges never had the banner price */ (recovery || FieldClear(home, -1) || FieldClear(home, 1)))
+            if (lastPortalReady && k.isDaytime && hour < k.dayEnd - 5f && hour >= 5f && armed && archers >= ChargeArchers &&   /* coins arrive during the day (hunting): morning-only charges never had the banner price */ (recovery || FieldClear(home, -1) || FieldClear(home, 1)))
             {
                 // banner on the side of the nearest intact inner portal (each charge goes to that side's portal)
                 float bestPd = float.MaxValue; int pside = 0;
@@ -2177,6 +2177,10 @@ namespace KingdomBot
                     float pd = Mathf.Abs(po.transform.position.x - home);
                     int ps = po.transform.position.x < home ? -1 : 1;
                     if (!FieldClear(home, ps)) continue;             // enemies (e.g. boulder throwers) in front of that wall: other side
+                    // knights march ~13 units per game hour: a charge starting at h10-13 reached a portal 124 beyond the wall only at
+                    // nightfall and turned back (run with castle 5 on day 11 never destroyed a portal). Hike + ~3 h fight before dark.
+                    float march = Mathf.Max(0f, pd - Mathf.Abs(WallEdge(ps, home) - home)) / 13f;
+                    if (hour + march + 3f > k.dayEnd) { if (_chargeLateLog != day * 10 + (ps + 1)) { _chargeLateLog = day * 10 + (ps + 1); Plugin.Log("CHARGE too late d" + day + " h" + hour.ToString("0.0") + ": portal " + pd.ToString("0") + " out needs " + march.ToString("0.0") + " h march - wait for dawn"); } continue; }
                     // that side needs a payable banner and a ready knight standing there (day 9/10: the nearest portal was
                     // right, the only knight and the only payable banner left -> no charge, Tenth Day missed)
                     bool bannerOk = false; foreach (var bo in UnityEngine.Object.FindObjectsOfType<PayableBorder>()) if ((bo.transform.position.x - home) * ps > 0 && SafeCanPay(bo)) bannerOk = true;

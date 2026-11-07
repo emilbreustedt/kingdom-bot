@@ -955,6 +955,8 @@ namespace KingdomBot
                     sb.Append(" | out:"); foreach (var kv in _ledgerOut) sb.Append(" " + kv.Key + "=" + kv.Value);
                     Plugin.Log(sb.ToString());
                 }
+                try { var pl = GameState.Player; if (pl != null && pl._steed != null) Plugin.Log("STEED eatDelay=" + pl._steed.eatDelay + " eatDuration=" + pl._steed.eatDuration + " wellFed=" + pl._steed.wellFedDuration + " runRate=" + pl._steed.runStaminaRate + " standRate=" + pl._steed.standStaminaRate + " walkRate=" + pl._steed.walkStaminaRate + " fedTimer=" + pl._wellFedTimer + " ground=" + pl._groundType); } catch (System.Exception e) { Plugin.Log("STEED log: " + e.Message); }
+                { var st = new System.Text.StringBuilder("STATUES:"); foreach (var su in UnityEngine.Object.FindObjectsOfType<Statue>()) st.Append(" " + su.name.Replace("(Clone)", "") + " x" + su.transform.position.x.ToString("0") + " $" + su.price); Plugin.Log(st.ToString()); }
                 { var cs = new System.Text.StringBuilder("CHESTS day " + d + ":"); foreach (var ch in AllChests()) cs.Append(" x" + ch.transform.position.x.ToString("0") + "=" + ch.coins + (ch.gameObject.activeInHierarchy ? "" : "(inactive)")); Plugin.Log(cs.ToString()); }
                 _ledgerIn.Clear(); _ledgerOut.Clear(); _ledgerDay = d; _ledgerLast = c; return;
             }

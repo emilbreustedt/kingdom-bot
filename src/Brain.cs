@@ -913,7 +913,7 @@ namespace KingdomBot
         // coin ledger for First Day Army: every purse change with the action that was running
         public bool Army1Herd = true;
         public bool Army1Merchant = true;   // tested: refills a RANDOM shop - the hammer shop turned all recruits into builders (0 archers)
-        float _hbNext;
+        float _hbNext, _begDiagAt;
         public float SlowUntil;   // unscaled time: Plugin caps the game speed until then
         bool _merLogged, _merDone; float _merPaidAt = -1f; int _merHammers0; Chest _traceChest; float _traceUntil, _traceNext;
         int _ledgerLast = -1, _ledgerDay = -1; System.Collections.Generic.Dictionary<string, int> _ledgerIn = new System.Collections.Generic.Dictionary<string, int>(), _ledgerOut = new System.Collections.Generic.Dictionary<string, int>();
@@ -1143,6 +1143,16 @@ namespace KingdomBot
                     Push("goto " + F(pick.transform.position.x) + " 1 " + F(8f + pd * 0.5f)); Push("wait 1");
                     return;
                 }
+            }
+            if (!feast && coins >= 1 && Time.time >= _begDiagAt)
+            {
+                _begDiagAt = Time.time + 10f; var sb = new System.Text.StringBuilder("BEGGAR DIAG h" + GameState.Hour.ToString("0.0") + " d" + GameState.Day + " c" + coins + " peasants " + peasants + " archers " + archersMade + " target " + target + ":");
+                foreach (var bg in UnityEngine.Object.FindObjectsOfType<Beggar>())
+                {
+                    float bx = bg.transform.position.x; bool np = false; foreach (var po in UnityEngine.Object.FindObjectsOfType<Portal>()) if (Mathf.Abs(po.transform.position.x - bx) < 25f) np = true;
+                    sb.Append(" " + (bx - home).ToString("0") + (OnCooldown(bg.GetInstanceID()) ? "C" : "") + (np ? "P" : "") + (TooLateFor(bx, home) ? "L" : ""));
+                }
+                Plugin.Log(sb.ToString());
             }
             Status = (feast ? "Feast: waiting (deer " + (am != null ? am.counters[4] : -1) + ", " : "army1: waiting (") + archersMade + " archers, " + coins + " coins)";
             if (Mathf.Abs(px - home) > 3f) Push("walkto " + F(home) + " 1 6"); else Push("wait 1");

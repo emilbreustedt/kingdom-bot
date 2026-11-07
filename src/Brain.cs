@@ -914,7 +914,7 @@ namespace KingdomBot
             // whole forest (deer respawn near camps). Two builders, then the outermost free wall spot per side within 100.
             if (feast && GameState.Day >= 1 && k.isDaytime && GameState.Hour < k.dayEnd - 5f && FeastWallStep(payables, home, px, coins)) return;
             // feast: herding has priority once a small army exists (guide: herd deer towards the archers)
-            if (feast && am != null && am.counters[3] >= 4 && FeastStep()) return;
+            if (feast && am != null && am.counters[3] >= 4 && am.counters[1] >= 3 && FeastStep()) return;   // forum: build up on days 1-3 (walls, recruits), herd hard on day 4
             // 3. coins & chests close by (far ones only when coins are needed - see below)
             foreach (var ch in AllChests())
             {

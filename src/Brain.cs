@@ -209,7 +209,21 @@ namespace KingdomBot
                 Status = "Skip intro"; Push("wait 1"); return;
             }
             if ((int)game.gameState != 2) { Status = "waiting (" + game.gameState + ")"; Push("wait 1"); return; }
-            if (!p.hasCrown) { Status = "Crown lost!"; Push("wait 1"); return; }
+            if (!p.hasCrown)
+            {
+                // the crown can lie on the ground (day 22: the game went on for days without it) -> fetch it
+                Transform best = null; float bd = 1e6f; var sb = new System.Text.StringBuilder();
+                foreach (var t in UnityEngine.Object.FindObjectsOfType<Transform>())
+                {
+                    if (t.name.IndexOf("rown", System.StringComparison.OrdinalIgnoreCase) < 0 || t.IsChildOf(p.transform) || t.GetComponent<RectTransform>() != null) continue;
+                    if (_crownLogAt < Time.time) sb.Append(" " + t.name + "@" + t.position.x.ToString("0") + "/" + t.position.y.ToString("0"));
+                    float d = Mathf.Abs(t.position.x - GameState.PX);
+                    if (d < bd) { bd = d; best = t; }
+                }
+                if (_crownLogAt < Time.time) { _crownLogAt = Time.time + 60f; Plugin.Log("CROWN candidates:" + sb); }
+                if (best != null) { Status = "Crown lost: fetch it at x" + best.position.x.ToString("0"); Push("goto " + F(best.position.x) + " 0.3 20"); return; }
+                Status = "Crown lost!"; Push("wait 1"); return;
+            }
 
             var k = Managers.kingdom;
             int day = GameState.Day;
@@ -648,6 +662,7 @@ namespace KingdomBot
             sb.Append(" enemies=" + en);
             Plugin.Log(sb.ToString());
         }
+        float _crownLogAt;
         int _knightDiagDay = -1, _knightMoveWarned;
         int _rerolls; bool _mapChecked;
         public float Army1Range = 130f;
@@ -1145,12 +1160,16 @@ namespace KingdomBot
             var en = NearestEnemy(px);
             bool quiet = en == null || Mathf.Abs(en.transform.position.x - px) > 40f;
             // 1. fast horse: days 0-3, within 90 of the camp, 3 coins + purse
-            if (day <= 3 && quiet && !OnCooldown(777001))
+            bool ridingFast = false; foreach (var st0 in p.GetComponentsInChildren<Steed>()) if (st0.name.Contains("Fast")) ridingFast = true;
+            if (!ridingFast && quiet && !OnCooldown(777001))
             {
                 foreach (var st in UnityEngine.Object.FindObjectsOfType<Steed>())
                 {
                     if (!st.name.Contains("Fast") || st.transform.parent == p.transform) continue;
-                    if (Mathf.Abs(st.transform.position.x - home) > 90f || !SafeCanPay(st) || GameState.Coins < st.price + 2) continue;
+                    // any day (user: it rode past the black horse without buying it): early near the camp, later whenever we pass close by
+                    float sx = st.transform.position.x;
+                    bool near = (day <= 3 && Mathf.Abs(sx - home) <= 90f) || Mathf.Abs(sx - px) <= 30f;
+                    if (!near || !SafeCanPay(st) || GameState.Coins < st.price + (day >= 10 ? 6 : 2)) continue;
                     Cool(777001, 60f);
                     Status = "Fast horse (" + st.price + ")";
                     PayAt(st); return true;

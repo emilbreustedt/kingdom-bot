@@ -1741,7 +1741,9 @@ namespace KingdomBot
                 n++;
             }
             // several knights with escorts break through small trolls; a dead portal next to the wall keeps spawning (day 22-25: clearL never true)
-            return n <= (UnityEngine.Object.FindObjectsOfType<Knight>().Length >= 2 ? 10 : 4);
+            int cap = UnityEngine.Object.FindObjectsOfType<Knight>().Length >= 2 ? 10 : 4;
+            if (Managers.kingdom.isDaytime && GameState.Hour < 7.5f) cap *= 2;   // dawn: the night's enemies are retreating to their portals (clearL/R false at h5, true at h9 = too late to march)
+            return n <= cap;
         }   // escorts (4 per knight) + enough defenders at home   // after day 40 no "Safe in X" is reachable
         public int BurstCoins = 50;   // castle 4 (8) + castle 5 (9) + 2 shields (12) + 4 banners (16) + purse; castle 5 earns ~1 coin/day, every charge (4) must come from the bank
         /// <summary>Bank needed before castle 4: the full bank early, a smaller one from day 24 (late income ~= upkeep, the bank plateaus ~40).</summary>

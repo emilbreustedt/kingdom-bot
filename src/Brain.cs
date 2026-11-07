@@ -1533,7 +1533,7 @@ namespace KingdomBot
             }
             // statues (guide): archer statue buffs all archers, worker statue buffs the walls; a charge lasts some days,
             // 5-6 coins per level. Archer statue before charges, worker statue for the final assault phase.
-            if (assault && morning && hour >= 7f && archers >= MinChargeArchers && !_armyFirst && (UnityEngine.Object.FindObjectsOfType<Knight>().Length > 0 || day >= 18))
+            if (assault && morning && hour >= 7f && archers >= MinChargeArchers && !_armyFirst && (UnityEngine.Object.FindObjectsOfType<Knight>().Length > 0 || (am != null && am.flags != null && am.flags[7])))   /* day>=18 without knights ate the castle-5 savings (5 coins/day) */
             {
                 int innerAlive = 0; foreach (var po in UnityEngine.Object.FindObjectsOfType<Portal>()) { var dm = po.GetComponent<Damageable>(); if (!po.outerSpawner && (dm == null || dm.hitPoints > 0)) innerAlive++; }
                 bool lateGame = innerAlive <= 1 || (am != null && am.flags != null && am.flags[7]);   // worker statue (walls) for the last portal + final wave

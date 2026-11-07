@@ -1056,6 +1056,7 @@ namespace KingdomBot
             if (cnt[s2] == 0) { FeastWhy("no deer outside walls within 110 (L " + cnt[0] + " R " + cnt[1] + ", walls " + l.ToString("0") + "/" + r.ToString("0") + ", total deer objects " + Resources.FindObjectsOfTypeAll<Deer>().Length + ")"); return false; }
             int side = s2 == 0 ? -1 : 1;
             float behind = far[s2] + side * 8f;
+            if (_herdOut && TooLateFor(behind, home)) { FeastWhy("herd target x" + behind.ToString("0") + " too far for today"); return false; }   // day-2 game over 137 out at midnight
             if (Time.time >= _herdTraceAt)
             {
                 _herdTraceAt = Time.time + 10f;

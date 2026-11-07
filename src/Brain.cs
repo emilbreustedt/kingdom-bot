@@ -258,6 +258,7 @@ namespace KingdomBot
                 FinalWaveDiag();
                 if (SweepNearCoins()) return;
                 if (NightTowers()) return;
+                if (OverflowSpend()) return;
                 try { if (Graze()) return; } catch (System.Exception e) { if (Time.time >= _grazeErrAt) { _grazeErrAt = Time.time + 60f; Plugin.Log("Graze error (skipped): " + e.Message); } }
                 // castle chest: refilled every morning (5-7 coins at castle 0-3). The saving/assault steps below always returned
                 // before LegacyBrain's chest step, so it was emptied once per run (ledger: ~5 coins/day income on days 5-8).
@@ -1911,6 +1912,24 @@ namespace KingdomBot
             Plugin.Log("FINAL WAVE d" + GameState.Day + " h" + GameState.Hour.ToString("0.0") + (Managers.kingdom.isDaytime ? " day" : " night") + ": attacking " + att + "/" + all + " x" + minX.ToString("0") + ".." + maxX.ToString("0") + " outerPortals " + outer + " |" + sb);
         }
         float _fwDiagAt;
+
+        /// <summary>Purse near the bag limit (~39-43 spills, half into the water): spend on what the assault needs anyway -
+        /// castle upgrades first (castle 5 is the bottleneck), then wall upgrades, then towers. Day 3 sat at 37-43 coins all day.</summary>
+        bool OverflowSpend()
+        {
+            int coins = GameState.Coins;
+            if (coins < PurseCap + 2 || OnCooldown(777500)) return false;
+            var k = Managers.kingdom; if (!k.isDaytime || GameState.Hour > k.dayEnd - 2f) return false;
+            float home = k.campfirePosition, px = GameState.PX;
+            var payables = UnityEngine.Object.FindObjectsOfType<Payable>();
+            Payable pick = Find(payables, x => x is PayableUpgrade && x.name.StartsWith("Castle") && !x.name.StartsWith("Castle0") && SafeCanPay(x) && x.price <= coins - 12, home);
+            string what = "castle";
+            if (pick == null) { pick = Find(payables, x => x is PayableUpgrade && IsBuiltWall(x) && SafeCanPay(x) && x.price <= coins - 12, home); what = "wall"; }
+            if (pick == null) { pick = Find(payables, x => x is PayableUpgrade && x.name.StartsWith("Tower") && SafeCanPay(x) && x.price <= coins - 12 && Mathf.Abs(x.transform.position.x - home) < Mathf.Abs(WallEdge(x.transform.position.x < home ? -1 : 1, home) - home) - 2f, home); what = "tower"; }
+            if (pick == null) { Cool(777500, 20f); return false; }
+            Status = "Purse full (" + coins + "): " + what + " " + pick.name.Replace("(Clone)", "") + " (" + pick.price + ")"; Plugin.Log(Status + " d" + GameState.Day);
+            PayAt(pick); return true;
+        }
 
         /// <summary>User suggestion: towers inside the walls can be paid at night (the king only waited at the fire), which frees
         /// the day for collecting. Same tower targets as by day; the castle/shield reserve is never touched.</summary>

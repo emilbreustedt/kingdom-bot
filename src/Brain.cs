@@ -1800,6 +1800,27 @@ namespace KingdomBot
         }
         int _mainSide;
 
+        /// <summary>Side of the next charges: the main side while it still has a living inner portal, then the other one.
+        /// Shields are bought on that side so 2 knights stand together (user: shields were bought on both sides).</summary>
+        int ChargeSide()
+        {
+            int ms = MainSide(); float home = Managers.kingdom.campfirePosition;
+            foreach (var po in UnityEngine.Object.FindObjectsOfType<Portal>())
+            {
+                var dm = po.GetComponent<Damageable>();
+                if (po.outerSpawner || (dm != null && dm.hitPoints <= 0)) continue;
+                if ((po.transform.position.x - home) * ms > 0) return ms;
+            }
+            return -ms;
+        }
+        /// <summary>Shield shop on the charge side (falls back to any).</summary>
+        Payable ShieldShop(Payable[] payables, float home, int maxPrice)
+        {
+            int cs = ChargeSide();
+            var sh = Find(payables, x => x is PayableShield && SafeCanPay(x) && x.price <= maxPrice && (x.transform.position.x - home) * cs > 0, home);
+            return sh ?? Find(payables, x => x is PayableShield && SafeCanPay(x) && x.price <= maxPrice, home);
+        }
+
         Payable FarmTarget(Payable[] payables, float home)
         {
             bool scytheShop = false;
@@ -1895,7 +1916,7 @@ namespace KingdomBot
             }
             else if (UnityEngine.Object.FindObjectsOfType<Knight>().Length + ShieldsWaiting() < 4)   /* guide: 2 knights on both sides by day 15 */   // with 2 knights the charges come first; more shields only from spare coins
             {
-                var sh = Find(payables, x => x is PayableShield && SafeCanPay(x), home);
+                var sh = ShieldShop(payables, home, 999);
                 if (sh != null) { item = sh; what = "shield"; }
             }
             if (target == 0 && item != null) target = item.price + 3;
@@ -1963,7 +1984,7 @@ namespace KingdomBot
             string what = "castle";
             // no wall upgrades here: Wall3 (price 9) drained 25 coins at the outer wall on day 22 and left the king broke at night
             if (pick == null) { pick = Find(payables, x => x is PayableUpgrade && x.name.StartsWith("Tower") && SafeCanPay(x) && x.price <= coins - 12 && Mathf.Abs(x.transform.position.x - home) < Mathf.Abs(WallEdge(x.transform.position.x < home ? -1 : 1, home) - home) - 2f, home); what = "tower"; }
-            if (pick == null) { pick = Find(payables, x => x is PayableShield && SafeCanPay(x) && x.price <= coins - 12, home); what = "shield"; }
+            if (pick == null) { pick = ShieldShop(payables, home, coins - 12); what = "shield"; }
             // no statues here: the trip to a statue 89 out cost 20 coins in enemy hits before paying (day 21)
             if (pick == null) { Cool(777500, 20f); return false; }
             Status = "Purse full (" + coins + "): " + what + " " + pick.name.Replace("(Clone)", "") + " (" + pick.price + ")"; Plugin.Log(Status + " d" + GameState.Day);
@@ -1986,7 +2007,7 @@ namespace KingdomBot
             float l = WallEdge(-1, home), r = WallEdge(1, home);
             Payable pick = null; string what = null;
             if (UnityEngine.Object.FindObjectsOfType<Knight>().Length + ShieldsWaiting() < 4)
-            { pick = Find(payables, x => x is PayableShield && SafeCanPay(x) && x.price <= coins - 12 && x.transform.position.x > l && x.transform.position.x < r, home); what = "shield"; }
+            { pick = ShieldShop(payables, home, coins - 12); what = "shield"; }
             if (pick == null) { var sc = ScytheFirst(payables, home); if (sc != null && sc.price <= coins - 12) { pick = sc; what = "scythe"; } }
             if (pick == null && bow != null && SafeCanPay(bow) && bow.price <= coins - 12 && UnityEngine.Object.FindObjectsOfType<Archer>().Length < PreCastleArcherCap(30)) { pick = bow; what = "bow"; }
             if (pick == null) { Cool(777600, 10f); return false; }
@@ -2338,7 +2359,7 @@ namespace KingdomBot
                 if (border != null && budget >= border.price) {   /* budget already keeps the 4-coin crown guard */ Status = "Assault: knights CHARGE (" + border.name.Replace("(Clone)", "") + ")"; Cool(border.GetInstanceID(), 60f); _chargeTrackUntil = Time.time + 24f * 10f; _chargePaidAt = Time.time; _chargeTrackNext = 0f; PayAt(border); return true; }
             }
             // shields -> knights
-            var shield = Find(payables, x => x is PayableShield && SafeCanPay(x), home);
+            var shield = ShieldShop(payables, home, 999);
             if (shield != null && UnityEngine.Object.FindObjectsOfType<Knight>().Length + ShieldsWaiting() < KnightGoal && budget - (UnityEngine.Object.FindObjectsOfType<Knight>().Length >= 2 ? AssaultReserve(false) : 0) >= shield.price + 3 + (UnityEngine.Object.FindObjectsOfType<Knight>().Length >= 1 ? 4 : 0)) { Status = "Assault: buy shield (" + shield.price + ")"; PayAt(shield); return true; }
             // arm the knights: coins in a knight's purse are knocked out before he loses his shield
             Knight poor = null; int poorCoins = 99;

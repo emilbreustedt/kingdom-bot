@@ -244,11 +244,12 @@ namespace KingdomBot
             int day = GameState.Day;
             UpdatePhase();
             CheckRunEnd();
+            // before the mode dispatch: the boot phase (days 0-2) always returned first, so the map check never ran in main runs
+            if (RunType == "main" && GameState.Player != null && (int)Managers.game.gameState == 2 && GameState.Day == 0 && MainMapCheck()) return;
             if (Mode == "pacifist") { ThinkPacifist(); return; }
             if (Mode == "army1") { ThinkArmy1(false); return; }   // black horse tested: 3 coins missing elsewhere, no gain
             if (Mode == "boot") { if (GameState.Player != null && (int)Managers.game.gameState == 2 && HorseStep()) return; ThinkArmy1(false, true); return; }
             if (Mode == "feast") { ThinkArmy1(true); return; }   // feast: maximum archers early - they hunt deer on their own in safe daytime
-            if (RunType == "main" && GameState.Player != null && (int)Managers.game.gameState == 2 && GameState.Day == 0 && MainMapCheck()) return;
             if ((Mode == "survive" || Mode == "master") && GameState.Player != null && (int)Managers.game.gameState == 2 && HorseStep()) return;
             if (Mode == "master" && GameState.Player != null && (int)Managers.game.gameState == 2)
             {
@@ -1535,7 +1536,13 @@ namespace KingdomBot
             var payables = UnityEngine.Object.FindObjectsOfType<Payable>();
             // merchant: one payment = a whole shop restocked for free (forum tip: pay him on every visit)
             var merchant = Find(payables, x => x is Merchant && SafeCanPay(x) && Mathf.Abs(x.transform.position.x - home) < 60f, px);
-            if (merchant != null && UseMerchant && coins >= merchant.price + 2 && UnityEngine.Object.FindObjectsOfType<Worker>().Length <= 3) { Status = "Economy: pay the merchant (" + merchant.price + ")"; PayAt(merchant); return true; }
+            if (merchant != null && UseMerchant && coins >= merchant.price + 2 && UnityEngine.Object.FindObjectsOfType<Worker>().Length <= 3) {
+                // he keeps walking and only halts once the king is close (game: ShouldHalt = player in his scanner range).
+                // Paying at his old position left the king standing around (user observation): catch him first.
+                float mx = merchant.transform.position.x;
+                if (Mathf.Abs(mx - px) > 2.5f) { Status = "Economy: catch the merchant"; Push("goto " + F(mx) + " 1 8"); return true; }
+                Status = "Economy: pay the merchant (" + merchant.price + ")"; Cool(merchant.GetInstanceID(), 6f); Push("payid " + merchant.GetInstanceID() + " " + F(mx)); return true;
+            }
             PayableShop scythe = null; int onDisplay = 0;
             foreach (var py in payables) { var sh = py as PayableShop; if (sh == null) continue; onDisplay += sh.GetItemCount(); if (sh.name.Contains("Scythe")) scythe = sh; }
             if (scythe == null) return false;                               // castle level 2+ needed

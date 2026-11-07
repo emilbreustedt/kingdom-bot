@@ -822,7 +822,7 @@ namespace KingdomBot
                     float d = (p.transform.position.x - home) * side;
                     if (d < camp + 3f || d > 120f) continue;
                     if (!p.name.StartsWith("Wall0")) { built = true; continue; }   // a built wall already stands out here
-                    if (!SafeCanPay(p) || OnCooldown(p.GetInstanceID()) || coins < p.price + 1 || TooLateFor(p.transform.position.x, home)) continue;
+                    if ((p.isActiveAndEnabled && !SafeCanPay(p)) || OnCooldown(p.GetInstanceID()) || coins < p.price + 1 || TooLateFor(p.transform.position.x, home)) continue;   // far spots are deactivated (culling) until the king gets there
                     if (d > bestD) { bestD = d; best = p; }
                 }
                 if (built) { FeastWhy("wall side " + side + ": a built wall already stands beyond the camp"); continue; }
@@ -833,7 +833,7 @@ namespace KingdomBot
                     FeastWhy("wall side " + side + ": no spot (camp " + camp.ToString("0") + ", coins " + coins + ", workers " + workers + "):" + sb);
                     continue;
                 }
-                Cool(best.GetInstanceID(), 60f);
+                Cool(best.GetInstanceID(), 90f);
                 Status = "Feast: forest wall " + (side < 0 ? "left" : "right") + " x" + best.transform.position.x.ToString("0");
                 PayAt(best); return true;
             }

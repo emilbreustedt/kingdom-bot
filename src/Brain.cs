@@ -943,6 +943,17 @@ namespace KingdomBot
                 Plugin.Log("army1: forest clearings 50-120 out = " + clearings);
                 if (!FirstDayFocus && clearings == 0 && _rerolls < 300 && NormalizeRunType(ConfigMode) == "auto") avail = 0;   // force a reroll
                 if (!FirstDayFocus && clearings > 0) avail = Mathf.Max(avail, 18);   // feast: the chest rule is only for First Day Army
+                if (Campaign.Missing(Campaign.FirstDay) && !Campaign.Missing(Campaign.FourthDay))
+                {
+                    // First Day Army: short camp trips and huntable deer near the camp (deer drop 2 coins each)
+                    int nearCamps = 0, nearDeer = 0;
+                    var campXs = new System.Collections.Generic.List<float>();
+                    foreach (var bg in UnityEngine.Object.FindObjectsOfType<Beggar>()) { float bx = bg.transform.position.x; if (Mathf.Abs(bx - home) < 60f && !campXs.Exists(c => Mathf.Abs(c - bx) < 10f)) campXs.Add(bx); }
+                    nearCamps = campXs.Count;
+                    foreach (var dr in Resources.FindObjectsOfTypeAll<Deer>()) if (dr != null && dr.hideFlags == HideFlags.None && dr.transform.root.gameObject.activeSelf && Mathf.Abs(dr.transform.position.x - home) < 50f) nearDeer++;
+                    Plugin.Log("army1: camps within 60 = " + nearCamps + ", deer within 50 = " + nearDeer);
+                    if ((nearCamps < 2 || nearDeer < 3) && _rerolls < 300 && NormalizeRunType(ConfigMode) == "auto") avail = 0;
+                }
                 if (avail < 18 && _rerolls < 300   /* maps have one chest per side at 100-215: 18 = ground coins + a near chest; archers add hunting coins (guide) */ && NormalizeRunType(ConfigMode) == "auto")
                 {
                     _rerolls++; _lastDaySeen = -1; _pl.Queue.Clear();

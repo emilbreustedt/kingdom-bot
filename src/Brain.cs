@@ -1318,7 +1318,8 @@ namespace KingdomBot
             // 5-6 coins per level. Archer statue before charges, worker statue for the final assault phase.
             if (assault && morning && hour >= 7f && archers >= MinChargeArchers && !_armyFirst && (UnityEngine.Object.FindObjectsOfType<Knight>().Length > 0 || day >= 18))
             {
-                bool lateGame = day >= 18 || (am != null && am.flags != null && am.flags[7]);
+                int innerAlive = 0; foreach (var po in UnityEngine.Object.FindObjectsOfType<Portal>()) { var dm = po.GetComponent<Damageable>(); if (!po.outerSpawner && (dm == null || dm.hitPoints > 0)) innerAlive++; }
+                bool lateGame = innerAlive <= 1 || (am != null && am.flags != null && am.flags[7]);   // worker statue (walls) for the last portal + final wave
                 foreach (var su in UnityEngine.Object.FindObjectsOfType<Statue>())
                 {
                     bool archerStatue = su.name.Contains("Archer");

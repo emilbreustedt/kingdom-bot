@@ -1365,6 +1365,10 @@ namespace KingdomBot
         {
             var b = Plugin.Instance != null ? Plugin.Instance.Brain : null;
             if (b == null || b.Mode != "master" || GameState.Day < 12) return 0;
+            // final wave / all portals down: nothing left to charge - every coin goes into bows and walls
+            // (day 27-36: 9 peasants idle without bows with 40 coins in the purse, final wave never beaten)
+            var amR = Managers.achievements;
+            if ((amR != null && amR.flags != null && amR.flags.Length > 7 && amR.flags[7]) || (Managers.enemies != null && Managers.enemies.finalWaveSpawned)) return 0;
             // a weak base comes first: no builders or too few archers -> the reserve must not block hammers/bows/recruits
             if (UnityEngine.Object.FindObjectsOfType<Worker>().Length < 2 || UnityEngine.Object.FindObjectsOfType<Archer>().Length < b.MinChargeArchers) return 0;
             Payable castle = null;

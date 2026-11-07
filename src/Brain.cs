@@ -1890,7 +1890,7 @@ namespace KingdomBot
             var types = new System.Collections.Generic.Dictionary<string, int>(); int att = 0, all = 0; float minX = 1e6f, maxX = -1e6f;
             foreach (var e in UnityEngine.Object.FindObjectsOfType<Enemy>())
             {
-                all++; bool a = false; try { a = e.isAttacking; } catch { }
+                all++; bool a = false; try { a = (bool)Acc.Call(e, "get_isAttacking"); } catch { }
                 if (!a) continue; att++;
                 string n = e.name.Replace("(Clone)", ""); int c; types.TryGetValue(n, out c); types[n] = c + 1;
                 minX = Mathf.Min(minX, e.transform.position.x); maxX = Mathf.Max(maxX, e.transform.position.x);

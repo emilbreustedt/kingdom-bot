@@ -1457,7 +1457,7 @@ namespace KingdomBot
                     }
                 }
             }
-            if (item != null && coins >= item.price + 4 && !tooEarly)   // keep a small purse: coins are knocked out before the crown
+            if (item != null && coins >= item.price + (day >= 10 ? 6 : 4) && !tooEarly)   // keep a small purse: coins are knocked out before the crown
             {
                 Status = "Defence: " + what + " (" + item.price + ")";
                 if (item.name.StartsWith("Mason")) { Cool(item.GetInstanceID(), 30f); Push("goto " + F(PayX(item)) + " 0.3 120"); Push("payid " + item.GetInstanceID() + " " + F(PayX(item))); Push("goto " + F(home) + " 1 40"); }
@@ -1563,7 +1563,7 @@ namespace KingdomBot
             {
                 var farm = FarmTarget(payables, home);
                 if (farm != null && !farm.name.StartsWith("Farmhouse")) farm = null;
-                if (farm != null && coins >= farm.price + 1) { Status = "Economy: build farm (" + farm.price + ")"; PayAt(farm); return true; }
+                if (farm != null && coins >= farm.price + (day >= 10 ? 6 : 1)) { Status = "Economy: build farm (" + farm.price + ")"; PayAt(farm); return true; }
                 if (!farmBuilt) return false;
             }
             int farmers = UnityEngine.Object.FindObjectsOfType<Farmer>().Length;

@@ -70,7 +70,7 @@ plays the right kind of run, restarting automatically until everything of that k
 | Run type | Phases (switch by day) | Achievements |
 |---|---|---|
 | `challenge` | days 1–2 no camp (dodge) → light the fire on day 3 → no kills / no coin on the ground until day 8 (walls only, coins handed straight to beggars) | Third Day Fire, Five Days, Eighth Day |
-| `early` | day 1: 8 archers (map reroll if too poor) → days 1–4 deer hunting → days 4–7 clearing | First Day Army, Fourth Day Feast, Cleared an Acre |
+| `early` | day 1: 8 archers (map reroll if no chest is near) → days 1–4: forest wall beyond the deer, 10th deer on day 4 | First Day Army, Fourth Day Feast, Cleared an Acre |
 | `main` | record defence + farms → stone, castle level 5, knights, border charges | Second Day Gift, Ninth Day, Day V … C, Safe in 25–40, Tenth Day, win |
 
 Old mode names still work (`master`/`survive` → main, `fire3`/`pacifist` → challenge, `army1`/`feast`/`acre` → early).
@@ -117,11 +117,23 @@ Notes from reverse engineering (Kingdom: Classic 1.x):
 
 ## Status
 
-**Kingdom: Classic** — 24/34 achievements on the author's account, most of them earned by the bot:
-Second Day Gift, Third Day Fire, Ninth Day, Cleared an Acre, Day V … Day XCV (best run: day 98).
-Portal assault works end to end (stone tech → castle level 5 → knights → border charges; portals do get destroyed),
-but the late-game economy is still too weak for *Safe in X* and *Day C*. Pacifist, First Day Army (needs ~25 coins on
-day one — maps rarely have them) and Fourth Day Feast are open.
+**Kingdom: Classic** — 31/34 achievements on the author's account, almost all earned by the bot, including
+Day C (day 100), Safe in 35/40, The Tenth Day and the Fourth Day Feast. Open: First Day Army, Safe in 25, Safe in 30.
+
+What finally worked (all verified in the game, see the git history for details):
+
+- **Early army (`boot` phase, days 0-2):** loot chests, recruit whole camps, buy bows - ~20 archers by day 10.
+- **Portal assault:** castle 5 → shields → knights; charges only on a side with a payable banner *and* a ready
+  knight; knights get re-targeted when their target portal is already dead and switch sides once their side is clear.
+  Before the last portal the bot rebuilds the army (16 archers) and keeps a small bank for the final wave.
+- **Pitfalls found:** destroyed portals only crumble after their spawn queue drains (the last one of a side gets the
+  nightly waves; ~4-7 days); big enemies throw catapult boulders back (catapults are off); never save & quit during
+  the final wave (the reload starts a new game - `deploy.ps1` and the plugin refuse it).
+- **Fourth Day Feast:** the 10th deer must fall *on* day 4. Deer only flee 2.5 units and always return to their
+  habitat, so herding them is hopeless - instead a wall is built just beyond the nearest deer (clearing trees for it if
+  needed); the archers then hunt them inside the kingdom.
+- **First Day Army:** only ~10 ground coins + one chest (8 coins, 100-215 out) exist on day one; 8 archers need ~24.
+  Template objects (`Chest` at x0 without parent, inactive pool coins) must be ignored. Still open.
 
 **Kingdom: New Lands** (`newlands/`) — the Classic strategy runs via a small compatibility layer (`Compat.cs`);
 first achievements earned: Day V/X/XV, Five Days, Ninth Day, Second Day Gift. Boat escape (wreck → wharf → beach,

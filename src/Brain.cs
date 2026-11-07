@@ -1001,7 +1001,7 @@ namespace KingdomBot
                 PayableShop hm2 = null; foreach (var py in payables) { var sh = py as PayableShop; if (sh != null && sh.name.Contains("Hammer")) hm2 = sh; }
                 if (hm2 != null && hm2.GetItemCount() == 0 && SafeCanPay(hm2) && coins >= hm2.price) { Status = "Feast: buy hammer (forest walls)"; PayAt(hm2); return; }
             }
-            if (peasants > onDisplay && bow != null && SafeCanPay(bow) && coins >= bow.price && (!routeMode || nearShop || nextBeggar == null)) { Status = "army1: buy bow (" + archersMade + "/8)"; PayAt(bow); return; }
+            if (peasants > onDisplay && bow != null && SafeCanPay(bow) && coins >= bow.price && (!routeMode || nextBeggar == null || GameState.Hour >= k.dayEnd - 3f || !k.isDaytime || (nearShop && coins >= bow.price + 2))) {   /* day counter 0 lasts until dawn: recruit by day, arm them in the evening/night with the archers' coins */ Status = "army1: buy bow (" + archersMade + "/8)"; PayAt(bow); return; }
             if (archersMade + peasants < target && coins >= 1)   /* guide: recruit all four camps first (1 coin each), buy bows later from archer income */   /* a bow on display needs a peasant to carry it - it is not an archer yet (7 + 1 bow waited all evening) */
             {
                 var b = NearestBeggar(px, home - Army1Range, home + Army1Range);

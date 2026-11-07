@@ -1697,7 +1697,7 @@ namespace KingdomBot
             }
             return false;
         }
-        public float ForwardGap = 9999f;   // forward walls towards living portals made runs worse (archers spread thin, coins spent); only used for dead, uncrumbled portals
+        public float ForwardGap = 130f;   // only where a charge cannot finish before dusk (gap > ~130 at ~13 u/h); 9999 earlier: forward walls towards living portals made runs worse (archers spread thin, coins spent); only used for dead, uncrumbled portals
 
         /// <summary>The game's PortalsDestroyed flag (all inner portals gone): the run continues to the final wave / win.</summary>
         /// <summary>Largest X of a still missing "Safe in X" (a win on day d unlocks every X >= d); 0 = all done.</summary>

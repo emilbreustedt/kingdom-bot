@@ -1937,7 +1937,7 @@ namespace KingdomBot
             // no wall upgrades here: Wall3 (price 9) drained 25 coins at the outer wall on day 22 and left the king broke at night
             if (pick == null) { pick = Find(payables, x => x is PayableUpgrade && x.name.StartsWith("Tower") && SafeCanPay(x) && x.price <= coins - 12 && Mathf.Abs(x.transform.position.x - home) < Mathf.Abs(WallEdge(x.transform.position.x < home ? -1 : 1, home) - home) - 2f, home); what = "tower"; }
             if (pick == null) { pick = Find(payables, x => x is PayableShield && SafeCanPay(x) && x.price <= coins - 12, home); what = "shield"; }
-            if (pick == null) { pick = Find(payables, x => x is Statue && SafeCanPay(x) && x.price <= coins - 12 && Mathf.Abs(x.transform.position.x - home) < 120f && !OnCooldown(x.GetInstanceID()), home); what = "statue"; if (pick != null) Cool(pick.GetInstanceID(), 120f); }
+            // no statues here: the trip to a statue 89 out cost 20 coins in enemy hits before paying (day 21)
             if (pick == null) { Cool(777500, 20f); return false; }
             Status = "Purse full (" + coins + "): " + what + " " + pick.name.Replace("(Clone)", "") + " (" + pick.price + ")"; Plugin.Log(Status + " d" + GameState.Day);
             PayAt(pick); return true;

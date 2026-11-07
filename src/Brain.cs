@@ -597,12 +597,13 @@ namespace KingdomBot
             if (_mainMapChecked || NormalizeRunType(ConfigMode) == "main" && false) return false;
             _mainMapChecked = true;
             var k = Managers.kingdom; float home = k.campfirePosition;
-            float left = 1e6f, right = 1e6f; int camps = 0;
+            float left = 1e6f, right = 1e6f, farthest = 0f; int camps = 0;
             foreach (var po in UnityEngine.Object.FindObjectsOfType<Portal>())
             {
                 if (po.outerSpawner) continue;
                 float d = po.transform.position.x - home;
                 if (d < 0) left = Mathf.Min(left, -d); else right = Mathf.Min(right, d);
+                farthest = Mathf.Max(farthest, Mathf.Abs(d));
             }
             foreach (var bc in UnityEngine.Object.FindObjectsOfType<BeggarCamp>()) if (Mathf.Abs(bc.transform.position.x - home) < 90f) camps++;
             // stone tech (mason shrine) is needed for castle level 5 = knights: the shrine must be reachable, i.e. closer
@@ -615,7 +616,8 @@ namespace KingdomBot
                 float portalD = d < 0 ? left : right;
                 if (Mathf.Abs(d) < shrineD) { shrineD = Mathf.Abs(d); shrineOk = Mathf.Abs(d) <= 130f && Mathf.Abs(d) < portalD - 25f; }
             }
-            bool good = left >= MinPortalDistance && right >= MinPortalDistance && camps >= 3 && shrineOk;
+            bool good = left >= MinPortalDistance && right >= MinPortalDistance && camps >= 3 && shrineOk && farthest <= MaxPortalDistance;   /* portals 170/214 out: knights need 12-15 h march - no charge fits into one day */
+            Plugin.Log("main map check: farthest inner portal " + farthest.ToString("0") + " (max " + MaxPortalDistance + ")");
             Plugin.Log(string.Format("main map check: nearest portals L {0:0} / R {1:0}, camps within 90: {2}, mason shrine {3:0} ({4}) -> {5} (reroll {6})", left, right, camps, shrineD, shrineOk ? "ok" : "unreachable", good ? "keep" : "reroll", _mainRerolls));
             if (good || _mainRerolls >= 30) { _mainRerolls = 0; return false; }
             _mainRerolls++; _lastDaySeen = -1; _pl.Queue.Clear();
@@ -1735,7 +1737,8 @@ namespace KingdomBot
         /// <summary>Bank needed before castle 4: the full bank early, a smaller one from day 24 (late income ~= upkeep, the bank plateaus ~40).</summary>
         public int BankTarget() { int d = GameState.Day; if (TenthRush) return 9 + 6 + 4 + 3; return Mathf.Min(PurseCap, d >= 24 ? 38 : 40); }
         /// <summary>The coin bag overflows at ~39 coins and every spilled coin falls into the water with p=0.5 (measured: 10 coins fell by day 13). Never save above this.</summary>
-        public int PurseCap = 34;   /* castle 4 (8) + castle 5 (9) + 2 shields (12) + banner (4) + purse; 60 delayed the knights by days */   // the assault (3 shields + 5-8 charges) is paid from the bank: castle 5 earns ~1 coin/day
+        public int PurseCap = 34;
+        public float MaxPortalDistance = 155f;   /* castle 4 (8) + castle 5 (9) + 2 shields (12) + banner (4) + purse; 60 delayed the knights by days */   // the assault (3 shields + 5-8 charges) is paid from the bank: castle 5 earns ~1 coin/day
 
         /// <summary>Coins the record strategy must leave alone while the assault saves for castle 4/5 and shields.</summary>
         public static int ShieldsWaitingPublic() { return ShieldsWaiting(); }

@@ -430,7 +430,7 @@ namespace KingdomBot
                 else if (workers < 1 && hammerShop != null) { shop = hammerShop; what = "hammer"; }
                 else if (archers < 2 && bowShop != null) { shop = bowShop; what = "bow"; }
                 else if (workers < WorkerTarget(day, archers, acrePhase) && hammerShop != null) { shop = hammerShop; what = "hammer"; }
-                else if (scytheShop != null && farmExists && farmers < 3) { shop = scytheShop; what = "scythe"; }
+                else if (scytheShop != null && farmExists && farmers < 6) { shop = scytheShop; what = "scythe"; }
                 else if (archers < archerCap && bowShop != null) { shop = bowShop; what = "bow"; }
                 if (shop != null && SafeCanPay(shop) && budget >= shop.price)
                 {
@@ -967,6 +967,7 @@ namespace KingdomBot
                 }
                 try { var pl = GameState.Player; var sd = pl != null ? Acc.Get<Steed>(pl, "_steed") : null; if (sd != null) Plugin.Log("STEED eatDelay=" + Acc.Get<float>(sd, "eatDelay") + " eatDuration=" + Acc.Get<float>(sd, "eatDuration") + " wellFed=" + Acc.Get<float>(sd, "wellFedDuration") + " runRate=" + Acc.Get<float>(sd, "runStaminaRate") + " standRate=" + Acc.Get<float>(sd, "standStaminaRate") + " fedTimer=" + Acc.Get<float>(pl, "_wellFedTimer") + " ground=" + Acc.GetInt(pl, "_groundType")); } catch (System.Exception e) { Plugin.Log("STEED log: " + e.Message); }
                 { var st = new System.Text.StringBuilder("STATUES:"); foreach (var su in UnityEngine.Object.FindObjectsOfType<Statue>()) st.Append(" " + su.name.Replace("(Clone)", "") + " x" + su.transform.position.x.ToString("0") + " $" + su.price); Plugin.Log(st.ToString()); }
+                try { float hm0 = Managers.kingdom.campfirePosition; var fs = new System.Text.StringBuilder("FARM day " + d + ": farmers " + UnityEngine.Object.FindObjectsOfType<Farmer>().Length + " walls " + WallEdge(-1, hm0).ToString("0") + "/" + WallEdge(1, hm0).ToString("0") + " exposed " + FarmsExposed(hm0) + " |"); foreach (var fh in UnityEngine.Object.FindObjectsOfType<Farmhouse>()) if (Mathf.Abs(fh.transform.position.x - hm0) < 80f) fs.Append(" x" + fh.transform.position.x.ToString("0") + " L" + fh.level); Plugin.Log(fs.ToString()); } catch { }
                 { var cs = new System.Text.StringBuilder("CHESTS day " + d + ":"); foreach (var ch in AllChests()) cs.Append(" x" + ch.transform.position.x.ToString("0") + "=" + ch.coins + (ch.gameObject.activeInHierarchy ? "" : "(inactive)")); Plugin.Log(cs.ToString()); }
                 _ledgerIn.Clear(); _ledgerOut.Clear(); _ledgerDay = d; _ledgerLast = c; return;
             }
@@ -1391,7 +1392,7 @@ namespace KingdomBot
             // 0. farms = the only income that scales; they come first from day 6
             if (UseFarms && day >= 5 && UnityEngine.Object.FindObjectsOfType<Archer>().Length >= 10) { var farm = FarmTarget(payables, home); if (farm != null) { item = farm; what = farm.name.StartsWith("Tree") ? "farmland (cut tree)" : "farm"; } }
             // 0b. a farm outside the walls loses its farmers every night: next wall goes up beyond the farm
-            if (false && UseFarms && item == null) { var fw = FarmWall(payables, home); if (fw != null && fw.name.StartsWith("Tree") && coins >= fw.price + 4) _farmWallTrees++;
+            if (UseFarms && item == null) { var fw = FarmWall(payables, home); if (fw != null && fw.name.StartsWith("Tree") && coins >= fw.price + 4) _farmWallTrees++;
             if (fw != null) { item = fw; what = (fw.name.StartsWith("Tree") ? "farm wall (cut tree" : "wall beyond the farm (") + " @" + F(fw.transform.position.x) + " edges " + F(WallEdge(-1, home)) + "/" + F(WallEdge(1, home)) + ")"; } }
             // 1. stone tech first (wall levels 3+ need it)
             if (item == null && Managers.techUpgrades != null && !Managers.techUpgrades.stoneBuilding)
@@ -1793,7 +1794,7 @@ namespace KingdomBot
             // no forest clearing for a farm (that cost the army a lot in the first farm test)
             float lw = WallEdge(-1, home), rw = WallEdge(1, home);
             var farm = Find(payables, x => x is PayableUpgrade && x.name.StartsWith("Farmhouse") && SafeCanPay(x)
-                                           && x.transform.position.x > lw + 3f && x.transform.position.x < rw - 3f, home);   /* only inside the walls: a farm 20 in front stayed exposed (farm wall never built), max 1 farmer, no late income */
+                                           && Mathf.Abs(x.transform.position.x - home) < 45f, home);   /* guide: farm close to the castle, then the wall beyond it (FarmWall) */   /* only inside the walls: a farm 20 in front stayed exposed (farm wall never built), max 1 farmer, no late income */
             if (farm != null) return farm;
             if (!FarmClearTrees) return null;
             // farmhouse spots only become payable inside the buildable (cleared) land: cut the trees between the camp

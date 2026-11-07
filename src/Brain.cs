@@ -2116,7 +2116,7 @@ namespace KingdomBot
             if (Time.time >= _farmDiagAt) { _farmDiagAt = Time.time + 60f; Plugin.Log("FARM DIAG farms " + farms + " farmers " + farmers + " exposed " + FarmsExposed(home) + " -> scythe first"); }
             return sc;
         }
-        float _farmDiagAt, _grazeErrAt; int _chargeLateLog, _chargeSkipLog;
+        float _farmDiagAt, _grazeErrAt; int _chargeLateLog, _chargeSkipLog, _fwDiagDay, _fwGateDay;
 
         /// <summary>User observation: by day the archers hunt OUTSIDE the walls and carry the coins - they hand them over only when
         /// the king passes by. Saving used to patrol inside the walls only. Ride out to them (and pick up coins out there) when it is safe.</summary>
@@ -2254,6 +2254,7 @@ namespace KingdomBot
 
             // forward launch point (forum tip): knights die on the long way to far portals -> move the outer wall (and
             // with it the banner) towards the nearest intact portal on a side once the gap is large
+            if (assault && hour >= 12f && _fwGateDay != day && UnityEngine.Object.FindObjectsOfType<Knight>().Length >= 1) { _fwGateDay = day; Plugin.Log("FORWARD GATE d" + day + " h" + hour.ToString("0.0") + ": workers " + UnityEngine.Object.FindObjectsOfType<Worker>().Length + " finalWave " + finalWave + " dayEnd " + k.dayEnd.ToString("0.0")); }
             if (assault && !finalWave && (UnityEngine.Object.FindObjectsOfType<Knight>().Length >= 1 || InnerPortalsDead()) && UnityEngine.Object.FindObjectsOfType<Worker>().Length >= 2   /* forward walls from day 7 (guide) left thin walls far out: ~60 archer hits there at dusk, castle fell on day 24 */ && hour >= 12f && hour < k.dayEnd - 5f)   // afternoons: mornings are for charges
             {
                 for (int side = -1; side <= 1; side += 2)
@@ -2284,7 +2285,8 @@ namespace KingdomBot
                         if (p is PayableUpgrade && p.name.StartsWith("Wall") && !IsBuiltWall(p) && r < sd) { sd = r; spot = p; }
                         else if (p.name.StartsWith("Tree") && r < td) { td = r; tree = p; }
                     }
-                    var pick = spot ?? (portalRel - outerRel < 200f ? tree : null);   /* portal 182 out (gap ~144) was never reachable: march 12.8 h */   // clearing a whole forest for a far portal eats the charge money
+                    var pick = spot ?? (portalRel - outerRel < 200f ? tree : null);
+                    if (_fwDiagDay != day * 10 + side + 1) { _fwDiagDay = day * 10 + side + 1; Plugin.Log("FORWARD DIAG d" + day + " h" + hour.ToString("0.0") + " side " + side + ": gap " + (portalRel - outerRel).ToString("0") + " spot " + (spot != null ? spot.name + "@" + spot.transform.position.x.ToString("0") : "-") + " tree " + (tree != null ? tree.transform.position.x.ToString("0") : "-") + " budget " + budget + " reserve " + AssaultReserve(false)); }   /* portal 182 out (gap ~144) was never reachable: march 12.8 h */   // clearing a whole forest for a far portal eats the charge money
                     if (pick != null && budget - AssaultReserve(false) >= pick.price + 2)
                     {
                         Status = "Forward wall " + (side < 0 ? "left" : "right") + (spot != null ? "" : ": cut tree") + " (portal gap " + (portalRel - outerRel).ToString("0") + ")";

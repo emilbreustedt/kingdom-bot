@@ -174,7 +174,7 @@ namespace KingdomBot
                 _coinsAtTap = -1;
             }
             int dNow = GameState.Day;
-            if (dNow < _lastDaySeen || _lastDaySeen < 0) { _lastCastleUpgradeDay = -1; _cooldown.Clear(); _mapChecked = false; _merLogged = false; _mainMapChecked = false; ChooseModeForRun(_lastDaySeen < 0 && dNow > 0); }
+            if (dNow < _lastDaySeen || _lastDaySeen < 0) { _lastCastleUpgradeDay = -1; _cooldown.Clear(); _mapChecked = false; _merLogged = false; _merDone = false; _merPaidAt = -1f; _mainMapChecked = false; ChooseModeForRun(_lastDaySeen < 0 && dNow > 0); }
             if (dNow != _lastDaySeen && Managers.achievements != null && Managers.achievements.flags != null)
             {
                 var am = Managers.achievements;
@@ -908,13 +908,13 @@ namespace KingdomBot
         int _rerolls; bool _mapChecked;
         public float Army1Range = 130f;
         public bool BootDays = true;
-        public float Army1Chest2 = 110f;   // max distance of the 2nd chest (map reroll otherwise)
+        public float Army1Chest2 = 0f;   // 110 tested: the far trip used the whole day (1 archer, 11 coins left) - 0 = off   // max distance of the 2nd chest (map reroll otherwise)
         public float Army1Check = 90f;    // day 0 is short: 24 coins (8 recruits + 8 bows) must lie within ~80 of the camp, otherwise reroll   // guide: run to the camps on both sides (four camps incl. the town centre) and loot chests on the way
         // coin ledger for First Day Army: every purse change with the action that was running
-        public bool Army1Merchant = false;   // tested: refills a RANDOM shop - the hammer shop turned all recruits into builders (0 archers)
+        public bool Army1Merchant = true;   // tested: refills a RANDOM shop - the hammer shop turned all recruits into builders (0 archers)
         float _hbNext;
         public float SlowUntil;   // unscaled time: Plugin caps the game speed until then
-        bool _merLogged; Chest _traceChest; float _traceUntil, _traceNext;
+        bool _merLogged, _merDone; float _merPaidAt = -1f; int _merHammers0; Chest _traceChest; float _traceUntil, _traceNext;
         int _ledgerLast = -1, _ledgerDay = -1; System.Collections.Generic.Dictionary<string, int> _ledgerIn = new System.Collections.Generic.Dictionary<string, int>(), _ledgerOut = new System.Collections.Generic.Dictionary<string, int>();
         public void CoinLedger()
         {
@@ -993,7 +993,7 @@ namespace KingdomBot
                     foreach (var ch in AllChests()) if (!ch.isEmpty) cd.Add(Mathf.Abs(ch.transform.position.x - home));
                     cd.Sort(); float second = cd.Count >= 2 ? cd[1] : 1e6f;
                     Plugin.Log("army1: chest distances " + string.Join(",", cd.ConvertAll(v => v.ToString("0")).ToArray()) + " (need 2nd <= " + Army1Chest2 + ")");
-                    if (second > Army1Chest2 && _rerolls < 300 && NormalizeRunType(ConfigMode) == "auto") avail = 0;
+                    if (Army1Chest2 > 0f && second > Army1Chest2 && _rerolls < 300 && NormalizeRunType(ConfigMode) == "auto") avail = 0;
                 }
                 if (avail < 18 && _rerolls < 300   /* maps have one chest per side at 100-215: 18 = ground coins + a near chest; archers add hunting coins (guide) */ && NormalizeRunType(ConfigMode) == "auto")
                 {
@@ -1028,7 +1028,7 @@ namespace KingdomBot
             if (fire != null && coins >= fire.price) { Status = "army1: light fire"; PayAt(fire); return; }
             // far chest FIRST (right after the fire): day 0 is only ~15 h of daylight at ~25 units/h, a chest 100+ out
             // is only reachable in the morning; camps on the way are recruited on the return trip.
-            if (!feast && !boot && fire == null && Find(payables, x => x.name.StartsWith("Castle0")) == null && GameState.Day == 0)
+            if (!feast && !boot && Army1Chest2 > 0f && fire == null && Find(payables, x => x.name.StartsWith("Castle0")) == null && GameState.Day == 0)
             {
                 foreach (var ch in AllChests())
                 {
@@ -1056,7 +1056,25 @@ namespace KingdomBot
                 if (Army1Merchant && mer != null && mer.CanPay() && coins >= mer.price && Mathf.Abs(mer.transform.position.x - home) < 70f && !TooLateFor(mer.transform.position.x, home))
                 {
                     int bowFree = 0; foreach (var sh in k.shops) if (sh != null && sh.name.Contains("Bow")) bowFree = sh.maxItems - sh.GetItemCount();
-                    if (bowFree * 2 > mer.price + 1) { Status = "army1: pay the merchant (" + mer.price + ", bow slots free " + bowFree + ")"; Plugin.Log(Status); PayAt(mer); return; }
+                    if (bowFree * 2 > mer.price + 1)
+                    {
+                        if (_merPaidAt < 0f)
+                        {
+                            _merPaidAt = Time.time; _merHammers0 = 0; var shl = new System.Text.StringBuilder();
+                            foreach (var sh in k.shops) if (sh != null) { shl.Append(" " + sh.name + "(" + sh.GetItemCount() + "/" + sh.maxItems + ")"); if (sh.name.Contains("Hammer")) _merHammers0 = sh.GetItemCount(); }
+                            Plugin.Log("MERCHANT pay h" + GameState.Hour.ToString("0.0") + " shops:" + shl);
+                        }
+                        Status = "army1: pay the merchant (" + mer.price + ", bow slots free " + bowFree + ")"; PayAt(mer); return;
+                    }
+                }
+                // after paying: he walks to a RANDOM shop. Hammers = recruits turn into builders -> this map is lost, reroll it.
+                if (_merPaidAt >= 0f && !_merDone)
+                {
+                    int hm = 0, bw = 0; foreach (var sh in k.shops) if (sh != null) { if (sh.name.Contains("Hammer")) hm = sh.GetItemCount(); if (sh.name.Contains("Bow")) bw = sh.GetItemCount(); }
+                    int wk = UnityEngine.Object.FindObjectsOfType<Worker>().Length;
+                    if (hm > _merHammers0 + 1 || wk > 0) { _merDone = true; Plugin.Log("MERCHANT result: HAMMERS (" + hm + ", workers " + wk + ") -> reroll map"); if (_rerolls < 300 && NormalizeRunType(ConfigMode) == "auto") { _rerolls++; _lastDaySeen = -1; _pl.Queue.Clear(); Acc.Call(Managers.game, "Restart"); Status = "army1: reroll map (merchant hammers)"; Push("wait 2"); return; } }
+                    else if (bw >= 3) { _merDone = true; Plugin.Log("MERCHANT result: BOWS (" + bw + ") h" + GameState.Hour.ToString("0.0")); }
+                    else if (Time.time - _merPaidAt > 120f) { _merDone = true; Plugin.Log("MERCHANT result: nothing seen after 120 s (hammers " + hm + ", bows " + bw + ")"); }
                 }
             }
             // 5. bows for every idle peasant, otherwise recruit until 8 archers are possible
@@ -1098,7 +1116,7 @@ namespace KingdomBot
             foreach (var ch in AllChests())
             {
                 float cx = ch.transform.position.x;
-                if (ch.isEmpty || OnCooldown(ch.GetInstanceID()) || Mathf.Abs(cx - home) > (feast ? Army1Range : Army1Chest2 + 5f)) continue;   /* guide: a chest only if it lies between the camps */
+                if (ch.isEmpty || OnCooldown(ch.GetInstanceID()) || Mathf.Abs(cx - home) > (feast ? Army1Range : Mathf.Max(90f, Army1Chest2 + 5f))) continue;   /* guide: a chest only if it lies between the camps */
                 if (Mathf.Abs(cx - px) < fd) { fd = Mathf.Abs(cx - px); far = ch; }
             }
             if (far != null && !TooLateFor(far.transform.position.x, home)) { Cool(far.GetInstanceID(), 1e7f);   /* one visit per chest: inactive/template chests gave nothing and were revisited all day */ float cx = far.transform.position.x; Status = "army1: chest (" + far.coins + ")"; if (!feast) { _traceChest = far; _traceUntil = Time.time + 40f; _traceNext = 0f; } float sgn = cx >= px ? 1f : -1f; Push("goto " + F(cx - sgn * 5f) + " 1 " + F(10f + Mathf.Abs(cx - px) * 0.6f)); Push("slow 40"); Push("walkto " + F(cx + sgn * 3f) + " 0.3 20"); float sr = 10f; Push("wait 2"); Push("walkto " + F(cx - sr) + " 0.3 " + F(4f + sr)); Push("walkto " + F(cx + sr) + " 0.3 " + F(4f + 2f * sr)); Push("walkto " + F(cx) + " 0.3 " + F(4f + sr)); return; }   /* OnTriggerEnter2D spills the coins within spillRange: sweep the whole range */

@@ -137,7 +137,7 @@ namespace KingdomBot
             }
             bool possible;
             // user: First Day Army first - while it is missing, every early run is a fast day-0 attempt (no feast days)
-            bool firstDayFocus = Campaign.Missing(Campaign.FirstDay);
+            bool firstDayFocus = FirstDayFocus && Campaign.Missing(Campaign.FirstDay);   // user 2026-11-07: Feast first now
             if (RunType == "early")
                 possible = (dayC == 0 && Campaign.Missing(Campaign.FirstDay))
                         || (!firstDayFocus && dayC <= 3 && am.counters[4] < 10 && Campaign.Missing(Campaign.FourthDay))
@@ -831,6 +831,7 @@ namespace KingdomBot
             float hoursNeeded = 2f * Mathf.Abs(x - home) / 30f + 2f;   // there and back at ~30 units per game hour, plus a margin
             return !k.isDaytime || GameState.Hour + hoursNeeded > k.dayEnd - 1f;
         }
+        public bool FirstDayFocus = false;
         static bool _chestTypeLogged;
         int _rerolls; bool _mapChecked;
         public float Army1Range = 130f;

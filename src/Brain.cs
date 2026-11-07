@@ -254,6 +254,15 @@ namespace KingdomBot
             {
                 TrackCharge();
                 DeadPortalTrace();
+                // castle chest: refilled every morning (5-7 coins at castle 0-3). The saving/assault steps below always returned
+                // before LegacyBrain's chest step, so it was emptied once per run (ledger: ~5 coins/day income on days 5-8).
+                if (Managers.kingdom.isDaytime && GameState.Hour < Managers.kingdom.dayEnd - 3f)
+                    foreach (var ch in AllChests())
+                    {
+                        float cx = ch.transform.position.x;
+                        if (ch.isEmpty || !ch.gameObject.activeInHierarchy || OnCooldown(ch.GetInstanceID()) || Mathf.Abs(cx - Managers.kingdom.campfirePosition) > 40f) continue;
+                        Cool(ch.GetInstanceID(), 120f); Status = "Castle chest (" + ch.coins + ")"; Push("goto " + F(cx) + " 0.3 15"); Push("wait 2"); return;
+                    }
                 // master = record-run defence (LegacyBrain) + portal assault steps on top
                 var kk = Managers.kingdom;
                 int d = GameState.Day; float hr = GameState.Hour, pxx = GameState.PX, hm = kk.campfirePosition;
@@ -946,6 +955,7 @@ namespace KingdomBot
                     sb.Append(" | out:"); foreach (var kv in _ledgerOut) sb.Append(" " + kv.Key + "=" + kv.Value);
                     Plugin.Log(sb.ToString());
                 }
+                { var cs = new System.Text.StringBuilder("CHESTS day " + d + ":"); foreach (var ch in AllChests()) cs.Append(" x" + ch.transform.position.x.ToString("0") + "=" + ch.coins + (ch.gameObject.activeInHierarchy ? "" : "(inactive)")); Plugin.Log(cs.ToString()); }
                 _ledgerIn.Clear(); _ledgerOut.Clear(); _ledgerDay = d; _ledgerLast = c; return;
             }
             if (_ledgerLast < 0) { _ledgerLast = c; return; }

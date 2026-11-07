@@ -820,7 +820,7 @@ namespace KingdomBot
                 {
                     if (!(p is PayableUpgrade) || !p.name.StartsWith("Wall")) continue;
                     float d = (p.transform.position.x - home) * side;
-                    if (d < camp + 3f || d > 100f) continue;
+                    if (d < camp + 3f || d > 120f) continue;
                     if (!p.name.StartsWith("Wall0")) { built = true; continue; }   // a built wall already stands out here
                     if (!SafeCanPay(p) || OnCooldown(p.GetInstanceID()) || coins < p.price + 1 || TooLateFor(p.transform.position.x, home)) continue;
                     if (d > bestD) { bestD = d; best = p; }
@@ -1036,6 +1036,10 @@ namespace KingdomBot
                 if (Mathf.Abs(x - home) > Mathf.Abs(far[si] - home)) far[si] = x;
             }
             int s2 = cnt[0] >= cnt[1] ? 0 : 1;
+            // archers roam up to the outermost wall: herd on the side with the far (forest) wall - that is where they hunt
+            float reachL = home - l, reachR = r - home;
+            if (reachR > 30f && reachR > reachL + 10f && cnt[1] > 0) s2 = 1;
+            else if (reachL > 30f && reachL > reachR + 10f && cnt[0] > 0) s2 = 0;
             if (cnt[s2] == 0) { FeastWhy("no deer outside walls within 110 (L " + cnt[0] + " R " + cnt[1] + ", walls " + l.ToString("0") + "/" + r.ToString("0") + ", total deer objects " + Resources.FindObjectsOfTypeAll<Deer>().Length + ")"); return false; }
             int side = s2 == 0 ? -1 : 1;
             float behind = far[s2] + side * 8f;

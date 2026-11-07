@@ -178,7 +178,8 @@ namespace KingdomBot
                     Plugin.Log("DEAD PORTAL x" + po.transform.position.x.ToString("0") + " outer=" + po.outerSpawner + " opened=" + Acc.Get<bool>(po, "_opened")
                         + " crumbleAfterSpawn=" + Acc.Get<bool>(po, "_crumbleAfterSpawn") + " closeAfterSpawn=" + Acc.Get<bool>(po, "_closeAfterSpawn")
                         + " queue=" + (q != null ? q.Count.ToString() : "?") + " isDead=" + dm.isDead + " active=" + po.isActiveAndEnabled
-                        + " finalWave=" + (Managers.enemies != null && Managers.enemies.finalWaveSpawned));
+                        + " finalWave=" + (Managers.enemies != null && Managers.enemies.finalWaveSpawned)
+                        + " enemies=" + UnityEngine.Object.FindObjectsOfType<Enemy>().Length + PortalFields(po) + EnemyMgrFields());
                 }
                 Plugin.Log(string.Format("== Day {0} (mode {1}) Flags: FreeWall={2} LitFire={3} Galloped={4} CoinOnGround={5} PortalsDestroyed={6} | Archers={7} Deer={8} Kills={9} Land={10}",
                     dNow, Mode, am.flags[2], am.flags[3], am.flags[4], am.flags[5], am.flags[7], am.counters[3], am.counters[4], am.counters[5], am.counters[7]));
@@ -701,6 +702,24 @@ namespace KingdomBot
             Plugin.Log(sb.ToString());
         }
         float _crownLogAt;
+        /// <summary>Numeric fields of a portal (spawn timing) and of the EnemyManager (limits) for the "queue never drains" question.</summary>
+        static string PortalFields(Portal po)
+        {
+            var sb = new System.Text.StringBuilder();
+            foreach (var f in po.GetType().GetFields(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance))
+                if ((f.FieldType == typeof(float) || f.FieldType == typeof(int)) && !f.Name.StartsWith("<")) { try { sb.Append(" " + f.Name + "=" + f.GetValue(po)); } catch { } }
+            return sb.ToString();
+        }
+        static float _emLogDay = -1;
+        static string EnemyMgrFields()
+        {
+            var em = Managers.enemies; if (em == null || _emLogDay == GameState.Day) return "";
+            _emLogDay = GameState.Day;
+            var sb = new System.Text.StringBuilder(" | EM:");
+            foreach (var f in em.GetType().GetFields(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance))
+                if (f.FieldType == typeof(float) || f.FieldType == typeof(int) || f.FieldType == typeof(bool)) { try { sb.Append(" " + f.Name + "=" + f.GetValue(em)); } catch { } }
+            return sb.ToString();
+        }
         int _knightDiagDay = -1, _knightMoveWarned;
         int _rerolls; bool _mapChecked;
         public float Army1Range = 130f;

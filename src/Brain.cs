@@ -787,6 +787,13 @@ namespace KingdomBot
         }
         int _finalPrepDay = -1;
         int _knightDiagDay = -1, _knightMoveWarned;
+        /// <summary>A trip to x and back home cannot be finished before dusk (day-2 game over 78 out at night).</summary>
+        static bool TooLateFor(float x, float home)
+        {
+            var k = Managers.kingdom; if (k == null) return false;
+            float hoursNeeded = 2f * Mathf.Abs(x - home) / 30f + 2f;   // there and back at ~30 units per game hour, plus a margin
+            return !k.isDaytime || GameState.Hour + hoursNeeded > k.dayEnd - 1f;
+        }
         int _rerolls; bool _mapChecked;
         public float Army1Range = 130f;
         public bool BootDays = true;
@@ -848,7 +855,7 @@ namespace KingdomBot
             if (archersMade + peasants + onDisplay < target && coins >= 3)
             {
                 var b = NearestBeggar(px, home - Army1Range, home + Army1Range);
-                if (b != null) { Cool(b.GetInstanceID(), 8f); _lastTap = Time.time; Status = "army1: recruit (" + archersMade + "/8)"; Push("goto " + F(b.transform.position.x) + " 0.8 " + F(10f + Mathf.Abs(b.transform.position.x - px) * 0.6f)); Push("tap 1"); Push("wait 2"); return; }
+                if (b != null && !TooLateFor(b.transform.position.x, home)) { Cool(b.GetInstanceID(), 8f); _lastTap = Time.time; Status = "army1: recruit (" + archersMade + "/8)"; Push("goto " + F(b.transform.position.x) + " 0.8 " + F(10f + Mathf.Abs(b.transform.position.x - px) * 0.6f)); Push("tap 1"); Push("wait 2"); return; }
             }
             if (feast && FeastStep()) return;   // guide: herd deer towards the archers, 10th deer exactly on day 4
             // far chests and coins (the bot starts with 0 coins: 8 archers need ~24)
@@ -859,9 +866,9 @@ namespace KingdomBot
                 if (ch.isEmpty || OnCooldown(ch.GetInstanceID()) || Mathf.Abs(cx - home) > Army1Range) continue;
                 if (Mathf.Abs(cx - px) < fd) { fd = Mathf.Abs(cx - px); far = ch; }
             }
-            if (far != null) { Cool(far.GetInstanceID(), 60f); float cx = far.transform.position.x; Status = "army1: chest (" + far.coins + ")"; Push("goto " + F(cx) + " 0.3 " + F(10f + Mathf.Abs(cx - px) * 0.6f)); Push("wait 1"); return; }
+            if (far != null && !TooLateFor(far.transform.position.x, home)) { Cool(far.GetInstanceID(), 60f); float cx = far.transform.position.x; Status = "army1: chest (" + far.coins + ")"; Push("goto " + F(cx) + " 0.3 " + F(10f + Mathf.Abs(cx - px) * 0.6f)); Push("wait 1"); return; }
             var coinFar = NearestCoin(px, home - Army1Range, home + Army1Range);
-            if (coinFar != null && !(coinFar.droppedByPlayer && Time.time - _lastTap < 15f)) { Cool(coinFar.GetInstanceID(), 1e7f); Status = "army1: coin far"; Push("goto " + F(coinFar.transform.position.x) + " 0.3 " + F(10f + Mathf.Abs(coinFar.transform.position.x - px) * 0.6f)); return; }
+            if (coinFar != null && !TooLateFor(coinFar.transform.position.x, home) && !(coinFar.droppedByPlayer && Time.time - _lastTap < 15f)) { Cool(coinFar.GetInstanceID(), 1e7f); Status = "army1: coin far"; Push("goto " + F(coinFar.transform.position.x) + " 0.3 " + F(10f + Mathf.Abs(coinFar.transform.position.x - px) * 0.6f)); return; }
             Status = (feast ? "Feast: waiting (deer " + (am != null ? am.counters[4] : -1) + ", " : "army1: waiting (") + archersMade + " archers, " + coins + " coins)";
             if (Mathf.Abs(px - home) > 3f) Push("walkto " + F(home) + " 1 6"); else Push("wait 1");
         }

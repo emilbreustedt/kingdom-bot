@@ -871,7 +871,7 @@ namespace KingdomBot
             if (archersMade + peasants + onDisplay < target && coins >= 3)
             {
                 var b = NearestBeggar(px, home - Army1Range, home + Army1Range);
-                if (b != null && !TooLateFor(b.transform.position.x, home)) { Cool(b.GetInstanceID(), 8f); _lastTap = Time.time; Status = "army1: recruit (" + archersMade + "/8)"; Push("goto " + F(b.transform.position.x) + " 0.8 " + F(10f + Mathf.Abs(b.transform.position.x - px) * 0.6f)); Push("tap 1"); Push("wait 2"); return; }
+                if (b != null && !TooLateFor(b.transform.position.x, home)) { Cool(b.GetInstanceID(), 8f); _lastTap = Time.time; Status = "army1: recruit (" + archersMade + "/8)"; Recruit(b); return; }   // whole camp per trip (up to 3)
             }
             if (feast && FeastStep()) return;   // guide: herd deer towards the archers, 10th deer exactly on day 4
             // far chests and coins (the bot starts with 0 coins: 8 archers need ~24)

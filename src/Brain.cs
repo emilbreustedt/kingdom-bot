@@ -1641,7 +1641,14 @@ namespace KingdomBot
             float l = WallEdge(-1, home), r = WallEdge(1, home);
             if (evening && (px < l - 0.5f || px > r + 0.5f)) { Status = "Interrupt: dusk"; return true; }
             var e = NearestEnemy(px);
-            if (e != null && Mathf.Abs(e.transform.position.x - px) < 9f && !WallBetween(px, e.transform.position.x)) { Status = "Interrupt: enemy"; return true; }
+            if (e != null && Mathf.Abs(e.transform.position.x - px) < 9f && !WallBetween(px, e.transform.position.x))
+            {
+                // paying the charge banner (outside the wall): dead portals keep spawning trolls, so small ones must not
+                // abort it (day 21-23: every banner payment was interrupted, the knights never left)
+                bool big = e.GetComponent<Boss>() != null || e.GetComponent<Ogre>() != null || e.GetComponent<Squid>() != null;
+                if (Status.StartsWith("Assault: knights CHARGE") && !big && GameState.Coins >= 6) return false;
+                Status = "Interrupt: enemy"; return true;
+            }
             return false;
         }
 

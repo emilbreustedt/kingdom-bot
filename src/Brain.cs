@@ -254,7 +254,7 @@ namespace KingdomBot
             {
                 TrackCharge();
                 DeadPortalTrace();
-                if (Graze()) return;
+                try { if (Graze()) return; } catch (System.Exception e) { if (Time.time >= _grazeErrAt) { _grazeErrAt = Time.time + 60f; Plugin.Log("Graze error (skipped): " + e.Message); } }
                 // castle chest: refilled every morning (5-7 coins at castle 0-3). The saving/assault steps below always returned
                 // before LegacyBrain's chest step, so it was emptied once per run (ledger: ~5 coins/day income on days 5-8).
                 if (Managers.kingdom.isDaytime && GameState.Hour < Managers.kingdom.dayEnd - 3f)
@@ -956,7 +956,7 @@ namespace KingdomBot
                     sb.Append(" | out:"); foreach (var kv in _ledgerOut) sb.Append(" " + kv.Key + "=" + kv.Value);
                     Plugin.Log(sb.ToString());
                 }
-                try { var pl = GameState.Player; if (pl != null && pl._steed != null) Plugin.Log("STEED eatDelay=" + pl._steed.eatDelay + " eatDuration=" + pl._steed.eatDuration + " wellFed=" + pl._steed.wellFedDuration + " runRate=" + pl._steed.runStaminaRate + " standRate=" + pl._steed.standStaminaRate + " walkRate=" + pl._steed.walkStaminaRate + " fedTimer=" + pl._wellFedTimer + " ground=" + pl._groundType); } catch (System.Exception e) { Plugin.Log("STEED log: " + e.Message); }
+                try { var pl = GameState.Player; var sd = pl != null ? Acc.Get<Steed>(pl, "_steed") : null; if (sd != null) Plugin.Log("STEED eatDelay=" + Acc.Get<float>(sd, "eatDelay") + " eatDuration=" + Acc.Get<float>(sd, "eatDuration") + " wellFed=" + Acc.Get<float>(sd, "wellFedDuration") + " runRate=" + Acc.Get<float>(sd, "runStaminaRate") + " standRate=" + Acc.Get<float>(sd, "standStaminaRate") + " fedTimer=" + Acc.Get<float>(pl, "_wellFedTimer") + " ground=" + Acc.GetInt(pl, "_groundType")); } catch (System.Exception e) { Plugin.Log("STEED log: " + e.Message); }
                 { var st = new System.Text.StringBuilder("STATUES:"); foreach (var su in UnityEngine.Object.FindObjectsOfType<Statue>()) st.Append(" " + su.name.Replace("(Clone)", "") + " x" + su.transform.position.x.ToString("0") + " $" + su.price); Plugin.Log(st.ToString()); }
                 { var cs = new System.Text.StringBuilder("CHESTS day " + d + ":"); foreach (var ch in AllChests()) cs.Append(" x" + ch.transform.position.x.ToString("0") + "=" + ch.coins + (ch.gameObject.activeInHierarchy ? "" : "(inactive)")); Plugin.Log(cs.ToString()); }
                 _ledgerIn.Clear(); _ledgerOut.Clear(); _ledgerDay = d; _ledgerLast = c; return;
@@ -1881,13 +1881,14 @@ namespace KingdomBot
         bool Graze()
         {
             var k = Managers.kingdom; var pl = GameState.Player;
-            if (pl == null || pl._steed == null || !k.isDaytime || GameState.Hour > k.dayEnd - 3f || OnCooldown(777300)) return false;
-            if (pl._wellFedTimer > 0f || pl.stamina > 0.6f) return false;
+            Steed steed = pl != null ? Acc.Get<Steed>(pl, "_steed") : null;
+            if (pl == null || steed == null || !k.isDaytime || GameState.Hour > k.dayEnd - 3f || OnCooldown(777300)) return false;
+            if (Acc.Get<float>(pl, "_wellFedTimer") > 0f || pl.stamina > 0.6f) return false;
             float px = GameState.PX;
             var en = NearestEnemy(px); if (en != null && Mathf.Abs(en.transform.position.x - px) < 30f) return false;
             Cool(777300, 25f);
-            float wait = pl._steed.eatDelay + pl._steed.eatDuration + 0.5f;
-            if ((int)pl._groundType == 1) { Status = "Horse: graze here"; Push("wait " + F(wait)); return true; }
+            float wait = Acc.Get<float>(steed, "eatDelay") + Acc.Get<float>(steed, "eatDuration") + 0.5f;
+            if (Acc.GetInt(pl, "_groundType") == 1) { Status = "Horse: graze here"; Push("wait " + F(wait)); return true; }
             Grass best = null; float bd = 15f;
             foreach (var g in UnityEngine.Object.FindObjectsOfType<Grass>()) { float d = Mathf.Abs(g.transform.position.x - px); if (d < bd) { bd = d; best = g; } }
             if (best == null) return false;
@@ -1908,7 +1909,7 @@ namespace KingdomBot
             if (Time.time >= _farmDiagAt) { _farmDiagAt = Time.time + 60f; Plugin.Log("FARM DIAG farms " + farms + " farmers " + farmers + " exposed " + FarmsExposed(home) + " -> scythe first"); }
             return sc;
         }
-        float _farmDiagAt;
+        float _farmDiagAt, _grazeErrAt;
 
         /// <summary>User observation: by day the archers hunt OUTSIDE the walls and carry the coins - they hand them over only when
         /// the king passes by. Saving used to patrol inside the walls only. Ride out to them (and pick up coins out there) when it is safe.</summary>

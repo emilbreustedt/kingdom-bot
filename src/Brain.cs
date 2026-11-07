@@ -1745,7 +1745,7 @@ namespace KingdomBot
         /// <summary>Bank needed before castle 4: the full bank early, a smaller one from day 24 (late income ~= upkeep, the bank plateaus ~40).</summary>
         public int BankTarget() { int d = GameState.Day; if (TenthRush) return 9 + 6 + 4 + 3; return Mathf.Min(PurseCap, d >= 24 ? 38 : 40); }
         /// <summary>The coin bag overflows at ~39 coins and every spilled coin falls into the water with p=0.5 (measured: 10 coins fell by day 13). Never save above this.</summary>
-        public int PurseCap = 34;
+        public int PurseCap = 28;   // archers toss ~8 tax coins at once when the king rides by: 34 -> 42 spilled. Keep ~10 coins headroom
         public float MaxPortalDistance = 185f;   // 155 matched no map (30 maps: farthest 166-238); a portal 162 out fell to a dawn charge
         bool _bootDone;   /* castle 4 (8) + castle 5 (9) + 2 shields (12) + banner (4) + purse; 60 delayed the knights by days */   // the assault (3 shields + 5-8 charges) is paid from the bank: castle 5 earns ~1 coin/day
 

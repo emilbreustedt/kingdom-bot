@@ -826,6 +826,8 @@ namespace KingdomBot
                 int avail = coins;
                 foreach (var c in UnityEngine.Object.FindObjectsOfType<Coin>()) if (!c.pickedUp && Mathf.Abs(c.transform.position.x - home) < Army1Check) avail++;
                 foreach (var ch in AllChests()) if (!ch.isEmpty && Mathf.Abs(ch.transform.position.x - home) < Army1Check) avail += ch.coins;
+                foreach (var ch in AllChests())
+                    Plugin.Log("CHEST " + ch.name + " x" + ch.transform.position.x.ToString("0") + " coins=" + ch.coins + " empty=" + ch.isEmpty + " active=" + ch.gameObject.activeInHierarchy + " parent=" + (ch.transform.parent != null ? ch.transform.parent.name : "-") + " root=" + ch.transform.root.name);
                 _mapChecked = true;
                 Plugin.Log("army1: coins reachable on this map = " + avail + " (reroll " + _rerolls + ")");
                 if (avail < 25 && _rerolls < 40 && NormalizeRunType(ConfigMode) == "auto")

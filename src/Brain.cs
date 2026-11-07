@@ -675,7 +675,7 @@ namespace KingdomBot
             foreach (var po in UnityEngine.Object.FindObjectsOfType<Portal>()) { var dm = po.GetComponent<Damageable>(); if (!po.outerSpawner && (dm == null || dm.hitPoints > 0)) n++; }
             return n;
         }
-        public int FinalArchers = 22, FinalBank = 10;   // the final wave (70-95 enemies) beat 11-14 archers with no coins twice
+        public int FinalArchers = 18, FinalBank = 10;   // the final wave (70-95 enemies) beat 11-14 archers with no coins twice
         /// <summary>Charge window (7h .. dusk-7h) while a knight could charge: the king should stay home.</summary>
         bool KnightReadyWindow()
         {

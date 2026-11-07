@@ -2056,6 +2056,7 @@ namespace KingdomBot
             {
                 float x = b.transform.position.x;
                 if (x < minX || x > maxX || OnCooldown(b.GetInstanceID())) continue;
+                if (Managers.kingdom != null && TooLateFor(x, Managers.kingdom.campfirePosition)) continue;   // day-4 game over: recruited a beggar 98 out at 16:30
                 bool nearPortal = false;
                 foreach (var po in UnityEngine.Object.FindObjectsOfType<Portal>()) if (Mathf.Abs(po.transform.position.x - x) < 25f) nearPortal = true;
                 if (nearPortal) continue;

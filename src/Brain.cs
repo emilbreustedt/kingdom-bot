@@ -1083,6 +1083,15 @@ namespace KingdomBot
             int side = s2 == 0 ? -1 : 1;
             float behind = far[s2] + side * 8f;
             if (_herdOut && TooLateFor(behind, home)) { FeastWhy("herd target x" + behind.ToString("0") + " too far for today"); return false; }   // day-2 game over 137 out at midnight
+            if (!_deerTypeLogged)
+            {
+                _deerTypeLogged = true;
+                var dt = typeof(Deer); var sb = new System.Text.StringBuilder("DEER TYPE base=" + dt.BaseType + " |");
+                foreach (var m in dt.GetMethods(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.DeclaredOnly)) sb.Append(" " + m.Name);
+                var d0 = UnityEngine.Object.FindObjectOfType<Deer>();
+                if (d0 != null) { sb.Append(" | fields:"); for (var t = dt; t != null && t != typeof(MonoBehaviour); t = t.BaseType) foreach (var f in t.GetFields(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.DeclaredOnly)) { object v = null; try { v = f.GetValue(d0); } catch { } if (v == null || v is float || v is int || v is bool || v.GetType().IsEnum || v is string) sb.Append(" " + t.Name + "." + f.Name + "=" + v); else { var c = v as Component; sb.Append(" " + t.Name + "." + f.Name + "=" + (c != null ? c.GetType().Name : v.GetType().Name)); } } }
+                Plugin.Log(sb.ToString());
+            }
             if (Time.time >= _herdTraceAt)
             {
                 _herdTraceAt = Time.time + 10f;
@@ -1100,6 +1109,7 @@ namespace KingdomBot
         }
         bool _herdOut = true;
         float _feastWhyAt, _herdTraceAt;
+        static bool _deerTypeLogged;
         void FeastWhy(string why) { if (Time.time < _feastWhyAt) return; _feastWhyAt = Time.time + 10f; Plugin.Log("FEAST WHY d" + GameState.Day + " h" + GameState.Hour.ToString("0.0") + ": " + why); }
 
         /// <summary>

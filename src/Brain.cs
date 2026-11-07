@@ -258,7 +258,7 @@ namespace KingdomBot
             // the next step during the day if needed; otherwise the record strategy plays as usual.
             if ((Mode == "survive" || Mode == "master") && GameState.Player != null && (int)Managers.game.gameState == 2 && AvoidIntruder()) return;
             // income: farms + merchant (archers barely hunt in the late game - waves keep the kingdom "unsafe")
-            if ((Mode == "survive" || Mode == "master") && GameState.Player != null && (int)Managers.game.gameState == 2 && GameState.Day >= 6 && UseFarms && EconomyStep()) return;
+            if ((Mode == "survive" || Mode == "master") && GameState.Player != null && (int)Managers.game.gameState == 2 && GameState.Day >= 10 && UseFarms && UnityEngine.Object.FindObjectsOfType<Archer>().Length >= 18 && EconomyStep()) return;
             if ((Mode == "survive" || Mode == "master") && GameState.Player != null && (int)Managers.game.gameState == 2 && WallSchedule()) return;
             if ((Mode == "survive" || Mode == "master") && GameState.Player != null && (int)Managers.game.gameState == 2 && GrassStep()) return;
             if (Mode == "survive" || Mode == "master" || Mode == "feast")
@@ -893,9 +893,9 @@ namespace KingdomBot
             var payables = UnityEngine.Object.FindObjectsOfType<Payable>();
             Payable item = null; string what = null;
             // 0. farms = the only income that scales; they come first from day 6
-            if (UseFarms && day >= 6) { var farm = FarmTarget(payables, home); if (farm != null) { item = farm; what = farm.name.StartsWith("Tree") ? "farmland (cut tree)" : "farm"; } }
+            if (UseFarms && day >= 10 && UnityEngine.Object.FindObjectsOfType<Archer>().Length >= 18) { var farm = FarmTarget(payables, home); if (farm != null) { item = farm; what = farm.name.StartsWith("Tree") ? "farmland (cut tree)" : "farm"; } }
             // 0b. a farm outside the walls loses its farmers every night: next wall goes up beyond the farm
-            if (UseFarms && item == null) { var fw = FarmWall(payables, home); if (fw != null && fw.name.StartsWith("Tree") && coins >= fw.price + 4) _farmWallTrees++;
+            if (false && UseFarms && item == null) { var fw = FarmWall(payables, home); if (fw != null && fw.name.StartsWith("Tree") && coins >= fw.price + 4) _farmWallTrees++;
             if (fw != null) { item = fw; what = (fw.name.StartsWith("Tree") ? "farm wall (cut tree" : "wall beyond the farm (") + " @" + F(fw.transform.position.x) + " edges " + F(WallEdge(-1, home)) + "/" + F(WallEdge(1, home)) + ")"; } }
             // 1. stone tech first (wall levels 3+ need it)
             if (item == null && Managers.techUpgrades != null && !Managers.techUpgrades.stoneBuilding)
@@ -1067,7 +1067,7 @@ namespace KingdomBot
         public bool UseMerchant = false;
         // Farms (tree clearing + wall beyond the farm + scythes) cost more than they earned in tests: the army stayed
         // at ~12 archers by day 30 instead of 25-30. Off by default.
-        public bool UseFarms = false;     // tested twice: farm runs had ~9 archers on day 20 (vs ~25) - clearing for the farm wall destroys beggar camps
+        public bool UseFarms = true;   /* retry 2026-11-07: only from day 10 with 18+ archers, no farm walls (those cleared beggar camps); forum: 1 farm + 4 farmers carries the late game */     // tested twice: farm runs had ~9 archers on day 20 (vs ~25) - clearing for the farm wall destroys beggar camps
         public bool FarmClearTrees = true;   // only a few trees (<= 4) for a spot right in front of the walls
         public int FarmerTarget = 4;
         public int FarmWallTreeCap = 6;
@@ -1388,7 +1388,7 @@ namespace KingdomBot
             bool wallsOk = WallsOnSide(-1, home) > 0 && WallsOnSide(1, home) > 0;
 
             // farm first (wall schedule saves for it), then the castle
-            if (UseFarms && day >= 6 && day < 25 && FarmTarget(payables, home) != null) return false;
+            if (UseFarms && day >= 10 && day < 14 && UnityEngine.Object.FindObjectsOfType<Knight>().Length == 0 && UnityEngine.Object.FindObjectsOfType<Archer>().Length >= 18 && FarmTarget(payables, home) != null) return false;
             // castle first from day 8 (level 5 = shield shops) - only when attacking; survive upgrades normally
             if (assault && day >= (TenthRush ? 4 : 8) && archers >= 6)
             {

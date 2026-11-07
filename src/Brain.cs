@@ -802,6 +802,36 @@ namespace KingdomBot
             return sb.ToString();
         }
         int _finalPrepDay = -1;
+        bool FeastWallStep(Payable[] payables, float home, float px, int coins)
+        {
+            int workers = UnityEngine.Object.FindObjectsOfType<Worker>().Length;
+            int peasants = UnityEngine.Object.FindObjectsOfType<Peasant>().Length, onDisplay = 0; PayableShop hammer = null;
+            foreach (var py in payables) { var sh = py as PayableShop; if (sh == null) continue; onDisplay += sh.GetItemCount(); if (sh.name.Contains("Hammer")) hammer = sh; }
+            if (workers < 2 && peasants > onDisplay && hammer != null && SafeCanPay(hammer) && coins >= hammer.price) { Status = "Feast: buy hammer"; PayAt(hammer); return true; }
+            if (workers < 1) return false;
+            for (int side = -1; side <= 1; side += 2)
+            {
+                // nearest beggar camp on this side: the wall goes beyond it
+                float camp = 0f;
+                foreach (var b in UnityEngine.Object.FindObjectsOfType<Beggar>()) { float d = (b.transform.position.x - home) * side; if (d > 5f && (camp == 0f || d < camp)) camp = d; }
+                if (camp == 0f) camp = 30f;
+                Payable best = null; float bestD = 0f; bool built = false;
+                foreach (var p in payables)
+                {
+                    if (!(p is PayableUpgrade) || !p.name.StartsWith("Wall")) continue;
+                    float d = (p.transform.position.x - home) * side;
+                    if (d < camp + 3f || d > 100f) continue;
+                    if (!p.name.StartsWith("Wall0")) { built = true; continue; }   // a built wall already stands out here
+                    if (!SafeCanPay(p) || OnCooldown(p.GetInstanceID()) || coins < p.price + 1 || TooLateFor(p.transform.position.x, home)) continue;
+                    if (d > bestD) { bestD = d; best = p; }
+                }
+                if (built || best == null) continue;
+                Cool(best.GetInstanceID(), 60f);
+                Status = "Feast: forest wall " + (side < 0 ? "left" : "right") + " x" + best.transform.position.x.ToString("0");
+                PayAt(best); return true;
+            }
+            return false;
+        }
         int _knightDiagDay = -1, _knightMoveWarned;
         /// <summary>Ground coins incl. deactivated far ones (FindObjectsOfType misses them - guide: "run right collecting all the coins").</summary>
         static Coin FarCoin(float px, float minX, float maxX, float home)
@@ -880,6 +910,9 @@ namespace KingdomBot
             // night: stay by the fire (feast runs over several days)
             if ((feast || boot) && (!k.isDaytime || GameState.Hour >= k.dayEnd - 1.5f))
             { Status = "Feast: night at the fire"; if (Mathf.Abs(px - home) > 2f) Push("goto " + F(home) + " 1 6"); else Push("wait 1"); return; }
+            // feast (forum guide): walls out in the forest clearings beyond a beggar camp - archers then roam and hunt the
+            // whole forest (deer respawn near camps). Two builders, then the outermost free wall spot per side within 100.
+            if (feast && GameState.Day >= 1 && k.isDaytime && GameState.Hour < k.dayEnd - 5f && FeastWallStep(payables, home, px, coins)) return;
             // feast: herding has priority once a small army exists (guide: herd deer towards the archers)
             if (feast && am != null && am.counters[3] >= 4 && FeastStep()) return;
             // 3. coins & chests close by (far ones only when coins are needed - see below)

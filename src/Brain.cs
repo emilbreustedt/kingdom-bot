@@ -870,7 +870,7 @@ namespace KingdomBot
             }
             if (peasants > onDisplay && bow != null && SafeCanPay(bow) && coins >= bow.price) { Status = "army1: buy bow (" + archersMade + "/8)"; PayAt(bow); return; }
             int target = boot ? 12 : feast ? 15 : 8;
-            if (archersMade + peasants + onDisplay < target && coins >= 3)
+            if (archersMade + peasants < target && coins >= (onDisplay > peasants ? 1 : 3))   /* a bow on display needs a peasant to carry it - it is not an archer yet (7 + 1 bow waited all evening) */
             {
                 var b = NearestBeggar(px, home - Army1Range, home + Army1Range);
                 if (b != null && !TooLateFor(b.transform.position.x, home)) { Cool(b.GetInstanceID(), 8f); _lastTap = Time.time; Status = "army1: recruit (" + archersMade + "/8)"; Recruit(b); return; }   // whole camp per trip (up to 3)

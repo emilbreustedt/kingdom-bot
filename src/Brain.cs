@@ -283,6 +283,7 @@ namespace KingdomBot
                 _armyFirst = false;
                 // assault only once the defence is solid (the castle rush + shields cost ~40 coins)
                 bool ready = (d >= 12 && (arch >= 15 || UnityEngine.Object.FindObjectsOfType<Knight>().Length > 0)) || d >= 20 || (TenthRush && d >= 4 && arch >= 8);   // a knight waiting for the 15th archer wasted days 11-15
+                if (hr >= 4f && hr <= 12f && Time.time >= _mornHbAt) { _mornHbAt = Time.time + 10f; Plugin.Log("MORNING d" + d + " h" + hr.ToString("0.0") + " x" + pxx.ToString("0") + " c" + GameState.Coins + " ready=" + ready + " night=" + night + " danger=" + danger + " isDay=" + kk.isDaytime + " knightReady=" + KnightReady() + " | " + Status); }
                 if (!night && DrainStep(hm, hr, pxx)) return;
                 if (ready && !night && !danger && AssaultStep(UnityEngine.Object.FindObjectsOfType<Payable>(), d, hr, bud, arch, hm, pxx)) return;
             }
@@ -1912,7 +1913,7 @@ namespace KingdomBot
             int outer = 0; foreach (var po in UnityEngine.Object.FindObjectsOfType<Portal>()) if (po.outerSpawner) outer++;
             Plugin.Log("FINAL WAVE d" + GameState.Day + " h" + GameState.Hour.ToString("0.0") + (Managers.kingdom.isDaytime ? " day" : " night") + ": attacking " + att + "/" + all + " x" + minX.ToString("0") + ".." + maxX.ToString("0") + " outerPortals " + outer + " |" + sb);
         }
-        float _fwDiagAt;
+        float _fwDiagAt, _mornHbAt;
 
         static bool KnightReady()
         {

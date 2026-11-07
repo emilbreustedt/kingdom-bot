@@ -2216,7 +2216,7 @@ namespace KingdomBot
                     // knights march ~13 units per game hour: a charge starting at h10-13 reached a portal 124 beyond the wall only at
                     // nightfall and turned back (run with castle 5 on day 11 never destroyed a portal). Hike + ~3 h fight before dark.
                     float march = Mathf.Max(0f, pd - Mathf.Abs(WallEdge(ps, home) - home)) / 13f;
-                    if (hour + march + 3f > k.dayEnd) { if (_chargeLateLog != day * 10 + (ps + 1)) { _chargeLateLog = day * 10 + (ps + 1); Plugin.Log("CHARGE too late d" + day + " h" + hour.ToString("0.0") + ": portal " + pd.ToString("0") + " out needs " + march.ToString("0.0") + " h march - wait for dawn"); } continue; }
+                    if (hour > 6.5f && hour + march + 3f > k.dayEnd) {   /* at dawn always: a portal 162 out fell to a dawn charge, the estimate is pessimistic */ if (_chargeLateLog != day * 10 + (ps + 1)) { _chargeLateLog = day * 10 + (ps + 1); Plugin.Log("CHARGE too late d" + day + " h" + hour.ToString("0.0") + ": portal " + pd.ToString("0") + " out needs " + march.ToString("0.0") + " h march - wait for dawn"); } continue; }
                     // that side needs a payable banner and a ready knight standing there (day 9/10: the nearest portal was
                     // right, the only knight and the only payable banner left -> no charge, Tenth Day missed)
                     bool bannerOk = false; foreach (var bo in UnityEngine.Object.FindObjectsOfType<PayableBorder>()) if ((bo.transform.position.x - home) * ps > 0 && SafeCanPay(bo)) bannerOk = true;

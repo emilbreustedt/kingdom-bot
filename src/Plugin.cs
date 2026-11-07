@@ -482,7 +482,8 @@ namespace KingdomBot
                     if (Mathf.Abs(dx) <= tol && Mathf.Abs(dx) > reqTol && Time.timeScale > 3.5f && pl.Brain != null && Time.time - _t0 < 30f) { pl.Brain.SlowUntil = Time.unscaledTime + 0.6f; }
                     else if (Mathf.Abs(dx) <= tol) { c.Dir = 0; c.Sprint = false; done = true; break; }
                     // never ride into an enemy (dawn: 7 hits on the way to the outer wall banner took the crown on day 21)
-                    if (Time.time >= _enemyCheckAt)
+                    float homeX = Managers.kingdom != null ? Managers.kingdom.campfirePosition : 0f;
+                    if (Mathf.Abs(x - homeX) > Mathf.Abs(px - homeX) && Time.time >= _enemyCheckAt)   /* only when riding outwards: the way home is always allowed (stuck outside at x18 all night) */
                     {
                         _enemyCheckAt = Time.time + 0.2f;
                         foreach (var en in UnityEngine.Object.FindObjectsOfType<Enemy>())

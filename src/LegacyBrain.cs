@@ -212,7 +212,7 @@ namespace KingdomBot
                 else if (workers < WorkerTarget(day, archers, acrePhase) && hammerShop != null) { shop = hammerShop; what = "Hammer"; }
                 else if (scytheShop != null && farmExists && farmers < 6) { shop = scytheShop; what = "Sense"; }
                 else if (archers < archerCap && bowShop != null) { shop = bowShop; what = "Bogen"; }
-                if (shop != null && SafeCanPay(shop) && budget >= shop.price && peasants > toolsOnDisplay + Brain.ShieldsWaitingPublic())   /* waiting shields reserve only as many peasants as there are shields (6 idle peasants, no bows, day 24) */   // a waiting shield needs the next peasant
+                if (shop != null && SafeCanPay(shop) && budget >= shop.price && Brain.Affordable(shop.price) && peasants > toolsOnDisplay + Brain.ShieldsWaitingPublic())   /* waiting shields reserve only as many peasants as there are shields (6 idle peasants, no bows, day 24) */   // a waiting shield needs the next peasant
                 {
                     Status = "Werkzeug kaufen: " + what;
                     PayAt(shop); return;

@@ -253,6 +253,7 @@ namespace KingdomBot
                 _armyFirst = false;
                 // assault only once the defence is solid (the castle rush + shields cost ~40 coins)
                 bool ready = (d >= 12 && (arch >= 15 || UnityEngine.Object.FindObjectsOfType<Knight>().Length > 0)) || d >= 20 || (TenthRush && d >= 4 && arch >= 8);   // a knight waiting for the 15th archer wasted days 11-15
+                if (!night && DrainStep(hm, hr, pxx)) return;
                 if (ready && !night && !danger && AssaultStep(UnityEngine.Object.FindObjectsOfType<Payable>(), d, hr, bud, arch, hm, pxx)) return;
             }
             // (master now shares the survival basis below; economy/defence extras are no longer used)
@@ -674,6 +675,42 @@ namespace KingdomBot
             if (k == null || !k.isDaytime || h < 6f || h >= k.dayEnd - 7f) return false;
             foreach (var kn in UnityEngine.Object.FindObjectsOfType<Knight>()) { try { if ((bool)Acc.Call(kn, "CanCharge")) return true; } catch { } }
             return false;
+        }
+        float _drainNext;
+        /// <summary>
+        /// Experiment (DPQ trace): the last dead portal of a side keeps ~130 enemies queued - nightly waves of that side refill it
+        /// and it never crumbles (no final wave). Portals release their queue as defenders when our units come within
+        /// defenseTriggerRange (8). Ride close in the morning with a full purse, then gallop back to the archers.
+        /// </summary>
+        bool DrainStep(float home, float hour, float px)
+        {
+            var k = Managers.kingdom;
+            if (Time.time < _drainNext || !k.isDaytime || hour < 7f || hour > k.dayEnd - 9f || GameState.Coins < 20) return false;
+            Portal target = null; int bestQ = 0;
+            foreach (var po in UnityEngine.Object.FindObjectsOfType<Portal>())
+            {
+                var dm = po.GetComponent<Damageable>();
+                if (po.outerSpawner || dm == null || dm.hitPoints > 0) continue;
+                int side = po.transform.position.x < home ? -1 : 1;
+                bool liveSameSide = false;
+                foreach (var p2 in UnityEngine.Object.FindObjectsOfType<Portal>()) { var d2 = p2.GetComponent<Damageable>(); if (!p2.outerSpawner && (d2 == null || d2.hitPoints > 0) && (p2.transform.position.x - home) * side > 0) liveSameSide = true; }
+                if (liveSameSide) continue;   // other dead portals drain on their own
+                var q = Acc.Get<object>(po, "_spawnQueue") as System.Collections.ICollection;
+                int qc = q != null ? q.Count : 0;
+                if (qc > bestQ) { bestQ = qc; target = po; }
+            }
+            if (target == null || bestQ < 5) return false;
+            var en = NearestEnemy(px);
+            if (en != null && (en.GetComponent<Boss>() != null || en.GetComponent<Ogre>() != null)) return false;
+            _drainNext = Time.time + 120f;   // at most every ~half day
+            float tx = target.transform.position.x, s2 = tx < home ? -1f : 1f;
+            Status = "Drain dead portal x" + tx.ToString("0") + " (queue " + bestQ + ")";
+            Plugin.Log("DRAIN start: portal x" + tx.ToString("0") + " queue " + bestQ + " coins " + GameState.Coins);
+            _safeMode = true;
+            Push("goto " + F(tx - s2 * 6f) + " 1 " + F(20f + Mathf.Abs(tx - px) * 0.5f));
+            Push("wait 1");
+            Push("goto " + F(home) + " 2 " + F(20f + Mathf.Abs(tx - home) * 0.5f));
+            return true;
         }
         float _dpqNext;
         /// <summary>Hourly: queue of every dead (uncrumbled) portal + live enemies, to see when the queue grows/shrinks.</summary>

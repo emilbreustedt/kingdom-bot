@@ -16,7 +16,7 @@ namespace KingdomBot
 
         public bool BotActive;          // F8: bot owns the controls
         public bool AutoBrain;          // F9: strategy generates commands (otherwise only cmd.txt)
-        public float Speed = 32f;        // F10: game speed while playing normally
+        public float Speed = 16f;        // F10: game speed while playing normally (32x: the galloping king jumped ~15 units per frame over targets)
         public readonly Controller Ctl = new Controller();
         public readonly CommandQueue Queue = new CommandQueue();
         public Brain Brain;
@@ -33,7 +33,7 @@ namespace KingdomBot
             // user settings: BepInEx/config/emil.kingdombot.cfg
             Brain.ConfigMode = Config.Bind("General", "Mode", "auto",
                 "auto = pick the run type from the achievements still missing on Steam; or main | early | challenge").Value;
-            Speed = Config.Bind("General", "Speed", 32f, "Game speed while the bot plays (1-32; ~30x effective). F10 cycles at runtime.").Value;
+            Speed = Config.Bind("General", "Speed", 16f, "Game speed while the bot plays (1-32; default 16 - at 32x movement gets imprecise). F10 cycles at runtime.").Value;
             BotActive = AutoBrain = Config.Bind("General", "AutoStart", true, "Bot takes over as soon as the game runs (F8/F9 toggle).").Value;
             Brain.AutoRestart = Config.Bind("General", "AutoRestart", true, "Start a new game automatically after game over.").Value;
             Brain.PacifistEnabled = Config.Bind("Modes", "Pacifist", true, "auto: try the no-kill / no-dropped-coin run (Five Days + Eighth Day).").Value;

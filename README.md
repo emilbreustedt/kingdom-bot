@@ -2,7 +2,7 @@
 
 A BepInEx mod that plays **Kingdom: Classic** (Steam, 2015) on its own — built to hunt the game's
 day-based achievements. It reads the game state directly (no screen scraping), replaces the
-controller input with its own, and runs a rule-based strategy at up to 32× game speed.
+controller input with its own, and runs a rule-based strategy at 16× game speed by default (32× is possible, but movement gets imprecise).
 
 > Single-player only. Use at your own discretion. Not affiliated with Raw Fury or Noio.
 > This repository contains **no game code or assets** — the build derives a compile-time
@@ -21,7 +21,7 @@ controller input with its own, and runs a rule-based strategy at up to 32× game
   - *On the Third Day I Lit Up a Fire* — `mode fire3`: survive two nights without a camp, light the fire on day 3
   - *On the Ninth Day I First Ran* — no gallop before day counter 8
   - *Survive past day X* — long runs
-- **Game speed** 1×–16× (only while playing normally; menus and the crown slow-mo stay untouched)
+- **Game speed** 1×–32× (default 16×) (only while playing normally; menus and the crown slow-mo stay untouched)
 - Auto-skips the intro, auto-restarts after game over, runs windowed/minimized
 
 ## Requirements
@@ -50,7 +50,7 @@ controller input with its own, and runs a rule-based strategy at up to 32× game
    ```ini
    [General]
    Mode = auto          # auto | main | early | challenge
-   Speed = 32
+   Speed = 16
    AutoStart = true
    AutoRestart = true
    ```

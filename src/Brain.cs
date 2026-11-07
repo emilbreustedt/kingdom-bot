@@ -684,6 +684,7 @@ namespace KingdomBot
             foreach (var kn in UnityEngine.Object.FindObjectsOfType<Knight>()) { try { if ((bool)Acc.Call(kn, "CanCharge")) return true; } catch { } }
             return false;
         }
+        public bool UseDrain = false;
         float _drainNext;
         /// <summary>
         /// Experiment (DPQ trace): the last dead portal of a side keeps ~130 enemies queued - nightly waves of that side refill it
@@ -693,6 +694,7 @@ namespace KingdomBot
         bool DrainStep(float home, float hour, float px)
         {
             var k = Managers.kingdom;
+            if (!UseDrain) return false;   // tested 2026-11-07: queue 65 -> 63 in a day, the king lost 20 coins per ride
             if (Time.time < _drainNext || !k.isDaytime || hour < 7f || hour > k.dayEnd - 9f || GameState.Coins < 20) return false;
             Portal target = null; int bestQ = 0;
             foreach (var po in UnityEngine.Object.FindObjectsOfType<Portal>())

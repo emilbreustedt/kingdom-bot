@@ -226,7 +226,7 @@ namespace KingdomBot
                 // master = record-run defence (LegacyBrain) + portal assault steps on top
                 var kk = Managers.kingdom;
                 int d = GameState.Day; float hr = GameState.Hour, pxx = GameState.PX, hm = kk.campfirePosition;
-                int bud = GameState.Coins - ((d >= 1 && hr >= kk.dayEnd - 8f) ? 4 : 0);
+                int bud = GameState.Coins - ((d >= 10 || (d >= 1 && hr >= kk.dayEnd - 8f)) ? 4 : 0);   // crown guard: a hit with an empty purse costs the crown (day-24 game over)
                 int arch = UnityEngine.Object.FindObjectsOfType<Archer>().Length;
                 // track boss nights: the morning after one is the recovery day (forum tip: best time for an assault)
                 if (!kk.isDaytime || hr >= kk.dayEnd - 1f) { foreach (var bo in UnityEngine.Object.FindObjectsOfType<Boss>()) { var be = bo.GetComponent<Enemy>(); if (be != null && IsLiveEnemy(be)) _bossNightDay = hr < 12f ? d - 1 : d; } }
@@ -923,7 +923,7 @@ namespace KingdomBot
             // while saving the army must keep growing: bows for idle peasants, then recruit beggars (hand-over)
             int archersNow = UnityEngine.Object.FindObjectsOfType<Archer>().Length;
             int armyCap = item != null && item.name.StartsWith("Mason") ? 20 : (Mode == "master" && GameState.Day >= 12 ? AssaultArmyCap : 30);   // guide: archers first (20-30 by day 7)   // stone tech first: castle 5 / knights depend on it
-            int armyCoins = archersNow < MinChargeArchers ? GameState.Coins : coins;   // a weak army is rebuilt even from the assault reserve
+            int armyCoins = (archersNow < MinChargeArchers ? GameState.Coins : coins) - (day >= 10 ? 4 : 0);   // crown guard   // a weak army is rebuilt even from the assault reserve
             if (archersNow < Mathf.Min(3 * day + 6, armyCap) && hour < k.dayEnd - 5f)
             {
                 int peasants = UnityEngine.Object.FindObjectsOfType<Peasant>().Length, onDisplay = 0; PayableShop bow = null;

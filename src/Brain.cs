@@ -1000,6 +1000,13 @@ namespace KingdomBot
             if (cnt[s2] == 0) { FeastWhy("no deer outside walls within 110 (L " + cnt[0] + " R " + cnt[1] + ", walls " + l.ToString("0") + "/" + r.ToString("0") + ", total deer objects " + Resources.FindObjectsOfTypeAll<Deer>().Length + ")"); return false; }
             int side = s2 == 0 ? -1 : 1;
             float behind = far[s2] + side * 8f;
+            if (Time.time >= _herdTraceAt)
+            {
+                _herdTraceAt = Time.time + 10f;
+                var dx = new System.Collections.Generic.List<string>(); foreach (var d in UnityEngine.Object.FindObjectsOfType<Deer>()) dx.Add(d.transform.position.x.ToString("0"));
+                float amin = 1e6f, amax = -1e6f; foreach (var ar in UnityEngine.Object.FindObjectsOfType<Archer>()) { amin = Mathf.Min(amin, ar.transform.position.x); amax = Mathf.Max(amax, ar.transform.position.x); }
+                Plugin.Log("HERD TRACE d" + dayC + " h" + hour.ToString("0.0") + " king x" + px.ToString("0") + " out=" + _herdOut + " target x" + (far[s2] + side * 8f).ToString("0") + " | deer at " + string.Join(",", dx.ToArray()) + " | archers x" + amin.ToString("0") + ".." + amax.ToString("0") + " | killed " + deer);
+            }
             Status = "Feast: herd " + cnt[s2] + " deer (" + deer + "/10, day counter " + dayC + ", allowed " + allowed + ")";
             _safeMode = true;
             if (_herdOut && (px - home) * side >= (behind - home) * side - 2f) _herdOut = false;   // reached the far end: drive back
@@ -1009,7 +1016,7 @@ namespace KingdomBot
             return true;
         }
         bool _herdOut = true;
-        float _feastWhyAt;
+        float _feastWhyAt, _herdTraceAt;
         void FeastWhy(string why) { if (Time.time < _feastWhyAt) return; _feastWhyAt = Time.time + 10f; Plugin.Log("FEAST WHY d" + GameState.Day + " h" + GameState.Hour.ToString("0.0") + ": " + why); }
 
         /// <summary>

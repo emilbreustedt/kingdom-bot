@@ -493,6 +493,7 @@ namespace KingdomBot
 
         Coin NearestCoin(float px, float minX, float maxX)
         {
+            if (Plugin.Instance != null && Plugin.Instance.Brain != null && Plugin.Instance.Brain.Mode == "master" && GameState.Coins >= Plugin.Instance.Brain.PurseCap + 3) return null;   // bag overflow
             Coin best = null; float bd = float.MaxValue;
             foreach (var c in UnityEngine.Object.FindObjectsOfType<Coin>())
             {

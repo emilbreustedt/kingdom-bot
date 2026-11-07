@@ -437,7 +437,7 @@ namespace KingdomBot
     {
         readonly Queue<string> _q = new Queue<string>();
         string _cur; float _t0, _u0; int _n; bool _started;
-        int _lastCoinIdx = -1, _pressFrames; float _enemyCheckAt, _lastDx, _overshootLogAt, _lastPx = -1e6f; int _payCoins0, _payPrice;
+        int _lastCoinIdx = -1, _pressFrames; float _enemyCheckAt, _lastDx, _overshootLogAt, _lastPx = -1e6f, _passTapUntil, _passScanAt; bool _passPressed = true; readonly Dictionary<int, float> _passCool = new Dictionary<int, float>(); int _payCoins0, _payPrice;
 
         public bool Idle { get { return _cur == null && _q.Count == 0; } }
         /// <summary>true while creeping onto a payable (game speed is lowered for precision)</summary>
@@ -473,6 +473,25 @@ namespace KingdomBot
                 case "walkto":
                 {
                     float x = F(parts[1]);
+                    // recruit in passing (user: "whenever he rides past beggars he should take them"): stop, drop one coin, ride on
+                    if (_passTapUntil > Time.time) { c.Dir = 0; c.Sprint = false; c.Pay = !_passPressed; _passPressed = true; break; }
+                    if (parts[0] == "goto" && pl.Brain != null && pl.Brain.Mode == "master" && GameState.Coins >= (GameState.Day >= 10 ? 7 : 2) && Time.time >= _passScanAt)
+                    {
+                        _passScanAt = Time.time + 0.15f;
+                        bool selNone = false; try { selNone = Acc.Selected(p) == null; } catch { }
+                        var enP = UnityEngine.Object.FindObjectsOfType<Enemy>(); bool calm = true;
+                        foreach (var e in enP) if (Brain.IsLiveEnemy(e) && Mathf.Abs(e.transform.position.x - px) < 10f) { calm = false; break; }
+                        if (selNone && calm)
+                            foreach (var bg in UnityEngine.Object.FindObjectsOfType<Beggar>())
+                            {
+                                int bid = bg.GetInstanceID(); float until;
+                                if (Mathf.Abs(bg.transform.position.x - px) > 2.5f || (_passCool.TryGetValue(bid, out until) && until > Time.time)) continue;
+                                _passCool[bid] = Time.time + 15f; _passTapUntil = Time.time + 0.6f; _passPressed = false;
+                                Plugin.Log("recruit in passing at x" + px.ToString("0") + " (coins " + GameState.Coins + ")");
+                                c.Dir = 0; c.Sprint = false; c.Pay = false; break;
+                            }
+                        if (_passTapUntil > Time.time) break;
+                    }
                     float reqTol = parts.Length > 2 ? F(parts[2]) : 0.4f;
                     float tol = Mathf.Max(reqTol, 0.08f * Time.timeScale);   // larger steps per frame at high speed
                     float dx = x - px;

@@ -1043,7 +1043,7 @@ namespace KingdomBot
             {
                 if (d == null || d.hideFlags != HideFlags.None || !d.transform.root.gameObject.activeSelf) continue;
                 float x = d.transform.position.x;
-                if ((x > l && x < r) || Mathf.Abs(x - home) > 110f) continue;
+                if ((x > l && x < r) || Mathf.Abs(x - home) > Mathf.Max(110f, (x < home ? home - l : r - home) + 50f)) continue;   // up to 50 beyond a far forest wall (deer gather right behind it)
                 int si = x < home ? 0 : 1;
                 cnt[si]++;
                 if (Mathf.Abs(x - home) > Mathf.Abs(far[si] - home)) far[si] = x;

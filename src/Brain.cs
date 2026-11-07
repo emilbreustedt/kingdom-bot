@@ -243,7 +243,7 @@ namespace KingdomBot
                 // master = record-run defence (LegacyBrain) + portal assault steps on top
                 var kk = Managers.kingdom;
                 int d = GameState.Day; float hr = GameState.Hour, pxx = GameState.PX, hm = kk.campfirePosition;
-                int bud = GameState.Coins - ((d >= 10 || (d >= 1 && hr >= kk.dayEnd - 8f)) ? 4 : 0);   // crown guard: a hit with an empty purse costs the crown (day-24 game over)
+                int bud = GameState.Coins - ((Managers.achievements != null && Managers.achievements.flags != null && Managers.achievements.flags[7]) ? 8 : (d >= 10 || (d >= 1 && hr >= kk.dayEnd - 8f)) ? 4 : 0);   // final wave: 8 (day-28 game over with 2 coins at the fire)   // crown guard: a hit with an empty purse costs the crown (day-24 game over)
                 int arch = UnityEngine.Object.FindObjectsOfType<Archer>().Length;
                 // track boss nights: the morning after one is the recovery day (forum tip: best time for an assault)
                 if (!kk.isDaytime || hr >= kk.dayEnd - 1f) { foreach (var bo in UnityEngine.Object.FindObjectsOfType<Boss>()) { var be = bo.GetComponent<Enemy>(); if (be != null && IsLiveEnemy(be)) _bossNightDay = hr < 12f ? d - 1 : d; } }

@@ -1574,7 +1574,7 @@ namespace KingdomBot
             return false;
         }
 
-        public int KnightArmor = 2;   // knights pick up coins themselves (often 8/8 in the logs); our coins are needed for banners
+        public int KnightArmor = 5;   // day-17 charge: knights with 1-3 coins reached the portal, fought 3 h, failed, escorts died at dusk   // knights pick up coins themselves (often 8/8 in the logs); our coins are needed for banners
         public bool UseMerchant = true;   // main: a random shop refilled for 4 coins - bows, hammers, scythes and (castle 5) shields are all useful
         // Farms (tree clearing + wall beyond the farm + scythes) cost more than they earned in tests: the army stayed
         // at ~12 archers by day 30 instead of 25-30. Off by default.
@@ -2334,7 +2334,7 @@ namespace KingdomBot
                     // that side needs a payable banner and a ready knight standing there (day 9/10: the nearest portal was
                     // right, the only knight and the only payable banner left -> no charge, Tenth Day missed)
                     bool bannerOk = false; foreach (var bo in UnityEngine.Object.FindObjectsOfType<PayableBorder>()) if ((bo.transform.position.x - home) * ps > 0 && SafeCanPay(bo)) bannerOk = true;
-                    int readyHere = 0; foreach (var kn in knights) { try { if ((kn.transform.position.x - home) * ps > 0 && (bool)Acc.Call(kn, "CanCharge")) readyHere++; } catch { } }
+                    int readyHere = 0; foreach (var kn in knights) { try { int kcn = Acc.Wallet(kn).coins; if ((kn.transform.position.x - home) * ps > 0 && (bool)Acc.Call(kn, "CanCharge") && (kcn >= 3 || day >= 22)) readyHere++; } catch { } }
                     // each knight takes 4 escort archers; single-knight charges failed and cost ~30 archers between day 13 and 21
                     // (archers 22 -> 10, made 22 -> 41). Guide: 2 knights per side. Alone only from day 22 (schedule).
                     bool knightOk = readyHere >= 2 || (readyHere >= 1 && day >= 22);

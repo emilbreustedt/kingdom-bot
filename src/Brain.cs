@@ -254,6 +254,7 @@ namespace KingdomBot
             {
                 TrackCharge();
                 DeadPortalTrace();
+                if (SweepNearCoins()) return;
                 try { if (Graze()) return; } catch (System.Exception e) { if (Time.time >= _grazeErrAt) { _grazeErrAt = Time.time + 60f; Plugin.Log("Graze error (skipped): " + e.Message); } }
                 // castle chest: refilled every morning (5-7 coins at castle 0-3). The saving/assault steps below always returned
                 // before LegacyBrain's chest step, so it was emptied once per run (ledger: ~5 coins/day income on days 5-8).
@@ -1873,6 +1874,29 @@ namespace KingdomBot
             Status = "Saving for " + what + " (" + coins + "/" + target + ")";
             float l = WallEdge(-1, home), r = WallEdge(1, home);
             Push("walkto " + F(px < home ? r - 1f : l + 1f) + " 1 20");
+            return true;
+        }
+
+        /// <summary>User observation: riding home through the archers, their tax coins land behind the galloping king and stay there.
+        /// Any coin within 12 units is picked up first (at night only inside the walls).</summary>
+        bool SweepNearCoins()
+        {
+            var k = Managers.kingdom; float px = GameState.PX, home = k.campfirePosition;
+            float l = WallEdge(-1, home), r = WallEdge(1, home);
+            bool night = !k.isDaytime || GameState.Hour >= k.dayEnd - 0.5f;
+            var en = NearestEnemy(px); if (en != null && Mathf.Abs(en.transform.position.x - px) < 15f && !WallBetween(px, en.transform.position.x)) return false;
+            Coin best = null; float bd = 12f;
+            foreach (var c in UnityEngine.Object.FindObjectsOfType<Coin>())
+            {
+                if (c.pickedUp || OnCooldown(c.GetInstanceID()) || c.transform.position.y < -3f) continue;
+                if (c.droppedByPlayer && Time.time - _lastTap < 15f) continue;   // payments/recruit coins
+                float x = c.transform.position.x, d = Mathf.Abs(x - px);
+                if (night && (x <= l || x >= r)) continue;
+                if (d < bd) { bd = d; best = c; }
+            }
+            if (best == null) return false;
+            Cool(best.GetInstanceID(), 15f);
+            Status = "Sweep: coin " + bd.ToString("0") + " away"; Push("walkto " + F(best.transform.position.x) + " 0.3 8");
             return true;
         }
 

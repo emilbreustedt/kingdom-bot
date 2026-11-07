@@ -2023,7 +2023,7 @@ namespace KingdomBot
             if (Time.time >= _farmDiagAt) { _farmDiagAt = Time.time + 60f; Plugin.Log("FARM DIAG farms " + farms + " farmers " + farmers + " exposed " + FarmsExposed(home) + " -> scythe first"); }
             return sc;
         }
-        float _farmDiagAt, _grazeErrAt; int _chargeLateLog;
+        float _farmDiagAt, _grazeErrAt; int _chargeLateLog, _chargeSkipLog;
 
         /// <summary>User observation: by day the archers hunt OUTSIDE the walls and carry the coins - they hand them over only when
         /// the king passes by. Saving used to patrol inside the walls only. Ride out to them (and pick up coins out there) when it is safe.</summary>
@@ -2218,7 +2218,7 @@ namespace KingdomBot
             foreach (var kn in knights) { try { if ((bool)Acc.Call(kn, "CanCharge")) armed = true; } catch { } }
             // charge: pay the border banner while knights with archers are ready (and armed)
             bool recovery = _bossNightDay == day - 1;
-            if (morning && hour >= 7f && knights.Length > 0 && _chargeDiagDay != day)
+            if (morning && hour >= 5f && knights.Length > 0 && _chargeDiagDay != day)
             {
                 _chargeDiagDay = day;
                 var bl = new System.Text.StringBuilder();
@@ -2247,7 +2247,7 @@ namespace KingdomBot
                     // right, the only knight and the only payable banner left -> no charge, Tenth Day missed)
                     bool bannerOk = false; foreach (var bo in UnityEngine.Object.FindObjectsOfType<PayableBorder>()) if ((bo.transform.position.x - home) * ps > 0 && SafeCanPay(bo)) bannerOk = true;
                     bool knightOk = false; foreach (var kn in knights) { try { if ((kn.transform.position.x - home) * ps > 0 && (bool)Acc.Call(kn, "CanCharge")) knightOk = true; } catch { } }
-                    if (!bannerOk || !knightOk) continue;
+                    if (!bannerOk || !knightOk) { if (_chargeSkipLog != day * 10 + (ps + 1)) { _chargeSkipLog = day * 10 + (ps + 1); Plugin.Log("CHARGE skip d" + day + " h" + hour.ToString("0.0") + " side " + ps + " portal " + pd.ToString("0") + ": bannerOk=" + bannerOk + " knightOk=" + knightOk); } continue; }
                     if (pd < bestPd) { bestPd = pd; pside = ps; }
                 }
                 if (pside == 0) return false;

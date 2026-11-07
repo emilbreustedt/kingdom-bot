@@ -1921,7 +1921,7 @@ namespace KingdomBot
             if (!night || day < 9 || OnCooldown(777400)) return false;
             float px = GameState.PX, home = k.campfirePosition;
             var en = NearestEnemy(px); if (en != null && Mathf.Abs(en.transform.position.x - home) < 25f) return false;
-            int budget = GameState.Coins - AssaultReserve(true) - 4;
+            int budget = Mathf.Min(GameState.Coins - AssaultReserve(true) - 4, GameState.Coins - 12);   // keep a crown guard for the dawn (night tower + morning trip left 7 coins: crown lost day 21)
             int ttarget = day >= 20 ? 3 : day >= 14 ? 2 : 1;
             float l = WallEdge(-1, home), r = WallEdge(1, home);
             Payable best = null; int bestLvl = 99;

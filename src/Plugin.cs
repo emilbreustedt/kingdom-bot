@@ -437,7 +437,7 @@ namespace KingdomBot
     {
         readonly Queue<string> _q = new Queue<string>();
         string _cur; float _t0, _u0; int _n; bool _started;
-        int _lastCoinIdx = -1, _pressFrames;
+        int _lastCoinIdx = -1, _pressFrames; float _enemyCheckAt;
 
         public bool Idle { get { return _cur == null && _q.Count == 0; } }
         /// <summary>true while creeping onto a payable (game speed is lowered for precision)</summary>
@@ -481,6 +481,20 @@ namespace KingdomBot
                     // (8 chest coins stayed on the ground). Slow the game down for the last few units instead of giving up.
                     if (Mathf.Abs(dx) <= tol && Mathf.Abs(dx) > reqTol && Time.timeScale > 3.5f && pl.Brain != null && Time.time - _t0 < 30f) { pl.Brain.SlowUntil = Time.unscaledTime + 0.6f; }
                     else if (Mathf.Abs(dx) <= tol) { c.Dir = 0; c.Sprint = false; done = true; break; }
+                    // never ride into an enemy (dawn: 7 hits on the way to the outer wall banner took the crown on day 21)
+                    if (Time.time >= _enemyCheckAt)
+                    {
+                        _enemyCheckAt = Time.time + 0.2f;
+                        foreach (var en in UnityEngine.Object.FindObjectsOfType<Enemy>())
+                        {
+                            if (!Brain.IsLiveEnemy(en)) continue;
+                            float ex = en.transform.position.x - px;
+                            if (Mathf.Sign(ex) != Mathf.Sign(dx) || Mathf.Abs(ex) > 8f || Mathf.Abs(ex) > Mathf.Abs(dx) + 2f || Brain.WallBetween(px, en.transform.position.x)) continue;
+                            Plugin.Log("goto aborted: enemy " + ex.ToString("0.0") + " ahead (player x" + px.ToString("0") + ", target x" + x.ToString("0") + ")");
+                            c.Dir = 0; c.Sprint = false; done = true; break;
+                        }
+                        if (done) break;
+                    }
                     c.Dir = dx > 0 ? 1 : -1;
                     c.Sprint = parts[0] == "goto" && pl.Brain.MaySprint && Mathf.Abs(dx) > 6f && p.stamina > 0.3f;
                     float maxT = parts.Length > 3 ? F(parts[3]) : 90f;

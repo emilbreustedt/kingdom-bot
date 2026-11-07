@@ -2285,7 +2285,10 @@ namespace KingdomBot
                     // that side needs a payable banner and a ready knight standing there (day 9/10: the nearest portal was
                     // right, the only knight and the only payable banner left -> no charge, Tenth Day missed)
                     bool bannerOk = false; foreach (var bo in UnityEngine.Object.FindObjectsOfType<PayableBorder>()) if ((bo.transform.position.x - home) * ps > 0 && SafeCanPay(bo)) bannerOk = true;
-                    bool knightOk = false; foreach (var kn in knights) { try { if ((kn.transform.position.x - home) * ps > 0 && (bool)Acc.Call(kn, "CanCharge")) knightOk = true; } catch { } }
+                    int readyHere = 0; foreach (var kn in knights) { try { if ((kn.transform.position.x - home) * ps > 0 && (bool)Acc.Call(kn, "CanCharge")) readyHere++; } catch { } }
+                    // each knight takes 4 escort archers; single-knight charges failed and cost ~30 archers between day 13 and 21
+                    // (archers 22 -> 10, made 22 -> 41). Guide: 2 knights per side. Alone only from day 22 (schedule).
+                    bool knightOk = readyHere >= 2 || (readyHere >= 1 && day >= 22);
                     if (!bannerOk || !knightOk) { if (_chargeSkipLog != day * 10 + (ps + 1)) { _chargeSkipLog = day * 10 + (ps + 1); Plugin.Log("CHARGE skip d" + day + " h" + hour.ToString("0.0") + " side " + ps + " portal " + pd.ToString("0") + ": bannerOk=" + bannerOk + " knightOk=" + knightOk); } continue; }
                     float score = pd + (ps == MainSide() ? 0f : 80f);   // main side first (both of its portals), then the camp side
                     if (score < bestPd) { bestPd = score; pside = ps; }

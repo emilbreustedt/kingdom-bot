@@ -803,6 +803,27 @@ namespace KingdomBot
         }
         int _finalPrepDay = -1;
         int _knightDiagDay = -1, _knightMoveWarned;
+        /// <summary>Ground coins incl. deactivated far ones (FindObjectsOfType misses them - guide: "run right collecting all the coins").</summary>
+        static Coin FarCoin(float px, float minX, float maxX, float home)
+        {
+            Coin best = null; float bd = 1e6f;
+            foreach (var c in Resources.FindObjectsOfTypeAll<Coin>())
+            {
+                if (c == null || c.pickedUp || c.hideFlags != HideFlags.None || c.transform.parent == null || !c.transform.root.gameObject.activeSelf) continue;
+                float x = c.transform.position.x;
+                if (x < minX || x > maxX || TooLateFor(x, home)) continue;
+                float d = Mathf.Abs(x - px);
+                if (d < bd) { bd = d; best = c; }
+            }
+            return best;
+        }
+        static int CountCoins(float home, float range)
+        {
+            int n = 0;
+            foreach (var c in Resources.FindObjectsOfTypeAll<Coin>())
+                if (c != null && !c.pickedUp && c.hideFlags == HideFlags.None && c.transform.parent != null && c.transform.root.gameObject.activeSelf && Mathf.Abs(c.transform.position.x - home) < range) n++;
+            return n;
+        }
         /// <summary>A trip to x and back home cannot be finished before dusk (day-2 game over 78 out at night).</summary>
         static bool TooLateFor(float x, float home)
         {
@@ -824,7 +845,7 @@ namespace KingdomBot
             if (!_mapChecked && !feast && !boot)
             {
                 int avail = coins;
-                foreach (var c in UnityEngine.Object.FindObjectsOfType<Coin>()) if (!c.pickedUp && Mathf.Abs(c.transform.position.x - home) < Army1Check) avail++;
+                avail += CountCoins(home, Army1Check);
                 foreach (var ch in AllChests()) if (!ch.isEmpty && Mathf.Abs(ch.transform.position.x - home) < Army1Check) avail += ch.coins;
                 foreach (var ch in AllChests())
                     Plugin.Log("CHEST " + ch.name + " x" + ch.transform.position.x.ToString("0") + " coins=" + ch.coins + " empty=" + ch.isEmpty + " active=" + ch.gameObject.activeInHierarchy + " parent=" + (ch.transform.parent != null ? ch.transform.parent.name : "-") + " root=" + ch.transform.root.name);
@@ -885,7 +906,7 @@ namespace KingdomBot
                 if (Mathf.Abs(cx - px) < fd) { fd = Mathf.Abs(cx - px); far = ch; }
             }
             if (far != null && !TooLateFor(far.transform.position.x, home)) { Cool(far.GetInstanceID(), 1e7f);   /* one visit per chest: inactive/template chests gave nothing and were revisited all day */ float cx = far.transform.position.x; Status = "army1: chest (" + far.coins + ")"; Push("goto " + F(cx) + " 0.3 " + F(10f + Mathf.Abs(cx - px) * 0.6f)); Push("wait 2.5"); Push("walkto " + F(cx - 3f) + " 0.3 4"); Push("walkto " + F(cx + 3f) + " 0.3 4"); return; }   /* coins spill around the chest: sweep them up */
-            var coinFar = NearestCoin(px, home - Army1Range, home + Army1Range);
+            var coinFar = FarCoin(px, home - Army1Range, home + Army1Range, home);
             if (coinFar != null && !TooLateFor(coinFar.transform.position.x, home) && !(coinFar.droppedByPlayer && Time.time - _lastTap < 15f)) { Cool(coinFar.GetInstanceID(), 1e7f); Status = "army1: coin far"; Push("goto " + F(coinFar.transform.position.x) + " 0.3 " + F(10f + Mathf.Abs(coinFar.transform.position.x - px) * 0.6f)); return; }
             Status = (feast ? "Feast: waiting (deer " + (am != null ? am.counters[4] : -1) + ", " : "army1: waiting (") + archersMade + " archers, " + coins + " coins)";
             if (Mathf.Abs(px - home) > 3f) Push("walkto " + F(home) + " 1 6"); else Push("wait 1");

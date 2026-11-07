@@ -350,7 +350,7 @@ namespace KingdomBot
         {
             if (day == 0) return 1;
             if (acrePhase) return 6;                   // clearing for the acre
-            return Mathf.Max(3, archers / 3);
+            return day >= 10 ? 4 : 3;   // was max(3, archers/3) = 7-8 builders; forum: 3-4 per side only to man catapults (off here)
         }
 
         void PayAt(Payable py)

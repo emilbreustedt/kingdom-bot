@@ -254,6 +254,7 @@ namespace KingdomBot
             {
                 TrackCharge();
                 DeadPortalTrace();
+                if (Graze()) return;
                 // castle chest: refilled every morning (5-7 coins at castle 0-3). The saving/assault steps below always returned
                 // before LegacyBrain's chest step, so it was emptied once per run (ledger: ~5 coins/day income on days 5-8).
                 if (Managers.kingdom.isDaytime && GameState.Hour < Managers.kingdom.dayEnd - 3f)
@@ -1528,7 +1529,7 @@ namespace KingdomBot
             var payables = UnityEngine.Object.FindObjectsOfType<Payable>();
             // merchant: one payment = a whole shop restocked for free (forum tip: pay him on every visit)
             var merchant = Find(payables, x => x is Merchant && SafeCanPay(x) && Mathf.Abs(x.transform.position.x - home) < 60f, px);
-            if (merchant != null && UseMerchant && coins >= merchant.price + 2) { Status = "Economy: pay the merchant (" + merchant.price + ")"; PayAt(merchant); return true; }
+            if (merchant != null && UseMerchant && coins >= merchant.price + 2 && UnityEngine.Object.FindObjectsOfType<Worker>().Length <= 3) { Status = "Economy: pay the merchant (" + merchant.price + ")"; PayAt(merchant); return true; }
             PayableShop scythe = null; int onDisplay = 0;
             foreach (var py in payables) { var sh = py as PayableShop; if (sh == null) continue; onDisplay += sh.GetItemCount(); if (sh.name.Contains("Scythe")) scythe = sh; }
             if (scythe == null) return false;                               // castle level 2+ needed
@@ -1870,6 +1871,25 @@ namespace KingdomBot
             Status = "Saving for " + what + " (" + coins + "/" + target + ")";
             float l = WallEdge(-1, home), r = WallEdge(1, home);
             Push("walkto " + F(px < home ? r - 1f : l + 1f) + " 1 20");
+            return true;
+        }
+
+        /// <summary>User observation "the horse never eats grass". Game code: standing still on grass for eatDelay makes the horse eat;
+        /// while well fed (wellFedDuration) galloping costs no stamina. The bot never stood still on grass.</summary>
+        bool Graze()
+        {
+            var k = Managers.kingdom; var pl = GameState.Player;
+            if (pl == null || pl._steed == null || !k.isDaytime || GameState.Hour > k.dayEnd - 3f || OnCooldown(777300)) return false;
+            if (pl._wellFedTimer > 0f || pl.stamina > 0.6f) return false;
+            float px = GameState.PX;
+            var en = NearestEnemy(px); if (en != null && Mathf.Abs(en.transform.position.x - px) < 30f) return false;
+            Cool(777300, 25f);
+            float wait = pl._steed.eatDelay + pl._steed.eatDuration + 0.5f;
+            if ((int)pl._groundType == 1) { Status = "Horse: graze here"; Push("wait " + F(wait)); return true; }
+            Grass best = null; float bd = 15f;
+            foreach (var g in UnityEngine.Object.FindObjectsOfType<Grass>()) { float d = Mathf.Abs(g.transform.position.x - px); if (d < bd) { bd = d; best = g; } }
+            if (best == null) return false;
+            Status = "Horse: graze (grass " + bd.ToString("0") + " away)"; Push("walkto " + F(best.transform.position.x) + " 0.5 8"); Push("wait " + F(wait));
             return true;
         }
 

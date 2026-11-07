@@ -2219,7 +2219,7 @@ namespace KingdomBot
                 Plugin.Log("CHARGE CHECK d" + day + " h" + hour.ToString("0.0") + ": knights " + knights.Length + " armed(CanCharge)=" + armed + " archers " + archers + "/" + ChargeArchers
                     + " recovery=" + recovery + " clearL=" + FieldClear(home, -1) + " clearR=" + FieldClear(home, 1) + " budget " + budget + " banners" + bl);
             }
-            bool lastPortalReady = LiveInnerPortals() != 1 || (archers >= FinalArchers && budget >= FinalBank);
+            bool lastPortalReady = LiveInnerPortals() != 1 || (archers >= FinalArchers && budget >= FinalBank) || (day >= 21 && archers >= 12 && budget >= 4);   /* waited day 22-31 for 16/10 with 14-17 live archers and 8-12 coins: Safe in 30 lost */
             if (!lastPortalReady && morning && _finalPrepDay != day) { _finalPrepDay = day; Plugin.Log("FINAL PREP d" + day + ": last portal waits - archers " + archers + "/" + FinalArchers + " budget " + budget + "/" + FinalBank); }
             if (lastPortalReady && k.isDaytime && hour < k.dayEnd - 5f && hour >= 5f && armed && archers >= ChargeArchers &&   /* coins arrive during the day (hunting): morning-only charges never had the banner price */ (recovery || FieldClear(home, -1) || FieldClear(home, 1)))
             {

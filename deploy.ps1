@@ -12,12 +12,19 @@ if ($proc) {
         Write-Output "Run is on day $($st0.day) - not deploying (would risk the run). Use -Force to override."
         exit 1
     }
-    # save only while no enemies exist (daytime, after they retreated): saved enemies come back as frozen "ghosts"
+    # save only at a safe moment: daytime, no enemies (saved enemies come back as frozen "ghosts"), and never once all
+    # inner portals are down (final wave - a save & quit there lost two all-portals runs). No safe moment -> abort.
+    $safe = $false
     for ($i = 0; $i -lt 120; $i++) {
         try { $st = Get-Content "$GamePath\BepInEx\KingdomBot\state.json" -ErrorAction Stop | ConvertFrom-Json } catch { Start-Sleep 1; continue }
-        if ($st.gameState -ne 'Game' -or ($st.enemies.Count -eq 0 -and $st.hour -ge 7 -and $st.hour -lt 16)) { break }
+        if ($st.gameState -ne 'Game') { $safe = $true; break }
+        $innerAlive = @($st.portals | Where-Object { -not $_.outer -and $_.hp -gt 0 }).Count
+        if ($innerAlive -eq 0) { Write-Output "All inner portals are down (final wave) - not deploying."; exit 1 }
+        if (-not $Force -and $st.day -ge 15) { Write-Output "Run reached day $($st.day) while waiting - not deploying. Use -Force to override."; exit 1 }
+        if ($st.enemies.Count -eq 0 -and $st.hour -ge 7 -and $st.hour -lt 16) { $safe = $true; break }
         Start-Sleep 1
     }
+    if (-not $safe) { Write-Output "No safe moment to save within 2 minutes - not deploying (try again later)."; exit 1 }
     Set-Content "$GamePath\BepInEx\KingdomBot\cmd.txt" 'savequit' -Encoding ascii
     if (-not $proc.WaitForExit(20000)) { Write-Output 'Game did not quit in time - killing it'; $proc | Stop-Process -Force; Start-Sleep 2 }
 }

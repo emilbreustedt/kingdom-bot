@@ -245,7 +245,7 @@ namespace KingdomBot
             UpdatePhase();
             CheckRunEnd();
             if (Mode == "pacifist") { ThinkPacifist(); return; }
-            if (Mode == "army1") { ThinkArmy1(false); return; }
+            if (Mode == "army1") { if (GameState.Player != null && (int)Managers.game.gameState == 2 && HorseStep()) return; ThinkArmy1(false); return; }   // black horse: longer, faster gallops for the camp/chest route
             if (Mode == "boot") { if (GameState.Player != null && (int)Managers.game.gameState == 2 && HorseStep()) return; ThinkArmy1(false, true); return; }
             if (Mode == "feast") { ThinkArmy1(true); return; }   // feast: maximum archers early - they hunt deer on their own in safe daytime
             if (RunType == "main" && GameState.Player != null && (int)Managers.game.gameState == 2 && GameState.Day == 0 && MainMapCheck()) return;

@@ -1507,6 +1507,11 @@ namespace KingdomBot
                     float pd = Mathf.Abs(po.transform.position.x - home);
                     int ps = po.transform.position.x < home ? -1 : 1;
                     if (!FieldClear(home, ps)) continue;             // enemies (e.g. boulder throwers) in front of that wall: other side
+                    // that side needs a payable banner and a ready knight standing there (day 9/10: the nearest portal was
+                    // right, the only knight and the only payable banner left -> no charge, Tenth Day missed)
+                    bool bannerOk = false; foreach (var bo in UnityEngine.Object.FindObjectsOfType<PayableBorder>()) if ((bo.transform.position.x - home) * ps > 0 && SafeCanPay(bo)) bannerOk = true;
+                    bool knightOk = false; foreach (var kn in knights) { try { if ((kn.transform.position.x - home) * ps > 0 && (bool)Acc.Call(kn, "CanCharge")) knightOk = true; } catch { } }
+                    if (!bannerOk || !knightOk) continue;
                     if (pd < bestPd) { bestPd = pd; pside = ps; }
                 }
                 if (pside == 0) return false;

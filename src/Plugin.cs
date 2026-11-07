@@ -52,7 +52,7 @@ namespace KingdomBot
             if (Input.GetKeyDown(KeyCode.F10)) { Speed = Speed >= 32f ? 1f : Speed * 2f; Log("Speed: " + Speed); }
             ApplySpeed();
 
-            if (Brain != null && Brain.Mode == "army1" && Managers.game != null && (int)Managers.game.gameState == 2) { try { Brain.CoinLedger(); } catch (System.Exception e) { Log("ledger: " + e.Message); } }
+            if (Brain != null && Managers.game != null && (int)Managers.game.gameState == 2) { try { Brain.CoinLedger(); } catch (System.Exception e) { Log("ledger: " + e.Message); } }
             if (Time.unscaledTime >= _nextCmdPoll) { _nextCmdPoll = Time.unscaledTime + 0.5f; PollCommandFile(); }
 
             // intro (also after a new game): queued commands can never finish there -> clear them and skip the intro directly

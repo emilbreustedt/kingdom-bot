@@ -939,9 +939,9 @@ namespace KingdomBot
             if (d == 0 && Time.time >= _hbNext) { _hbNext = Time.time + 15f; Plugin.Log("A1 HB h" + GameState.Hour.ToString("0.0") + " x" + GameState.PX.ToString("0") + " c" + c + " | " + Status); }
             if (_ledgerDay != d)
             {
-                if (_ledgerDay == 0 && (_ledgerIn.Count > 0 || _ledgerOut.Count > 0))
+                if (_ledgerDay >= 0 && (_ledgerIn.Count > 0 || _ledgerOut.Count > 0))
                 {
-                    var sb = new System.Text.StringBuilder("COIN LEDGER day 0 (tutorialDone=" + (Managers.tutorial != null && Managers.tutorial.isCompleted) + " merchantSeen=" + _merLogged + ") | in:");
+                    var sb = new System.Text.StringBuilder("COIN LEDGER day " + _ledgerDay + " " + Mode + " (tutorialDone=" + (Managers.tutorial != null && Managers.tutorial.isCompleted) + " merchantSeen=" + _merLogged + ") | in:");
                     foreach (var kv in _ledgerIn) sb.Append(" " + kv.Key + "=" + kv.Value);
                     sb.Append(" | out:"); foreach (var kv in _ledgerOut) sb.Append(" " + kv.Key + "=" + kv.Value);
                     Plugin.Log(sb.ToString());
@@ -1538,7 +1538,7 @@ namespace KingdomBot
         }
 
         public int KnightArmor = 2;   // knights pick up coins themselves (often 8/8 in the logs); our coins are needed for banners
-        public bool UseMerchant = false;
+        public bool UseMerchant = true;   // main: a random shop refilled for 4 coins - bows, hammers, scythes and (castle 5) shields are all useful
         // Farms (tree clearing + wall beyond the farm + scythes) cost more than they earned in tests: the army stayed
         // at ~12 archers by day 30 instead of 25-30. Off by default.
         public bool UseFarms = true;   /* retry 2026-11-07: only from day 10 with 18+ archers, no farm walls (those cleared beggar camps); forum: 1 farm + 4 farmers carries the late game */     // tested twice: farm runs had ~9 archers on day 20 (vs ~25) - clearing for the farm wall destroys beggar camps

@@ -627,9 +627,18 @@ namespace KingdomBot
                     bool dead = dm != null && dm.hitPoints <= 0;
                     bool otherSide = (ts.transform.position.x - home) * (kn.transform.position.x - home) < 0;
                     if (!dead && !otherSide) continue;
-                    fTs.SetValue(kn, null);
+                    // point it at the nearest living inner portal on its side (null alone: the game re-picked the dead one)
+                    Component live = null; float ld = 1e6f; int ks = kn.transform.position.x < home ? -1 : 1;
+                    foreach (var po in UnityEngine.Object.FindObjectsOfType<Portal>())
+                    {
+                        var pdm = po.GetComponent<Damageable>();
+                        if (po.outerSpawner || (pdm != null && pdm.hitPoints <= 0) || (po.transform.position.x - home) * ks <= 0) continue;
+                        float pd = Mathf.Abs(po.transform.position.x - kn.transform.position.x);
+                        if (pd < ld) { ld = pd; live = po.GetComponent(fTs.FieldType); }
+                    }
+                    fTs.SetValue(kn, live);
                     if (fTc != null) fTc.SetValue(kn, null);
-                    Plugin.Log("KNIGHT target reset (" + (dead ? "dead" : "other side") + " " + ts.name.Replace("(Clone)", "") + "@" + ts.transform.position.x.ToString("0") + ") x" + kn.transform.position.x.ToString("0"));
+                    Plugin.Log("KNIGHT target reset -> " + (live != null ? "Portal@" + live.transform.position.x.ToString("0") : "none") + " (" + (dead ? "dead" : "other side") + " " + ts.name.Replace("(Clone)", "") + "@" + ts.transform.position.x.ToString("0") + ") x" + kn.transform.position.x.ToString("0"));
                 }
                 catch (System.Exception ex) { Plugin.Log("KNIGHT target reset failed: " + ex.Message); }
             }

@@ -861,6 +861,24 @@ namespace KingdomBot
             }
             bool tooEarly = item != null && item.name.StartsWith("Mason") && hour < 7f;   // trolls still about at dawn
             if (noBuilders && item != null && !item.name.StartsWith("Mason")) item = null;   // nothing gets built without workers
+            // guide: archers first. While the army is below today's target and coins are plentiful, recruit/arm nearby
+            // beggars before long trips (the mason shrine trip took 10 game hours with 38 coins in the purse)
+            {
+                int arNow = UnityEngine.Object.FindObjectsOfType<Archer>().Length;
+                if (arNow < Mathf.Min(3 * day + 6, 25) && hour < k.dayEnd - 5f && GameState.Coins >= (item != null ? item.price : 0) + 6)
+                {
+                    int pe = UnityEngine.Object.FindObjectsOfType<Peasant>().Length, disp = 0; PayableShop bw = null, hm = null;
+                    foreach (var py in payables) { var sh = py as PayableShop; if (sh == null) continue; disp += sh.GetItemCount(); if (sh.name.Contains("Bow")) bw = sh; if (sh.name.Contains("Hammer")) hm = sh; }
+                    int wk = UnityEngine.Object.FindObjectsOfType<Worker>().Length;
+                    if (pe > disp && ShieldsWaiting() == 0 && hm != null && wk < (day >= 6 ? 3 : 2) && SafeCanPay(hm)) { Status = "Army first: buy hammer"; PayAt(hm); return true; }
+                    if (pe > disp && ShieldsWaiting() == 0 && bw != null && SafeCanPay(bw)) { Status = "Army first: buy bow"; PayAt(bw); return true; }
+                    if (pe < disp + 3 && pe < 5)
+                    {
+                        var bg = NearestBeggar(px, home - 100f, home + 100f);
+                        if (bg != null) { Cool(bg.GetInstanceID(), 10f); Status = "Army first: recruit"; Recruit(bg); return true; }
+                    }
+                }
+            }
             if (item != null && coins >= item.price + 4 && !tooEarly)   // keep a small purse: coins are knocked out before the crown
             {
                 Status = "Defence: " + what + " (" + item.price + ")";

@@ -255,6 +255,7 @@ namespace KingdomBot
                 TrackCharge();
                 DeadPortalTrace();
                 if (SweepNearCoins()) return;
+                if (NightTowers()) return;
                 try { if (Graze()) return; } catch (System.Exception e) { if (Time.time >= _grazeErrAt) { _grazeErrAt = Time.time + 60f; Plugin.Log("Graze error (skipped): " + e.Message); } }
                 // castle chest: refilled every morning (5-7 coins at castle 0-3). The saving/assault steps below always returned
                 // before LegacyBrain's chest step, so it was emptied once per run (ledger: ~5 coins/day income on days 5-8).
@@ -1874,6 +1875,34 @@ namespace KingdomBot
             Status = "Saving for " + what + " (" + coins + "/" + target + ")";
             float l = WallEdge(-1, home), r = WallEdge(1, home);
             Push("walkto " + F(px < home ? r - 1f : l + 1f) + " 1 20");
+            return true;
+        }
+
+        /// <summary>User suggestion: towers inside the walls can be paid at night (the king only waited at the fire), which frees
+        /// the day for collecting. Same tower targets as by day; the castle/shield reserve is never touched.</summary>
+        bool NightTowers()
+        {
+            var k = Managers.kingdom; int day = GameState.Day;
+            bool night = !k.isDaytime || GameState.Hour >= k.dayEnd - 1f;
+            if (!night || day < 9 || OnCooldown(777400)) return false;
+            float px = GameState.PX, home = k.campfirePosition;
+            var en = NearestEnemy(px); if (en != null && Mathf.Abs(en.transform.position.x - home) < 25f) return false;
+            int budget = GameState.Coins - AssaultReserve(true) - 4;
+            int ttarget = day >= 20 ? 3 : day >= 14 ? 2 : 1;
+            float l = WallEdge(-1, home), r = WallEdge(1, home);
+            Payable best = null; int bestLvl = 99;
+            foreach (var p in UnityEngine.Object.FindObjectsOfType<Payable>())
+            {
+                if (!(p is PayableUpgrade) || !p.name.StartsWith("Tower") || OnCooldown(p.GetInstanceID()) || p.price > budget) continue;
+                float x = p.transform.position.x; if (x <= l + 3f || x >= r - 3f) continue;
+                int lvl = TowerLevelOf(p); if (lvl >= ttarget || lvl >= bestLvl) continue;
+                bool payable = false; try { payable = p.CanPay(); } catch { } if (!payable) continue;   // far payables are inactive at night: CanPay without the isActiveAndEnabled check
+                best = p; bestLvl = lvl;
+            }
+            if (best == null) { Cool(777400, 20f); return false; }
+            Cool(best.GetInstanceID(), 30f);
+            Status = "Night: tower L" + bestLvl + "->" + (bestLvl + 1) + " (" + best.price + ")"; Plugin.Log(Status + " d" + day);
+            Push("goto " + F(PayX(best)) + " 0.3 40"); Push("payid " + best.GetInstanceID() + " " + F(PayX(best))); Push("goto " + F(home) + " 1 40");
             return true;
         }
 

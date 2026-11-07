@@ -1460,6 +1460,7 @@ namespace KingdomBot
                 foreach (var py in payables) { var sh = py as PayableShop; if (sh == null) continue; onDisplay += sh.GetItemCount(); if (sh.name.Contains("Bow")) bow = sh; if (sh.name.Contains("Hammer")) hammer = sh; }
                 int workersNow = UnityEngine.Object.FindObjectsOfType<Worker>().Length;
                 if (peasants > onDisplay + ShieldsWaiting() && hammer != null && workersNow < (day >= 6 ? 3 : 2) && SafeCanPay(hammer) && armyCoins >= hammer.price) { Status = "Army while saving: buy hammer"; PayAt(hammer); return true; }   // walls need builders
+                { var scf = ScytheFirst(payables, home); if (scf != null && peasants > onDisplay + ShieldsWaiting() && armyCoins >= scf.price) { Status = "Army while saving: buy scythe (farm)"; PayAt(scf); return true; } }
                 if (peasants > onDisplay + ShieldsWaiting() && bow != null && SafeCanPay(bow) && armyCoins >= bow.price) { Status = "Army while saving: buy bow"; PayAt(bow); return true; }
                 if (peasants < onDisplay + 2 && peasants < 4 && armyCoins >= 3)
                 {
@@ -1858,6 +1859,7 @@ namespace KingdomBot
             {
                 int peasants = UnityEngine.Object.FindObjectsOfType<Peasant>().Length, onDisplay = 0; PayableShop bow = null;
                 foreach (var py in payablesAll) { var shp = py as PayableShop; if (shp == null) continue; onDisplay += shp.GetItemCount(); if (shp.name.Contains("Bow")) bow = shp; }
+                { var scf = ScytheFirst(payablesAll, home); if (scf != null && peasants > onDisplay + ShieldsWaiting() && coins >= scf.price) { Status = "Army while saving: buy scythe (farm)"; PayAt(scf); return true; } }
                 if (peasants > onDisplay + ShieldsWaiting() && bow != null && SafeCanPay(bow) && coins >= bow.price) { Status = "Army while saving: buy bow"; PayAt(bow); return true; }
                 if (peasants < onDisplay + 2 && peasants < 4 && coins >= 4)
                 {
@@ -1892,6 +1894,21 @@ namespace KingdomBot
             Status = "Horse: graze (grass " + bd.ToString("0") + " away)"; Push("walkto " + F(best.transform.position.x) + " 0.5 8"); Push("wait " + F(wait));
             return true;
         }
+
+        /// <summary>User observation "farm without farmers": scythes were only bought for idle peasants, but every recruit got a bow
+        /// at once. With a built farm and fewer than 4 farmers the next recruit gets a scythe instead of a bow.</summary>
+        PayableShop ScytheFirst(Payable[] payables, float home)
+        {
+            int farms = 0; foreach (var fh in UnityEngine.Object.FindObjectsOfType<Farmhouse>()) if (fh.level > 0 && Mathf.Abs(fh.transform.position.x - home) < 60f) farms++;
+            if (farms == 0) return null;
+            PayableShop sc = null; int scDisp = 0;
+            foreach (var py in payables) { var sh = py as PayableShop; if (sh != null && sh.name.Contains("Scythe")) { sc = sh; scDisp = sh.GetItemCount(); } }
+            int farmers = UnityEngine.Object.FindObjectsOfType<Farmer>().Length;
+            if (sc == null || farmers + scDisp >= Mathf.Min(FarmerTarget, 4 * farms) || !SafeCanPay(sc)) return null;
+            if (Time.time >= _farmDiagAt) { _farmDiagAt = Time.time + 60f; Plugin.Log("FARM DIAG farms " + farms + " farmers " + farmers + " exposed " + FarmsExposed(home) + " -> scythe first"); }
+            return sc;
+        }
+        float _farmDiagAt;
 
         /// <summary>User observation: by day the archers hunt OUTSIDE the walls and carry the coins - they hand them over only when
         /// the king passes by. Saving used to patrol inside the walls only. Ride out to them (and pick up coins out there) when it is safe.</summary>

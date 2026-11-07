@@ -137,9 +137,11 @@ namespace KingdomBot
             }
             bool possible;
             if (RunType == "early")
+                // user: First Day Army first - while it is missing, every early run is a fast day-0 attempt (no feast days)
+                bool firstDayFocus = Campaign.Missing(Campaign.FirstDay);
                 possible = (dayC == 0 && Campaign.Missing(Campaign.FirstDay))
-                        || (dayC <= 3 && am.counters[4] < 10 && Campaign.Missing(Campaign.FourthDay))
-                        || (dayC <= 6 && Campaign.Missing(Campaign.Acre));
+                        || (!firstDayFocus && dayC <= 3 && am.counters[4] < 10 && Campaign.Missing(Campaign.FourthDay))
+                        || (!firstDayFocus && dayC <= 6 && Campaign.Missing(Campaign.Acre));
             else
                 possible = (dayC <= 2 && Campaign.Missing(Campaign.ThirdDay) && !(am.flags[3] && dayC < 2))
                         || (dayC < 6 && am.counters[5] == 0 && Campaign.Missing(Campaign.FifthDays))

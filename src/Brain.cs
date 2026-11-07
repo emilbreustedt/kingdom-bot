@@ -620,7 +620,7 @@ namespace KingdomBot
             bool good = left >= MinPortalDistance && right >= MinPortalDistance && camps >= 3 && shrineOk && farthest <= MaxPortalDistance;   /* portals 170/214 out: knights need 12-15 h march - no charge fits into one day */
             Plugin.Log("main map check: farthest inner portal " + farthest.ToString("0") + " (max " + MaxPortalDistance + ")");
             Plugin.Log(string.Format("main map check: nearest portals L {0:0} / R {1:0}, camps within 90: {2}, mason shrine {3:0} ({4}) -> {5} (reroll {6})", left, right, camps, shrineD, shrineOk ? "ok" : "unreachable", good ? "keep" : "reroll", _mainRerolls));
-            if (good || _mainRerolls >= 30) { _mainRerolls = 0; return false; }
+            if (good || _mainRerolls >= 150) { _mainRerolls = 0; return false; }
             _mainRerolls++; _lastDaySeen = -1; _pl.Queue.Clear();
             Acc.Call(Managers.game, "Restart");
             Status = "main: reroll map"; Push("wait 2"); return true;

@@ -2046,12 +2046,24 @@ namespace KingdomBot
             return true;
         }
 
+        /// <summary>A boss/ogre/squid within the given range (day 18: sweeping a coin towards a boss inside the walls cost the last 8 coins).</summary>
+        static bool BigEnemyNear(float x, float range)
+        {
+            foreach (var e in UnityEngine.Object.FindObjectsOfType<Enemy>())
+            {
+                if (!IsLiveEnemy(e) || Mathf.Abs(e.transform.position.x - x) > range) continue;
+                if (e.GetComponent<Boss>() != null || e.GetComponent<Ogre>() != null || e.GetComponent<Squid>() != null) return true;
+            }
+            return false;
+        }
+
         /// <summary>User observation: riding home through the archers, their tax coins land behind the galloping king and stay there.
         /// Any coin within 12 units is picked up first (at night only inside the walls).</summary>
         bool SweepNearCoins()
         {
             if (GameState.Coins >= PurseCap + 3) return false;
             var k = Managers.kingdom; float px = GameState.PX, home = k.campfirePosition;
+            if (BigEnemyNear(px, 30f)) return false;
             float l = WallEdge(-1, home), r = WallEdge(1, home);
             bool night = !k.isDaytime || GameState.Hour >= k.dayEnd - 0.5f;
             var en = NearestEnemy(px); if (en != null && Mathf.Abs(en.transform.position.x - px) < 15f && !WallBetween(px, en.transform.position.x)) return false;
@@ -2062,6 +2074,7 @@ namespace KingdomBot
                 if (c.droppedByPlayer && Time.time - _lastTap < 15f) continue;   // payments/recruit coins
                 float x = c.transform.position.x, d = Mathf.Abs(x - px);
                 if (night && (x <= l || x >= r)) continue;
+                if (BigEnemyNear(x, 20f)) continue;
                 if (d < bd) { bd = d; best = c; }
             }
             if (best == null) return false;
@@ -2114,6 +2127,7 @@ namespace KingdomBot
             if (!k.isDaytime || GameState.Hour > k.dayEnd - 3f) return false;
             float l = WallEdge(-1, home), r = WallEdge(1, home);
             var en = NearestEnemy(px); if (en != null && Mathf.Abs(en.transform.position.x - px) < 30f) return false;
+            if (BigEnemyNear(px, 60f)) return false;
             var portals = UnityEngine.Object.FindObjectsOfType<Portal>();
             System.Func<float, bool> safeX = x => { foreach (var po in portals) if (Mathf.Abs(po.transform.position.x - x) < 30f) return false; return Mathf.Abs(x - home) < 120f; };
             // coins lying outside the walls (dropped by hunted animals)

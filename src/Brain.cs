@@ -254,6 +254,7 @@ namespace KingdomBot
             {
                 TrackCharge();
                 DeadPortalTrace();
+                FinalWaveDiag();
                 if (SweepNearCoins()) return;
                 if (NightTowers()) return;
                 try { if (Graze()) return; } catch (System.Exception e) { if (Time.time >= _grazeErrAt) { _grazeErrAt = Time.time + 60f; Plugin.Log("Graze error (skipped): " + e.Message); } }
@@ -1879,6 +1880,26 @@ namespace KingdomBot
             Push("walkto " + F(px < home ? r - 1f : l + 1f) + " 1 20");
             return true;
         }
+
+        /// <summary>Game code: Won = final wave spawned AND no enemy isAttacking anymore. Run with all portals down on day 25 still
+        /// fought on day 31 (1167 kills). Log who is still attacking, every game hour.</summary>
+        void FinalWaveDiag()
+        {
+            if (Managers.enemies == null || !Managers.enemies.finalWaveSpawned || Time.time < _fwDiagAt) return;
+            _fwDiagAt = Time.time + 10f;
+            var types = new System.Collections.Generic.Dictionary<string, int>(); int att = 0, all = 0; float minX = 1e6f, maxX = -1e6f;
+            foreach (var e in UnityEngine.Object.FindObjectsOfType<Enemy>())
+            {
+                all++; bool a = false; try { a = e.isAttacking; } catch { }
+                if (!a) continue; att++;
+                string n = e.name.Replace("(Clone)", ""); int c; types.TryGetValue(n, out c); types[n] = c + 1;
+                minX = Mathf.Min(minX, e.transform.position.x); maxX = Mathf.Max(maxX, e.transform.position.x);
+            }
+            var sb = new System.Text.StringBuilder(); foreach (var kv in types) sb.Append(" " + kv.Key + "x" + kv.Value);
+            int outer = 0; foreach (var po in UnityEngine.Object.FindObjectsOfType<Portal>()) if (po.outerSpawner) outer++;
+            Plugin.Log("FINAL WAVE d" + GameState.Day + " h" + GameState.Hour.ToString("0.0") + (Managers.kingdom.isDaytime ? " day" : " night") + ": attacking " + att + "/" + all + " x" + minX.ToString("0") + ".." + maxX.ToString("0") + " outerPortals " + outer + " |" + sb);
+        }
+        float _fwDiagAt;
 
         /// <summary>User suggestion: towers inside the walls can be paid at night (the king only waited at the fire), which frees
         /// the day for collecting. Same tower targets as by day; the castle/shield reserve is never touched.</summary>

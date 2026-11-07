@@ -276,7 +276,7 @@ namespace KingdomBot
 
             // ---------- 1. safety ----------
             // night = not daytime; only exception: the very first morning (no enemies exist yet)
-            bool evening = hour >= k.dayEnd - 1.5f || (!k.isDaytime && !(day == 0 && hour < 12f));
+            bool evening = hour >= k.dayEnd - 1.5f - Mathf.Max(0f, Mathf.Abs(GameState.PX - k.campfirePosition) - 15f) / 30f ||   /* far out: leave earlier (gallop ~35 units per game hour); day 5 game over 127 out at dusk */ (!k.isDaytime && !(day == 0 && hour < 12f));
             bool dawn = false;
             Enemy nearest = NearestEnemy(px);
             if (nearest != null && Mathf.Abs(nearest.transform.position.x - px) < 18f && !Between(px, leftSafe, rightSafe))
@@ -1637,7 +1637,7 @@ namespace KingdomBot
             var p = GameState.Player; var k = Managers.kingdom; var g = Managers.game;
             if (p == null || k == null || g == null || (int)g.gameState != 2) return false;
             float px = GameState.PX, home = k.campfirePosition, hour = GameState.Hour; int day = GameState.Day;
-            bool evening = hour >= k.dayEnd - 1.5f || (!k.isDaytime && !(day == 0 && hour < 12f));
+            bool evening = hour >= k.dayEnd - 1.5f - Mathf.Max(0f, Mathf.Abs(GameState.PX - k.campfirePosition) - 15f) / 30f ||   /* far out: leave earlier (gallop ~35 units per game hour); day 5 game over 127 out at dusk */ (!k.isDaytime && !(day == 0 && hour < 12f));
             float l = WallEdge(-1, home), r = WallEdge(1, home);
             if (evening && (px < l - 0.5f || px > r + 0.5f)) { Status = "Interrupt: dusk"; return true; }
             var e = NearestEnemy(px);

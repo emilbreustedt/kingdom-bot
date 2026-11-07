@@ -815,12 +815,21 @@ namespace KingdomBot
                 float camp = 0f;
                 foreach (var b in UnityEngine.Object.FindObjectsOfType<Beggar>()) { float d = (b.transform.position.x - home) * side; if (d > 5f && (camp == 0f || d < camp)) camp = d; }
                 if (camp == 0f) camp = 30f;
+                // deer stay in their habitat (Deer._habitat) and only flee 2.5 units: enclose the nearest deer instead of herding
+                float deerD = 0f;
+                foreach (var dr in Resources.FindObjectsOfTypeAll<Deer>())
+                {
+                    if (dr == null || dr.hideFlags != HideFlags.None || !dr.transform.root.gameObject.activeSelf) continue;
+                    float d = (dr.transform.position.x - home) * side;
+                    if (d > 15f && d < 140f && (deerD == 0f || d < deerD)) deerD = d;
+                }
+                if (deerD > 0f) camp = Mathf.Max(camp - 3f, deerD + 2f);   // the wall goes just beyond that deer
                 Payable best = null; float bestD = 0f; bool built = false;
                 foreach (var p in payables)
                 {
                     if (!(p is PayableUpgrade) || !p.name.StartsWith("Wall")) continue;
                     float d = (p.transform.position.x - home) * side;
-                    if (d < camp + 3f || d > 120f) continue;
+                    if (d < camp + 3f || d > 150f) continue;
                     if (!p.name.StartsWith("Wall0")) { built = true; continue; }   // a built wall already stands out here
                     if ((p.isActiveAndEnabled && !SafeCanPay(p)) || OnCooldown(p.GetInstanceID()) || coins < p.price + 1 || TooLateFor(p.transform.position.x, home)) continue;   // far spots are deactivated (culling) until the king gets there
                     if (d > bestD) { bestD = d; best = p; }
@@ -835,7 +844,7 @@ namespace KingdomBot
                     {
                         if (!(p is PayableUpgrade) || !p.name.StartsWith("Wall0")) continue;
                         float d = (p.transform.position.x - home) * side;
-                        if (d < camp + 3f || d > 120f || TooLateFor(p.transform.position.x, home)) continue;
+                        if (d < camp + 3f || d > 150f || TooLateFor(p.transform.position.x, home)) continue;
                         if (d < sd) { sd = d; spot = p; }
                     }
                     if (spot != null)

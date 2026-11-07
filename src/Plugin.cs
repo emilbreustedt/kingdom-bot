@@ -437,7 +437,7 @@ namespace KingdomBot
     {
         readonly Queue<string> _q = new Queue<string>();
         string _cur; float _t0, _u0; int _n; bool _started;
-        int _lastCoinIdx = -1, _pressFrames; float _enemyCheckAt, _lastDx, _overshootLogAt; int _payCoins0, _payPrice;
+        int _lastCoinIdx = -1, _pressFrames; float _enemyCheckAt, _lastDx, _overshootLogAt, _lastPx = -1e6f; int _payCoins0, _payPrice;
 
         public bool Idle { get { return _cur == null && _q.Count == 0; } }
         /// <summary>true while creeping onto a payable (game speed is lowered for precision)</summary>
@@ -461,7 +461,7 @@ namespace KingdomBot
             if (_cur == null)
             {
                 if (_q.Count == 0) { c.Dir = 0; c.Sprint = false; c.Pay = false; return; }
-                _cur = _q.Dequeue(); _lastDx = 0f; _t0 = Time.time; _u0 = Time.unscaledTime; _n = 0; _started = false; _payTarget = 0; _matchFrames = 0; _payStartDist = -1f; _lastPs = -1; _lastCoinIdx = -1; _pressFrames = 0;
+                _cur = _q.Dequeue(); _lastDx = 0f; _lastPx = -1e6f; _t0 = Time.time; _u0 = Time.unscaledTime; _n = 0; _started = false; _payTarget = 0; _matchFrames = 0; _payStartDist = -1f; _lastPs = -1; _lastCoinIdx = -1; _pressFrames = 0;
             }
             var parts = _cur.Split(' ');
             var p = GameState.Player;
@@ -479,6 +479,10 @@ namespace KingdomBot
                     c.Pay = false;
                     if (_lastDx != 0f && Mathf.Sign(dx) != Mathf.Sign(_lastDx) && Mathf.Abs(dx) > 3f && Time.time >= _overshootLogAt)
                     { _overshootLogAt = Time.time + 2f; float fed = -1f; try { fed = Acc.Get<float>(p, "_wellFedTimer"); } catch { } Plugin.Log("OVERSHOOT " + _cur + ": player x" + px.ToString("0.0") + " dx " + dx.ToString("0.0") + " action " + Acc.ActionName(p) + " stamina " + p.stamina.ToString("0.00") + " fed " + fed.ToString("0") + " timescale " + Time.timeScale); }
+                    // brake early: at 32x a galloping king moves up to ~15 units per frame and jumped over the target again and again
+                    // (OVERSHOOT log: dx 15.6 while running). Close to the target: no sprint and 3x game speed for precise steps.
+                    float step = _lastPx > -1e5f ? Mathf.Abs(px - _lastPx) : 0f; _lastPx = px;
+                    if (Mathf.Abs(dx) < 3f * step + 2f && Time.timeScale > 3.5f && pl.Brain != null) pl.Brain.SlowUntil = Time.unscaledTime + 0.5f;
                     _lastDx = dx;
                     // at 32x the tolerance is ~2.5: coins/chests/beggars closer than that were "reached" without ever being touched
                     // (8 chest coins stayed on the ground). Slow the game down for the last few units instead of giving up.
@@ -500,7 +504,7 @@ namespace KingdomBot
                         if (done) break;
                     }
                     c.Dir = dx > 0 ? 1 : -1;
-                    c.Sprint = parts[0] == "goto" && pl.Brain.MaySprint && Mathf.Abs(dx) > 6f && p.stamina > 0.3f;
+                    c.Sprint = parts[0] == "goto" && pl.Brain.MaySprint && Mathf.Abs(dx) > 6f && Mathf.Abs(dx) > 3f * step + 2f && p.stamina > 0.3f;
                     float maxT = parts.Length > 3 ? F(parts[3]) : 40f;   // 90 s = 9 game hours: "evening: go home" blocked whole mornings (enemy next to the king)
                     if (Time.time - _t0 > maxT) { c.Dir = 0; c.Sprint = false; done = true; }
                     break;

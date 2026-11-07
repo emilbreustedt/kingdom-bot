@@ -952,7 +952,7 @@ namespace KingdomBot
                     nearCamps = campXs.Count;
                     foreach (var dr in Resources.FindObjectsOfTypeAll<Deer>()) if (dr != null && dr.hideFlags == HideFlags.None && dr.transform.root.gameObject.activeSelf && Mathf.Abs(dr.transform.position.x - home) < 50f) nearDeer++;
                     Plugin.Log("army1: camps within 60 = " + nearCamps + ", deer within 50 = " + nearDeer);
-                    if ((nearCamps < 2 || nearDeer < 3) && _rerolls < 300 && NormalizeRunType(ConfigMode) == "auto") avail = 0;
+                    if (false && (nearCamps < 2 || nearDeer < 3) && _rerolls < 300 && NormalizeRunType(ConfigMode) == "auto") avail = 0;
                 }
                 if (avail < 18 && _rerolls < 300   /* maps have one chest per side at 100-215: 18 = ground coins + a near chest; archers add hunting coins (guide) */ && NormalizeRunType(ConfigMode) == "auto")
                 {

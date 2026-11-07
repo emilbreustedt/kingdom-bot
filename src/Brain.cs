@@ -1572,6 +1572,20 @@ namespace KingdomBot
                 }
                 if (pside == 0) return false;
                 var border = Find(payables, x => x is PayableBorder && SafeCanPay(x) && (x.transform.position.x - home) * pside > 0, px);
+                if (border != null && budget >= border.price)
+                {
+                    // charge tracking: a knight first walks to every coin near his wall (hours of delay -> night fight).
+                    // Pick those coins up ourselves first.
+                    int picked = 0;
+                    foreach (var c in UnityEngine.Object.FindObjectsOfType<Coin>())
+                    {
+                        if (c.pickedUp || picked >= 4) continue;
+                        float cx = c.transform.position.x; bool nearKnight = false;
+                        foreach (var kn in knights) if ((kn.transform.position.x - home) * pside > 0 && Mathf.Abs(kn.transform.position.x - cx) < 12f) nearKnight = true;
+                        if (!nearKnight) continue;
+                        Push("goto " + F(cx) + " 0.3 10"); picked++;
+                    }
+                }
                 if (border != null && budget >= border.price) {   /* budget already keeps the 4-coin crown guard */ Status = "Assault: knights CHARGE (" + border.name.Replace("(Clone)", "") + ")"; Cool(border.GetInstanceID(), 60f); _chargeTrackUntil = Time.time + 24f * 10f; _chargePaidAt = Time.time; _chargeTrackNext = 0f; PayAt(border); return true; }
             }
             // shields -> knights

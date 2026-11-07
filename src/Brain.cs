@@ -180,7 +180,7 @@ namespace KingdomBot
                 int arcs = UnityEngine.Object.FindObjectsOfType<Archer>().Length, wrks = UnityEngine.Object.FindObjectsOfType<Worker>().Length, kns = UnityEngine.Object.FindObjectsOfType<Knight>().Length;
                 Plugin.Log(string.Format("== POP day {0}: beggars {1} peasants {2} archers {3} (made {4}) workers {5} knights {6} coins {7}{8}", dNow, begs, peas, arcs, am.counters[3], wrks, kns, GameState.Player != null ? GameState.Coins : -1,
                     " | bunnies " + UnityEngine.Object.FindObjectsOfType<Bunny>().Length + " tallGrass " + GrassCount() +
-                    (PortalsAllDestroyed() ? " | PORTALS DESTROYED, finalWave=" + (Managers.enemies != null && Managers.enemies.finalWaveSpawned) + " enemies=" + UnityEngine.Object.FindObjectsOfType<Enemy>().Length : "")));
+                    (PortalsAllDestroyed() ? " | PORTALS DESTROYED, finalWave=" + (Managers.enemies != null && Managers.enemies.finalWaveSpawned) + " enemies=" + UnityEngine.Object.FindObjectsOfType<Enemy>().Length + " bosses=" + UnityEngine.Object.FindObjectsOfType<Boss>().Length + " ogres=" + UnityEngine.Object.FindObjectsOfType<Ogre>().Length : "")));
                 // destroyed portals that do not crumble keep "PortalsDestroyed" from being set: log their state
                 foreach (var po in UnityEngine.Object.FindObjectsOfType<Portal>())
                 {

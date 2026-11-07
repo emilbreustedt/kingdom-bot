@@ -903,6 +903,13 @@ namespace KingdomBot
             float hoursNeeded = 2f * Mathf.Abs(x - home) / 30f + 2f;   // there and back at ~30 units per game hour, plus a margin
             return !k.isDaytime || GameState.Hour + hoursNeeded > k.dayEnd - 1f;
         }
+        /// <summary>army1: the day counter stays 0 until dawn, so camps up to 75 out are fine at night (7 archers + 7 unspent coins waited all night).</summary>
+        bool TooLateForBeggar(float x)
+        {
+            var k = Managers.kingdom; var am = Managers.achievements;
+            if (Mode == "army1" && am != null && am.counters != null && am.counters[1] == 0 && Mathf.Abs(x - k.campfirePosition) < 75f) return false;
+            return TooLateFor(x, k.campfirePosition);
+        }
         public bool FirstDayFocus = false;
         static bool _chestTypeLogged;
         int _rerolls; bool _mapChecked;
@@ -1110,7 +1117,7 @@ namespace KingdomBot
             if (archersMade + peasants < target && coins >= 1)   /* guide: recruit all four camps first (1 coin each), buy bows later from archer income */   /* a bow on display needs a peasant to carry it - it is not an archer yet (7 + 1 bow waited all evening) */
             {
                 var b = NearestBeggar(px, home - Army1Range, home + Army1Range);
-                if (b != null && !TooLateFor(b.transform.position.x, home)) { Cool(b.GetInstanceID(), 8f); _lastTap = Time.time; Status = "army1: recruit (" + archersMade + "/8)"; Recruit(b); return; }   // whole camp per trip (up to 3)
+                if (b != null && !TooLateForBeggar(b.transform.position.x)) { Cool(b.GetInstanceID(), 8f); _lastTap = Time.time; Status = "army1: recruit (" + archersMade + "/8)"; Recruit(b); return; }   // whole camp per trip (up to 3)
             }
             if (feast && FeastStep()) return;   // guide: herd deer towards the archers, 10th deer exactly on day 4
             // far chests and coins (the bot starts with 0 coins: 8 archers need ~24)
@@ -2365,7 +2372,7 @@ namespace KingdomBot
             {
                 float x = b.transform.position.x;
                 if (x < minX || x > maxX || OnCooldown(b.GetInstanceID())) continue;
-                if (Managers.kingdom != null && TooLateFor(x, Managers.kingdom.campfirePosition) && !(Mode == "army1" && Managers.achievements != null && Managers.achievements.counters[1] == 0 && Mathf.Abs(x - Managers.kingdom.campfirePosition) < 75f)) continue;   /* run with 29 coins income ended with 10 unspent coins: the evening archer coins need a night trip to a camp */   // army1: day counter 0 lasts until dawn - camps next to the town centre are fine at night   // day-4 game over: recruited a beggar 98 out at 16:30
+                if (Managers.kingdom != null && TooLateForBeggar(x)) continue;   /* run with 29 coins income ended with 10 unspent coins: the evening archer coins need a night trip to a camp */   // army1: day counter 0 lasts until dawn - camps next to the town centre are fine at night   // day-4 game over: recruited a beggar 98 out at 16:30
                 bool nearPortal = false;
                 foreach (var po in UnityEngine.Object.FindObjectsOfType<Portal>()) if (Mathf.Abs(po.transform.position.x - x) < 25f) nearPortal = true;
                 if (nearPortal) continue;

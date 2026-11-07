@@ -263,7 +263,7 @@ namespace KingdomBot
                 try { if (!chargeWindow && Graze()) return; } catch (System.Exception e) { if (Time.time >= _grazeErrAt) { _grazeErrAt = Time.time + 60f; Plugin.Log("Graze error (skipped): " + e.Message); } }
                 // castle chest: refilled every morning (5-7 coins at castle 0-3). The saving/assault steps below always returned
                 // before LegacyBrain's chest step, so it was emptied once per run (ledger: ~5 coins/day income on days 5-8).
-                if (Managers.kingdom.isDaytime && GameState.Hour < Managers.kingdom.dayEnd - 3f)
+                if (Managers.kingdom.isDaytime && GameState.Hour < Managers.kingdom.dayEnd - 3f && GameState.Coins < PurseCap)   // full purse: the chest keeps its coins
                     foreach (var ch in AllChests())
                     {
                         float cx = ch.transform.position.x;
@@ -1934,6 +1934,8 @@ namespace KingdomBot
             string what = "castle";
             // no wall upgrades here: Wall3 (price 9) drained 25 coins at the outer wall on day 22 and left the king broke at night
             if (pick == null) { pick = Find(payables, x => x is PayableUpgrade && x.name.StartsWith("Tower") && SafeCanPay(x) && x.price <= coins - 12 && Mathf.Abs(x.transform.position.x - home) < Mathf.Abs(WallEdge(x.transform.position.x < home ? -1 : 1, home) - home) - 2f, home); what = "tower"; }
+            if (pick == null) { pick = Find(payables, x => x is PayableShield && SafeCanPay(x) && x.price <= coins - 12, home); what = "shield"; }
+            if (pick == null) { pick = Find(payables, x => x is Statue && SafeCanPay(x) && x.price <= coins - 12 && Mathf.Abs(x.transform.position.x - home) < 120f && !OnCooldown(x.GetInstanceID()), home); what = "statue"; if (pick != null) Cool(pick.GetInstanceID(), 120f); }
             if (pick == null) { Cool(777500, 20f); return false; }
             Status = "Purse full (" + coins + "): " + what + " " + pick.name.Replace("(Clone)", "") + " (" + pick.price + ")"; Plugin.Log(Status + " d" + GameState.Day);
             PayAt(pick); return true;

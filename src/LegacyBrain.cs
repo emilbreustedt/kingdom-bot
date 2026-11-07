@@ -268,7 +268,18 @@ namespace KingdomBot
                     _lastTap = Time.time; _coinsAtTap = coins;
                     float bd = Mathf.Abs(bx - GameState.PX);   // far camps: gallop close first (walking timed out)
                     if (bd > 12f) Push("goto " + F(bx + (GameState.PX < bx ? -4f : 4f)) + " 1.5 " + F(Mathf.Max(30f, bd * 0.6f)));
-                    Push("walkto " + F(bx) + " 0.8 25"); Push("tap 1"); Push("wait 2.5"); return;
+                    Push("walkto " + F(bx) + " 0.8 25"); Push("tap 1"); Push("wait 2.5");
+                    // the rest of the camp in the same trip (user: only one of a camp was recruited)
+                    int extra = 0;
+                    foreach (var o in UnityEngine.Object.FindObjectsOfType<Beggar>())
+                    {
+                        if (o == b || extra >= 2 || budget < 3 + extra) continue;
+                        float ox = o.transform.position.x;
+                        if (Mathf.Abs(ox - bx) > 12f || OnCooldown(o.GetInstanceID())) continue;
+                        Cool(o.GetInstanceID(), 10f); extra++;
+                        Push("walkto " + F(ox) + " 0.8 10"); Push("tap 1"); Push("wait 2.5");
+                    }
+                    return;
                 }
             }
 

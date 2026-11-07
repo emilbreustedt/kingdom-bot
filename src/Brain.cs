@@ -1597,14 +1597,14 @@ namespace KingdomBot
                 if (RunType == "early") Push("slow 12");   // at 32x the king stops 2.5 units short and the coin lands out of the beggar's reach (8 coins came back in one run)
                 Push("walkto " + F(bx) + " 0.8 25"); Push("tap 1"); Push("wait 2.5");
                 // the whole camp in one trip: other beggars standing close by get a coin too (up to 3 per trip)
-                if (GameState.Coins >= 4)
+                if (GameState.Coins >= 3)   // a second beggar of the camp costs 1 coin (user: only one was recruited)
                 {
                     int extra = 0;
                     foreach (var o in UnityEngine.Object.FindObjectsOfType<Beggar>())
                     {
-                        if (o == b || extra >= 2 || GameState.Coins < (RunType == "early" ? 2 + extra : 4 + 2 * extra)) continue;
+                        if (o == b || extra >= 2 || GameState.Coins < (RunType == "early" ? 2 + extra : 3 + extra)) continue;
                         float ox = o.transform.position.x;
-                        if (Mathf.Abs(ox - bx) > 10f || OnCooldown(o.GetInstanceID())) continue;
+                        if (Mathf.Abs(ox - bx) > 12f || OnCooldown(o.GetInstanceID())) continue;
                         Cool(o.GetInstanceID(), 10f); extra++;
                         if (RunType == "early") Push("slow 10");
                         Push("walkto " + F(ox) + " 0.8 10"); Push("tap 1"); Push("wait 2.5");

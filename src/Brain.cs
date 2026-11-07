@@ -881,7 +881,7 @@ namespace KingdomBot
             if ((feast || boot) && (!k.isDaytime || GameState.Hour >= k.dayEnd - 1.5f))
             { Status = "Feast: night at the fire"; if (Mathf.Abs(px - home) > 2f) Push("goto " + F(home) + " 1 6"); else Push("wait 1"); return; }
             // feast: herding has priority once a small army exists (guide: herd deer towards the archers)
-            if (feast && am != null && am.counters[3] >= 6 && FeastStep()) return;
+            if (feast && am != null && am.counters[3] >= 4 && FeastStep()) return;
             // 3. coins & chests close by (far ones only when coins are needed - see below)
             foreach (var ch in AllChests())
             {
@@ -979,11 +979,11 @@ namespace KingdomBot
             int dayC = am.counters[1], deer = am.counters[4];
             float px = GameState.PX, home = k.campfirePosition, hour = GameState.Hour;
             int archers = UnityEngine.Object.FindObjectsOfType<Archer>().Length;
-            if (!k.isDaytime || hour > k.dayEnd - 4f || archers < 2 || dayC > 3) return false;
+            if (!k.isDaytime || hour > k.dayEnd - 4f || archers < 2 || dayC > 3) { FeastWhy("time/archers/day: day=" + k.isDaytime + " h" + hour.ToString("0.0") + " archers " + archers + " dayC " + dayC); return false; }
             var en = NearestEnemy(px);
             if (en != null && Mathf.Abs(en.transform.position.x - px) < 15f) return false;
             int allowed = dayC == 0 ? 3 : dayC == 1 ? 6 : dayC == 2 ? 9 : 10;   // never reach 10 before day counter 3
-            if (deer >= allowed) return false;
+            if (deer >= allowed) { FeastWhy("schedule full " + deer + "/" + allowed); return false; }
             // guide: ride out past a whole group of deer (7-10), then walk back - the herd flees ahead into the archers
             float l = WallEdge(-1, home), r = WallEdge(1, home);
             int[] cnt = new int[2]; float[] far = { home, home };
@@ -997,7 +997,7 @@ namespace KingdomBot
                 if (Mathf.Abs(x - home) > Mathf.Abs(far[si] - home)) far[si] = x;
             }
             int s2 = cnt[0] >= cnt[1] ? 0 : 1;
-            if (cnt[s2] == 0) return false;
+            if (cnt[s2] == 0) { FeastWhy("no deer outside walls within 110 (L " + cnt[0] + " R " + cnt[1] + ", walls " + l.ToString("0") + "/" + r.ToString("0") + ", total deer objects " + Resources.FindObjectsOfTypeAll<Deer>().Length + ")"); return false; }
             int side = s2 == 0 ? -1 : 1;
             float behind = far[s2] + side * 8f;
             Status = "Feast: herd " + cnt[s2] + " deer (" + deer + "/10, day counter " + dayC + ", allowed " + allowed + ")";
@@ -1009,6 +1009,8 @@ namespace KingdomBot
             return true;
         }
         bool _herdOut = true;
+        float _feastWhyAt;
+        void FeastWhy(string why) { if (Time.time < _feastWhyAt) return; _feastWhyAt = Time.time + 10f; Plugin.Log("FEAST WHY d" + GameState.Day + " h" + GameState.Hour.ToString("0.0") + ": " + why); }
 
         /// <summary>
         /// Late-game survival = fully upgraded walls ("maxed two walls per side" - forum). Spend surplus coins on

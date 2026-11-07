@@ -911,6 +911,7 @@ namespace KingdomBot
         public float Army1Chest2 = 0f;   // 110 tested: the far trip used the whole day (1 archer, 11 coins left) - 0 = off   // max distance of the 2nd chest (map reroll otherwise)
         public float Army1Check = 90f;    // day 0 is short: 24 coins (8 recruits + 8 bows) must lie within ~80 of the camp, otherwise reroll   // guide: run to the camps on both sides (four camps incl. the town centre) and loot chests on the way
         // coin ledger for First Day Army: every purse change with the action that was running
+        public bool Army1Herd = true;
         public bool Army1Merchant = true;   // tested: refills a RANDOM shop - the hammer shop turned all recruits into builders (0 archers)
         float _hbNext;
         public float SlowUntil;   // unscaled time: Plugin caps the game speed until then
@@ -1123,6 +1124,8 @@ namespace KingdomBot
             if (far != null && !TooLateFor(far.transform.position.x, home)) { Cool(far.GetInstanceID(), 1e7f);   /* one visit per chest: inactive/template chests gave nothing and were revisited all day */ float cx = far.transform.position.x; Status = "army1: chest (" + far.coins + ")"; if (!feast) { _traceChest = far; _traceUntil = Time.time + 40f; _traceNext = 0f; } float sgn = cx >= px ? 1f : -1f; Push("goto " + F(cx - sgn * 5f) + " 1 " + F(10f + Mathf.Abs(cx - px) * 0.6f)); Push("slow 40"); Push("walkto " + F(cx + sgn * 3f) + " 0.3 20"); float sr = 10f; Push("wait 2"); Push("walkto " + F(cx - sr) + " 0.3 " + F(4f + sr)); Push("walkto " + F(cx + sr) + " 0.3 " + F(4f + 2f * sr)); Push("walkto " + F(cx) + " 0.3 " + F(4f + sr)); return; }   /* OnTriggerEnter2D spills the coins within spillRange: sweep the whole range */
             var coinFar = NearestCoin(px, home - 60f, home + 60f);   /* FarCoin found phantom coins (4 h trips for nothing) */
             if (coinFar != null && !TooLateFor(coinFar.transform.position.x, home) && !(coinFar.droppedByPlayer && Time.time - _lastTap < 15f)) { Cool(coinFar.GetInstanceID(), 30f); Status = "army1: coin far"; Push("goto " + F(coinFar.transform.position.x) + " 0.3 " + F(10f + Mathf.Abs(coinFar.transform.position.x - px) * 0.6f)); return; }
+            // idle afternoon (h11-h19 was spent waiting with 0-1 coins): drive deer into the archers - 2 coins per deer
+            if (!feast && !boot && Army1Herd && FeastStep(true)) { Status = "army1: " + Status; return; }
             // guide: "collect coins from your archers" - hunting archers hand their coins to the king only when he passes by
             if (!feast && k.isDaytime && !OnCooldown(777100))
             {
@@ -1163,7 +1166,7 @@ namespace KingdomBot
         /// ON_THE_FOURTH_DAY: the 10th hunted deer must fall on day counter 3. Archers only hunt in safe daytime and
         /// deer flee from the rider -> ride around a deer and push it towards the camp, following a deer schedule.
         /// </summary>
-        bool FeastStep()
+        bool FeastStep(bool army1 = false)
         {
             var k = Managers.kingdom; var am = Managers.achievements;
             if (am == null || am.counters == null) return false;
@@ -1174,7 +1177,7 @@ namespace KingdomBot
             var en = NearestEnemy(px);
             if (en != null && Mathf.Abs(en.transform.position.x - px) < 15f) return false;
             int allowed = dayC == 0 ? 3 : dayC == 1 ? 6 : dayC == 2 ? 9 : 10;   // never reach 10 before day counter 3
-            if (deer >= allowed) { FeastWhy("schedule full " + deer + "/" + allowed); return false; }
+            if (!army1 && deer >= allowed) { FeastWhy("schedule full " + deer + "/" + allowed); return false; }
             // guide: ride out past a whole group of deer (7-10), then walk back - the herd flees ahead into the archers
             float l = WallEdge(-1, home), r = WallEdge(1, home);
             int[] cnt = new int[2]; float[] far = { home, home };

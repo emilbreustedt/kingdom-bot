@@ -258,8 +258,9 @@ namespace KingdomBot
                 FinalWaveDiag();
                 if (SweepNearCoins()) return;
                 if (NightTowers()) return;
-                if (OverflowSpend()) return;
-                try { if (Graze()) return; } catch (System.Exception e) { if (Time.time >= _grazeErrAt) { _grazeErrAt = Time.time + 60f; Plugin.Log("Graze error (skipped): " + e.Message); } }
+                bool chargeWindow = Managers.kingdom.isDaytime && GameState.Hour < 7.5f && KnightReady();   // dawn belongs to the charge: day 18 h5.2 a tower was paid, at h12 it was "too late, wait for dawn"
+                if (!chargeWindow && OverflowSpend()) return;
+                try { if (!chargeWindow && Graze()) return; } catch (System.Exception e) { if (Time.time >= _grazeErrAt) { _grazeErrAt = Time.time + 60f; Plugin.Log("Graze error (skipped): " + e.Message); } }
                 // castle chest: refilled every morning (5-7 coins at castle 0-3). The saving/assault steps below always returned
                 // before LegacyBrain's chest step, so it was emptied once per run (ledger: ~5 coins/day income on days 5-8).
                 if (Managers.kingdom.isDaytime && GameState.Hour < Managers.kingdom.dayEnd - 3f)
@@ -1912,6 +1913,12 @@ namespace KingdomBot
             Plugin.Log("FINAL WAVE d" + GameState.Day + " h" + GameState.Hour.ToString("0.0") + (Managers.kingdom.isDaytime ? " day" : " night") + ": attacking " + att + "/" + all + " x" + minX.ToString("0") + ".." + maxX.ToString("0") + " outerPortals " + outer + " |" + sb);
         }
         float _fwDiagAt;
+
+        static bool KnightReady()
+        {
+            foreach (var kn in UnityEngine.Object.FindObjectsOfType<Knight>()) { try { if ((bool)Acc.Call(kn, "CanCharge")) return true; } catch { } }
+            return false;
+        }
 
         /// <summary>Purse near the bag limit (~39-43 spills, half into the water): spend on what the assault needs anyway -
         /// castle upgrades first (castle 5 is the bottleneck), then wall upgrades, then towers. Day 3 sat at 37-43 coins all day.</summary>

@@ -919,8 +919,9 @@ namespace KingdomBot
         public float Army1Check = 90f;    // day 0 is short: 24 coins (8 recruits + 8 bows) must lie within ~80 of the camp, otherwise reroll   // guide: run to the camps on both sides (four camps incl. the town centre) and loot chests on the way
         // coin ledger for First Day Army: every purse change with the action that was running
         public bool Army1Herd = true;
+        public bool Army1NightChest = true;
         public bool Army1Merchant = true;   // tested: refills a RANDOM shop - the hammer shop turned all recruits into builders (0 archers)
-        float _hbNext, _begDiagAt;
+        float _hbNext, _begDiagAt; int _lastDC = -1;
         public float SlowUntil;   // unscaled time: Plugin caps the game speed until then
         bool _merLogged, _merDone; float _merPaidAt = -1f; int _merHammers0; Chest _traceChest; float _traceUntil, _traceNext;
         int _ledgerLast = -1, _ledgerDay = -1; System.Collections.Generic.Dictionary<string, int> _ledgerIn = new System.Collections.Generic.Dictionary<string, int>(), _ledgerOut = new System.Collections.Generic.Dictionary<string, int>();
@@ -933,6 +934,8 @@ namespace KingdomBot
                 int n = 0; foreach (var cn in UnityEngine.Object.FindObjectsOfType<Coin>()) { float dx = cn.transform.position.x - tx; if (Mathf.Abs(dx) > 25f) continue; n++; if (n <= 12) sb2.Append(" " + dx.ToString("0.0") + "/" + cn.transform.position.y.ToString("0.0") + (cn.pickedUp ? "P" : "") + (cn.droppedByPlayer ? "D" : "") + (OnCooldown(cn.GetInstanceID()) ? "C" : "")); }
                 Plugin.Log("CHEST TRACE t+" + (Time.time - _traceUntil + 15f).ToString("0") + " chestCoins=" + _traceChest.coins + " purse=" + c + " px-chest=" + (GameState.PX - tx).ToString("0.0") + " status=" + Status + " coins near(" + n + "):" + sb2);
             }
+            var amL = Managers.achievements;
+            if (amL != null && amL.counters != null) { int dc = amL.counters[1]; if (_lastDC == 0 && dc == 1) Plugin.Log("FDA DAWN archers=" + UnityEngine.Object.FindObjectsOfType<Archer>().Length + " made=" + amL.counters[3] + " coins=" + c + " h" + GameState.Hour.ToString("0.0")); _lastDC = dc; }
             if (d == 0 && Time.time >= _hbNext) { _hbNext = Time.time + 15f; Plugin.Log("A1 HB h" + GameState.Hour.ToString("0.0") + " x" + GameState.PX.ToString("0") + " c" + c + " | " + Status); }
             if (_ledgerDay != d)
             {
@@ -1148,6 +1151,27 @@ namespace KingdomBot
                     Cool(pick.GetInstanceID(), 30f); Cool(777100, 3f);
                     Status = "army1: collect archer coins";
                     Push("goto " + F(pick.transform.position.x) + " 1 " + F(8f + pd * 0.5f)); Push("wait 1");
+                    return;
+                }
+            }
+            // night far chest: the day counter stays 0 until ~h5, the night (~10 h) is free travel time. Peasants waiting for
+            // bows at night (3 peasants, 0 coins in one run) need exactly the 8 coins of the far chest.
+            if (!feast && !boot && Army1NightChest && am != null && am.counters[1] == 0 && !k.isDaytime && archersMade < 8 && coins < 2 * Mathf.Max(1, 8 - archersMade))
+            {
+                float h = GameState.Hour, left = h >= 12f ? 29f - h : 5f - h;
+                Chest nc = null; float nd = 1e6f;
+                foreach (var ch in AllChests())
+                {
+                    float cx = ch.transform.position.x, dh = Mathf.Abs(cx - home);
+                    if (ch.isEmpty || OnCooldown(ch.GetInstanceID()) || 2f * dh / 25f + 1.5f > left) continue;
+                    if (dh < nd) { nd = dh; nc = ch; }
+                }
+                if (nc != null)
+                {
+                    float cx = nc.transform.position.x, sgn = cx >= px ? 1f : -1f; Cool(nc.GetInstanceID(), 1e7f);
+                    Status = "army1: night chest (" + nd.ToString("0") + " out, " + left.ToString("0.0") + " h left)"; Plugin.Log(Status);
+                    _traceChest = nc; _traceUntil = Time.time + 40f; _traceNext = 0f;
+                    Push("goto " + F(cx - sgn * 5f) + " 1 " + F(10f + Mathf.Abs(cx - px) * 0.6f)); Push("slow 40"); Push("walkto " + F(cx + sgn * 3f) + " 0.3 20"); Push("wait 2");
                     return;
                 }
             }

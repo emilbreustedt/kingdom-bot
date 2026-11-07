@@ -825,7 +825,14 @@ namespace KingdomBot
                     if (!SafeCanPay(p) || OnCooldown(p.GetInstanceID()) || coins < p.price + 1 || TooLateFor(p.transform.position.x, home)) continue;
                     if (d > bestD) { bestD = d; best = p; }
                 }
-                if (built || best == null) continue;
+                if (built) { FeastWhy("wall side " + side + ": a built wall already stands beyond the camp"); continue; }
+                if (best == null)
+                {
+                    var sb = new System.Text.StringBuilder();
+                    foreach (var p in payables) if (p is PayableUpgrade && p.name.StartsWith("Wall")) { float d = (p.transform.position.x - home) * side; if (d > 0f) sb.Append(" " + p.name + "@" + p.transform.position.x.ToString("0") + "(" + p.price + (SafeCanPay(p) ? "" : "!") + ")"); }
+                    FeastWhy("wall side " + side + ": no spot (camp " + camp.ToString("0") + ", coins " + coins + ", workers " + workers + "):" + sb);
+                    continue;
+                }
                 Cool(best.GetInstanceID(), 60f);
                 Status = "Feast: forest wall " + (side < 0 ? "left" : "right") + " x" + best.transform.position.x.ToString("0");
                 PayAt(best); return true;
@@ -900,6 +907,7 @@ namespace KingdomBot
                 if (!FirstDayFocus) foreach (var py in UnityEngine.Object.FindObjectsOfType<Payable>()) { float d = Mathf.Abs(py.transform.position.x - home); if (py is PayableUpgrade && py.name.StartsWith("Wall0") && d >= 50f && d <= 120f) clearings++; }
                 Plugin.Log("army1: forest clearings 50-120 out = " + clearings);
                 if (!FirstDayFocus && clearings == 0 && _rerolls < 300 && NormalizeRunType(ConfigMode) == "auto") avail = 0;   // force a reroll
+                if (!FirstDayFocus && clearings > 0) avail = Mathf.Max(avail, 18);   // feast: the chest rule is only for First Day Army
                 if (avail < 18 && _rerolls < 300   /* maps have one chest per side at 100-215: 18 = ground coins + a near chest; archers add hunting coins (guide) */ && NormalizeRunType(ConfigMode) == "auto")
                 {
                     _rerolls++; _lastDaySeen = -1; _pl.Queue.Clear();

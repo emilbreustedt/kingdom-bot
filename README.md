@@ -132,8 +132,17 @@ What finally worked (all verified in the game, see the git history for details):
 - **Fourth Day Feast:** the 10th deer must fall *on* day 4. Deer only flee 2.5 units and always return to their
   habitat, so herding them is hopeless - instead a wall is built just beyond the nearest deer (clearing trees for it if
   needed); the archers then hunt them inside the kingdom.
-- **First Day Army:** only ~10 ground coins + one chest (8 coins, 100-215 out) exist on day one; 8 archers need ~24.
-  Template objects (`Chest` at x0 without parent, inactive pool coins) must be ignored. Still open.
+- **First Day Army:** ~10 ground coins + one chest per side (8 coins each; one usually 40-90 out, the other 100-215);
+  8 archers need ~25 (8 recruits, 8 bows at 2, the fire). A coin ledger (`COIN LEDGER` in the log) showed where coins
+  went. Bugs found that way:
+  - at 32x speed `goto` stopped up to 2.5 units short, so chests never opened and coins/beggars right next to the
+    king were never touched. Now the game slows down for the last few units.
+  - the game pools coins (LeanPool), so permanent per-coin cooldowns made the bot ignore reused coins forever.
+  - the map-reroll cap was a lifetime counter, so maps without a near chest were played.
+  Day 0 is only ~15 h of daylight at ~25 units/h. The far chest costs the whole day. The day counter stays 0 until
+  dawn, so evening archer coins are spent on a night trip to a camp. The merchant (always there on day 0, 4 coins)
+  refills a *random* shop: bows = 4 free bows, hammers = builders. The bot rerolls the map in the hammer case.
+  Template objects (`Chest` at x0 without parent, inactive pool coins) must be ignored.
 
 **Kingdom: New Lands** (`newlands/`) — the Classic strategy runs via a small compatibility layer (`Compat.cs`);
 first achievements earned: Day V/X/XV, Five Days, Ninth Day, Second Day Gift. Boat escape (wreck → wharf → beach,

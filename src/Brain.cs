@@ -1745,7 +1745,7 @@ namespace KingdomBot
         public int BankTarget() { int d = GameState.Day; if (TenthRush) return 9 + 6 + 4 + 3; return Mathf.Min(PurseCap, d >= 24 ? 38 : 40); }
         /// <summary>The coin bag overflows at ~39 coins and every spilled coin falls into the water with p=0.5 (measured: 10 coins fell by day 13). Never save above this.</summary>
         public int PurseCap = 34;
-        public float MaxPortalDistance = 155f;
+        public float MaxPortalDistance = 185f;   // 155 matched no map (30 maps: farthest 166-238); a portal 162 out fell to a dawn charge
         bool _bootDone;   /* castle 4 (8) + castle 5 (9) + 2 shields (12) + banner (4) + purse; 60 delayed the knights by days */   // the assault (3 shields + 5-8 charges) is paid from the bank: castle 5 earns ~1 coin/day
 
         /// <summary>Coins the record strategy must leave alone while the assault saves for castle 4/5 and shields.</summary>

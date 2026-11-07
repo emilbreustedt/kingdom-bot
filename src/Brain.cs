@@ -94,7 +94,7 @@ namespace KingdomBot
             else if (RunType == "main" && dayC <= 2 && BootDays) phase = "boot";   // days 0-2: loot chests, recruit, bows (army1 logic) - guide: archers first
             if (RunType == "early")
             {
-                if (dayC == 0 && Campaign.Missing(Campaign.FirstDay)) phase = "army1";
+                if (dayC <= 1 && Campaign.Missing(Campaign.FirstDay)) phase = "army1";   // test: "by the end of day one" may mean day counter 1
                 else if (dayC <= 3 && Campaign.Missing(Campaign.FourthDay)) phase = "feast";
                 else if (dayC <= 6 && Campaign.Missing(Campaign.Acre)) phase = "acre";
             }
@@ -139,7 +139,7 @@ namespace KingdomBot
             // user: First Day Army first - while it is missing, every early run is a fast day-0 attempt (no feast days)
             bool firstDayFocus = Campaign.Missing(Campaign.FirstDay);
             if (RunType == "early")
-                possible = (dayC == 0 && Campaign.Missing(Campaign.FirstDay))
+                possible = (dayC <= 1 && Campaign.Missing(Campaign.FirstDay))
                         || (!firstDayFocus && dayC <= 3 && am.counters[4] < 10 && Campaign.Missing(Campaign.FourthDay))
                         || (!firstDayFocus && dayC <= 6 && Campaign.Missing(Campaign.Acre));
             else

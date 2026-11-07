@@ -239,6 +239,7 @@ namespace KingdomBot
             if (Mode == "master" && GameState.Player != null && (int)Managers.game.gameState == 2)
             {
                 TrackCharge();
+                DeadPortalTrace();
                 // master = record-run defence (LegacyBrain) + portal assault steps on top
                 var kk = Managers.kingdom;
                 int d = GameState.Day; float hr = GameState.Hour, pxx = GameState.PX, hm = kk.campfirePosition;
@@ -673,6 +674,25 @@ namespace KingdomBot
             if (k == null || !k.isDaytime || h < 6f || h >= k.dayEnd - 7f) return false;
             foreach (var kn in UnityEngine.Object.FindObjectsOfType<Knight>()) { try { if ((bool)Acc.Call(kn, "CanCharge")) return true; } catch { } }
             return false;
+        }
+        float _dpqNext;
+        /// <summary>Hourly: queue of every dead (uncrumbled) portal + live enemies, to see when the queue grows/shrinks.</summary>
+        void DeadPortalTrace()
+        {
+            if (Time.time < _dpqNext) return;
+            _dpqNext = Time.time + 10f;
+            var sb = new System.Text.StringBuilder();
+            foreach (var po in UnityEngine.Object.FindObjectsOfType<Portal>())
+            {
+                var dm = po.GetComponent<Damageable>();
+                if (po.outerSpawner || dm == null || dm.hitPoints > 0) continue;
+                var q = Acc.Get<object>(po, "_spawnQueue") as System.Collections.ICollection;
+                sb.Append(" x" + po.transform.position.x.ToString("0") + ":" + (q != null ? q.Count.ToString() : "?"));
+            }
+            if (sb.Length == 0) return;
+            int en = 0, near = 0; float kx = 0;
+            foreach (var e in UnityEngine.Object.FindObjectsOfType<Enemy>()) if (IsLiveEnemy(e)) en++;
+            Plugin.Log("DPQ d" + GameState.Day + " h" + GameState.Hour.ToString("0") + (Managers.kingdom.isDaytime ? " day" : " night") + sb + " enemies=" + en);
         }
         float _chargeTrackUntil, _chargeTrackNext, _chargePaidAt = -1e6f;
         /// <summary>After a charge: log every knight once per game hour (x, fsm state, escort, coins) to see where charges fail.</summary>

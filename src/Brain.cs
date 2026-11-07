@@ -1440,7 +1440,7 @@ namespace KingdomBot
                 Plugin.Log("CHARGE CHECK d" + day + " h" + hour.ToString("0.0") + ": knights " + knights.Length + " armed(CanCharge)=" + armed + " archers " + archers + "/" + ChargeArchers
                     + " recovery=" + recovery + " clearL=" + FieldClear(home, -1) + " clearR=" + FieldClear(home, 1) + " budget " + budget + " banners" + bl);
             }
-            if (morning && hour >= 7f && armed && archers >= ChargeArchers && (recovery || FieldClear(home, -1) || FieldClear(home, 1)))
+            if (k.isDaytime && hour < k.dayEnd - 7f && hour >= 7f && armed && archers >= ChargeArchers &&   /* coins arrive during the day (hunting): morning-only charges never had the banner price */ (recovery || FieldClear(home, -1) || FieldClear(home, 1)))
             {
                 // banner on the side of the nearest intact inner portal (each charge goes to that side's portal)
                 float bestPd = float.MaxValue; int pside = 0;

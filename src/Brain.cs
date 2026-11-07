@@ -2277,13 +2277,14 @@ namespace KingdomBot
                     Payable spot = null, tree = null; float sd = float.MaxValue, td = float.MaxValue;
                     foreach (var p in payables)
                     {
-                        if (OnCooldown(p.GetInstanceID()) || !SafeCanPay(p)) continue;
+                        bool canPay = false; try { canPay = p.CanPay(); } catch { }   // far payables are inactive (isActiveAndEnabled false): SafeCanPay never let a forward wall be built
+                        if (OnCooldown(p.GetInstanceID()) || !canPay) continue;
                         float r = (p.transform.position.x - home) * side;
                         if (r <= outerRel + 8f || r >= portalRel - (deadTarget ? 25f : 60f)) continue;
                         if (p is PayableUpgrade && p.name.StartsWith("Wall") && !IsBuiltWall(p) && r < sd) { sd = r; spot = p; }
                         else if (p.name.StartsWith("Tree") && r < td) { td = r; tree = p; }
                     }
-                    var pick = spot ?? (portalRel - outerRel < 140f ? tree : null);   // clearing a whole forest for a far portal eats the charge money
+                    var pick = spot ?? (portalRel - outerRel < 200f ? tree : null);   /* portal 182 out (gap ~144) was never reachable: march 12.8 h */   // clearing a whole forest for a far portal eats the charge money
                     if (pick != null && budget - AssaultReserve(false) >= pick.price + 2)
                     {
                         Status = "Forward wall " + (side < 0 ? "left" : "right") + (spot != null ? "" : ": cut tree") + " (portal gap " + (portalRel - outerRel).ToString("0") + ")";

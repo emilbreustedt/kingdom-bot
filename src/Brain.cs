@@ -2085,7 +2085,7 @@ namespace KingdomBot
                 if (d > pd) { pd = d; pick = ar; }
             }
             // farmers pay their harvest as taxes too - only when the king rides past (user: "does the king fetch the farm money?")
-            foreach (var fm in UnityEngine.Object.FindObjectsOfType<Farmer>())
+            if (!OnCooldown(777210)) foreach (var fm in UnityEngine.Object.FindObjectsOfType<Farmer>())   // alternate: after a farm visit the archers outside get ~4 game hours (user: farmers only)
             {
                 float fx = fm.transform.position.x, d = Mathf.Abs(fx - px);
                 if (d < 6f || OnCooldown(fm.GetInstanceID()) || !safeX(fx)) continue;
@@ -2093,6 +2093,7 @@ namespace KingdomBot
             }
             if (pick == null) return false;
             Cool(pick.GetInstanceID(), 60f); Cool(777200, 4f); pd = Mathf.Abs(pick.transform.position.x - px);
+            if (pick is Farmer) Cool(777210, 40f);
             Status = label + (pick is Farmer ? ": collect from farmers" : ": collect from archers outside");
             Push("goto " + F(pick.transform.position.x) + " 1 " + F(10f + pd * 0.5f)); Push("wait 1");
             return true;

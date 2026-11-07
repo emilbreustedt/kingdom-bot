@@ -388,7 +388,7 @@ namespace KingdomBot
             if (GiftPending() && castleAny != null) reserve = Mathf.Max(reserve, castleAny.price);
             int budget = coins - reserve;
             bool acrePhase = (AcreRun || Mode == "acre") && day <= 6 && (k.rightForest - k.leftForest) < AcreTarget + 5f;
-            int archerCap = Mathf.Min(40, 6 + 3 * day);
+            int archerCap = PreCastleArcherCap(Mathf.Min(40, 6 + 3 * day));
             // army first: archers are income (hunting) and defence; extras only when the army is big enough or money piles up
             _armyFirst = archers < Mathf.Min(archerCap, 30) * 0.75f && budget < 12;
 
@@ -1451,7 +1451,7 @@ namespace KingdomBot
             }
             // while saving the army must keep growing: bows for idle peasants, then recruit beggars (hand-over)
             int archersNow = UnityEngine.Object.FindObjectsOfType<Archer>().Length;
-            int armyCap = item != null && item.name.StartsWith("Mason") ? 20 : (Mode == "master" && GameState.Day >= 12 ? AssaultArmyCap : 30);   // guide: archers first (20-30 by day 7)   // stone tech first: castle 5 / knights depend on it
+            int armyCap = PreCastleArcherCap(item != null && item.name.StartsWith("Mason") ? 20 : (Mode == "master" && GameState.Day >= 12 ? AssaultArmyCap : 30));   // guide: archers first (20-30 by day 7)   // stone tech first: castle 5 / knights depend on it
             int armyCoins = (archersNow < MinChargeArchers ? GameState.Coins : coins) - (day >= 10 ? 4 : 0);   // crown guard   // a weak army is rebuilt even from the assault reserve
             if (archersNow < Mathf.Min(3 * day + 6, armyCap) && hour < k.dayEnd - 5f)
             {
@@ -1855,7 +1855,7 @@ namespace KingdomBot
             // keep the army growing while saving (same as the wall schedule)
             int archersNow = UnityEngine.Object.FindObjectsOfType<Archer>().Length;
             var payablesAll = payables;
-            if (archersNow < Mathf.Min(2 * day + 4, AssaultArmyCap) && hour < k.dayEnd - 5f)
+            if (archersNow < PreCastleArcherCap(Mathf.Min(2 * day + 4, AssaultArmyCap)) && hour < k.dayEnd - 5f)
             {
                 int peasants = UnityEngine.Object.FindObjectsOfType<Peasant>().Length, onDisplay = 0; PayableShop bow = null;
                 foreach (var py in payablesAll) { var shp = py as PayableShop; if (shp == null) continue; onDisplay += shp.GetItemCount(); if (shp.name.Contains("Bow")) bow = shp; }
@@ -2166,6 +2166,18 @@ namespace KingdomBot
                 Push("walkto " + F(poor.transform.position.x) + " 0.6 20"); Push("tap 2"); Push("wait 1.5"); return true;
             }
             return false;
+        }
+
+        /// <summary>Castle level built so far (0 = camp). Run with 47 archers had castle 5 only on day 18: no portal by day 21.</summary>
+        public static int CastleLevelNow()
+        {
+            int lv = 0; foreach (var c in UnityEngine.Object.FindObjectsOfType<Castle>()) lv = Mathf.Max(lv, (int)c.level); return lv;
+        }
+        /// <summary>Archer cap for the assault race: before castle 5 the coins belong to the castle (shields = knights).</summary>
+        public static int PreCastleArcherCap(int normalCap)
+        {
+            if (Plugin.Instance == null || Plugin.Instance.Brain == null || Plugin.Instance.Brain.Mode != "master") return normalCap;
+            return CastleLevelNow() < 5 ? Mathf.Min(normalCap, 22) : normalCap;
         }
 
         static int CastleIndex(string name)

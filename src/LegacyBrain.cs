@@ -186,7 +186,7 @@ namespace KingdomBot
             reserve = Mathf.Max(reserve, Brain.AssaultReserve());   // master: the assault bank (castle 4/5 + shields) is not spent here
             int budget = coins - reserve;
             bool acrePhase = AcreRun && day <= 6 && (k.rightForest - k.leftForest) < AcreTarget + 5f;
-            int archerCap = Mathf.Min(40, 6 + 3 * day);
+            int archerCap = Brain.PreCastleArcherCap(Mathf.Min(40, 6 + 3 * day));
 
             // shops
             int toolsOnDisplay = 0;

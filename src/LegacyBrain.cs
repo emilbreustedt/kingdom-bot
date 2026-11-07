@@ -150,7 +150,7 @@ namespace KingdomBot
             {
                 if (!fireLit) break;
                 float cx = ch.transform.position.x;
-                if (!ch.isEmpty && !OnCooldown(ch.GetInstanceID()) && cx > leftSafe - 70f && cx < rightSafe + 70f && hour < k.dayEnd - 4f) { Cool(ch.GetInstanceID(), 1e7f); /* one try per chest and run */ Status = "Truhe"; Push("goto " + F(cx) + " 0.3"); Push("wait 2"); return; }
+                if (!ch.isEmpty && !OnCooldown(ch.GetInstanceID()) && cx > leftSafe - 70f && cx < rightSafe + 70f && hour < k.dayEnd - 4f) { Cool(ch.GetInstanceID(), 120f); /* castle chest refills daily; was: one try per chest and run */ Status = "Truhe"; Push("goto " + F(cx) + " 0.3"); Push("wait 2"); return; }
             }
             var coin = NearestCoin(px, leftSafe - 25f, rightSafe + 25f);
             if (coin != null && Mathf.Abs(coin.transform.position.x - px) < 30f)

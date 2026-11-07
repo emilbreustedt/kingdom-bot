@@ -344,7 +344,7 @@ namespace KingdomBot
             {
                 if (!fireLit) break;
                 float cx = ch.transform.position.x;
-                if (!ch.isEmpty && !OnCooldown(ch.GetInstanceID()) && cx > leftSafe - 70f && cx < rightSafe + 70f && hour < k.dayEnd - 4f) { Cool(ch.GetInstanceID(), 1e7f); /* one try per chest and run */ Status = "Chest"; Push("goto " + F(cx) + " 0.3"); Push("wait 2"); return; }
+                if (!ch.isEmpty && !OnCooldown(ch.GetInstanceID()) && cx > leftSafe - 70f && cx < rightSafe + 70f && hour < k.dayEnd - 4f) { Cool(ch.GetInstanceID(), 120f); /* the castle chest refills every morning (5-7 coins at castle 0-3) - a run-long cooldown left it full from day 3 on */ Status = "Chest"; Push("goto " + F(cx) + " 0.3"); Push("wait 2"); return; }
             }
             var coin = NearestCoin(px, leftSafe - 25f, rightSafe + 25f);
             if (coin != null && Mathf.Abs(coin.transform.position.x - px) < 30f)

@@ -1466,6 +1466,7 @@ namespace KingdomBot
             }
             if (item == null) return false;                 // nothing to save for: the rest of the brain spends
             // save: collect coins and taxes instead of spending
+            if (CollectOutside("Saving for " + what, home, px)) return true;
             var c = NearestCoin(px, home - 40f, home + 40f);
             if (c != null) { Cool(c.GetInstanceID(), 30f); Status = "Saving for " + what + ": coin"; Push("goto " + F(c.transform.position.x) + " 0.3 15"); return true; }
             Status = "Saving for " + what + " (" + coins + "/" + (item.price + 4) + ")";
@@ -1861,11 +1862,46 @@ namespace KingdomBot
                     if (b != null) { Cool(b.GetInstanceID(), 10f); Status = "Army while saving: recruit"; Recruit(b); return true; }
                 }
             }
+            if (CollectOutside("Saving for " + what, home, px)) return true;
             var c = NearestCoin(px, home - 40f, home + 40f);
             if (c != null) { Cool(c.GetInstanceID(), 30f); Status = "Saving for " + what + ": coin"; Push("goto " + F(c.transform.position.x) + " 0.3 15"); return true; }
             Status = "Saving for " + what + " (" + coins + "/" + target + ")";
             float l = WallEdge(-1, home), r = WallEdge(1, home);
             Push("walkto " + F(px < home ? r - 1f : l + 1f) + " 1 20");
+            return true;
+        }
+
+        /// <summary>User observation: by day the archers hunt OUTSIDE the walls and carry the coins - they hand them over only when
+        /// the king passes by. Saving used to patrol inside the walls only. Ride out to them (and pick up coins out there) when it is safe.</summary>
+        bool CollectOutside(string label, float home, float px)
+        {
+            var k = Managers.kingdom;
+            if (!k.isDaytime || GameState.Hour > k.dayEnd - 3f) return false;
+            float l = WallEdge(-1, home), r = WallEdge(1, home);
+            var en = NearestEnemy(px); if (en != null && Mathf.Abs(en.transform.position.x - px) < 30f) return false;
+            var portals = UnityEngine.Object.FindObjectsOfType<Portal>();
+            System.Func<float, bool> safeX = x => { foreach (var po in portals) if (Mathf.Abs(po.transform.position.x - x) < 30f) return false; return Mathf.Abs(x - home) < 120f; };
+            // coins lying outside the walls (dropped by hunted animals)
+            Coin best = null; float bd = 1e6f;
+            foreach (var c in UnityEngine.Object.FindObjectsOfType<Coin>())
+            {
+                float x = c.transform.position.x;
+                if (c.pickedUp || c.droppedByPlayer || OnCooldown(c.GetInstanceID()) || (x > l && x < r) || c.transform.position.y < -3f || !safeX(x)) continue;
+                float d = Mathf.Abs(x - px); if (d < bd) { bd = d; best = c; }
+            }
+            if (best != null && bd < 60f) { Cool(best.GetInstanceID(), 30f); Status = label + ": coin outside"; Push("goto " + F(best.transform.position.x) + " 0.3 " + F(10f + bd * 0.5f)); return true; }
+            if (OnCooldown(777200)) return false;
+            Archer pick = null; float pd = 0f;
+            foreach (var ar in UnityEngine.Object.FindObjectsOfType<Archer>())
+            {
+                float ax = ar.transform.position.x, d = Mathf.Abs(ax - px);
+                if ((ax > l - 2f && ax < r + 2f) || d < 6f || OnCooldown(ar.GetInstanceID()) || !safeX(ax)) continue;
+                if (d > pd) { pd = d; pick = ar; }
+            }
+            if (pick == null) return false;
+            Cool(pick.GetInstanceID(), 60f); Cool(777200, 4f);
+            Status = label + ": collect from archers outside";
+            Push("goto " + F(pick.transform.position.x) + " 1 " + F(10f + pd * 0.5f)); Push("wait 1");
             return true;
         }
 

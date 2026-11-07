@@ -656,7 +656,16 @@ namespace KingdomBot
                 object cur = null; try { var fsm = Acc.Get<object>(kn, "_fsm"); cur = fsm.GetType().GetField("current").GetValue(fsm); } catch { }
                 int ar = -1; try { var a = Acc.Get<object>(kn, "_archers"); ar = (int)a.GetType().GetProperty("Count").GetValue(a, null); } catch { }
                 int kc = -1; try { kc = Acc.Wallet(kn).coins; } catch { }
-                sb.Append(" [x" + kn.transform.position.x.ToString("0") + " " + cur + " esc=" + ar + " c=" + kc + "]");
+                var tg = new System.Text.StringBuilder();
+                foreach (var f in typeof(Knight).GetFields(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance))
+                {
+                    string fn = f.Name.ToLower();
+                    if (!(fn.Contains("wall") || fn.Contains("target") || fn.Contains("border") || fn.Contains("portal") || fn.Contains("dest") || fn.Contains("charge"))) continue;
+                    object v = null; try { v = f.GetValue(kn); } catch { }
+                    var comp = v as Component;
+                    tg.Append(" " + f.Name + "=" + (comp != null ? comp.name.Replace("(Clone)", "") + "@" + comp.transform.position.x.ToString("0") : (v is float || v is int || v is bool || (v != null && v.GetType().IsEnum)) ? v.ToString() : (v == null ? "null" : v.GetType().Name)));
+                }
+                sb.Append(" [x" + kn.transform.position.x.ToString("0") + " " + cur + " esc=" + ar + " c=" + kc + tg + "]");
             }
             int en = 0; foreach (var e in UnityEngine.Object.FindObjectsOfType<Enemy>()) if (IsLiveEnemy(e)) en++;
             sb.Append(" enemies=" + en);

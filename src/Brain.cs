@@ -291,7 +291,7 @@ namespace KingdomBot
             // the next step during the day if needed; otherwise the record strategy plays as usual.
             if ((Mode == "survive" || Mode == "master") && GameState.Player != null && (int)Managers.game.gameState == 2 && AvoidIntruder()) return;
             // income: farms + merchant (archers barely hunt in the late game - waves keep the kingdom "unsafe")
-            if ((Mode == "survive" || Mode == "master") && GameState.Player != null && (int)Managers.game.gameState == 2 && GameState.Day >= 10 && UseFarms && UnityEngine.Object.FindObjectsOfType<Archer>().Length >= 18 && EconomyStep()) return;
+            if ((Mode == "survive" || Mode == "master") && GameState.Player != null && (int)Managers.game.gameState == 2 && GameState.Day >= 5 && UseFarms && UnityEngine.Object.FindObjectsOfType<Archer>().Length >= 10 && EconomyStep()) return;
             if ((Mode == "survive" || Mode == "master") && GameState.Player != null && (int)Managers.game.gameState == 2 && WallSchedule()) return;
             if ((Mode == "survive" || Mode == "master") && GameState.Player != null && (int)Managers.game.gameState == 2 && GrassStep()) return;
             if (Mode == "survive" || Mode == "master" || Mode == "feast")
@@ -1389,7 +1389,7 @@ namespace KingdomBot
             var payables = UnityEngine.Object.FindObjectsOfType<Payable>();
             Payable item = null; string what = null;
             // 0. farms = the only income that scales; they come first from day 6
-            if (UseFarms && day >= 10 && UnityEngine.Object.FindObjectsOfType<Archer>().Length >= 18) { var farm = FarmTarget(payables, home); if (farm != null) { item = farm; what = farm.name.StartsWith("Tree") ? "farmland (cut tree)" : "farm"; } }
+            if (UseFarms && day >= 5 && UnityEngine.Object.FindObjectsOfType<Archer>().Length >= 10) { var farm = FarmTarget(payables, home); if (farm != null) { item = farm; what = farm.name.StartsWith("Tree") ? "farmland (cut tree)" : "farm"; } }
             // 0b. a farm outside the walls loses its farmers every night: next wall goes up beyond the farm
             if (false && UseFarms && item == null) { var fw = FarmWall(payables, home); if (fw != null && fw.name.StartsWith("Tree") && coins >= fw.price + 4) _farmWallTrees++;
             if (fw != null) { item = fw; what = (fw.name.StartsWith("Tree") ? "farm wall (cut tree" : "wall beyond the farm (") + " @" + F(fw.transform.position.x) + " edges " + F(WallEdge(-1, home)) + "/" + F(WallEdge(1, home)) + ")"; } }
@@ -1562,7 +1562,7 @@ namespace KingdomBot
             }
             int farmers = UnityEngine.Object.FindObjectsOfType<Farmer>().Length;
             int peasants = UnityEngine.Object.FindObjectsOfType<Peasant>().Length;
-            if (farmers < Mathf.Min(FarmerTarget, 4 * farmsBuilt) && (!FarmsExposed(home) || _farmWallTrees >= FarmWallTreeCap) && peasants > onDisplay && SafeCanPay(scythe) && coins >= scythe.price + 1)
+            if (farmers < Mathf.Min(FarmerTarget, 6 * farmsBuilt) && (!FarmsExposed(home) || _farmWallTrees >= FarmWallTreeCap) && peasants > onDisplay && SafeCanPay(scythe) && coins >= scythe.price + 1)
             { Status = "Economy: buy scythe (farmers " + farmers + ")"; PayAt(scythe); return true; }
             return false;
         }
@@ -1573,7 +1573,7 @@ namespace KingdomBot
         // at ~12 archers by day 30 instead of 25-30. Off by default.
         public bool UseFarms = true;   /* retry 2026-11-07: only from day 10 with 18+ archers, no farm walls (those cleared beggar camps); forum: 1 farm + 4 farmers carries the late game */     // tested twice: farm runs had ~9 archers on day 20 (vs ~25) - clearing for the farm wall destroys beggar camps
         public bool FarmClearTrees = true;   // only a few trees (<= 4) for a spot right in front of the walls
-        public int FarmerTarget = 4;
+        public int FarmerTarget = 6;   // guide (Safe in X): farm on day 5, 6 farmers on day 6 (30 coins)
         public int FarmWallTreeCap = 6;
         int _farmWallTrees;   // 4 coins every other day = ~half of the late-game income; not worth it
         /// THE_TENTH_DAY (a portal destroyed by day 10, guide: castle max + 1 knight, charge on day 8 after the night):
@@ -1866,7 +1866,7 @@ namespace KingdomBot
                 target = CastleIndex(castle.name) == 4 ? BankTarget() : castle.price + 3;
                 if (CastleIndex(castle.name) == 4) what = "castle 4+5 and shields";
             }
-            else if (UnityEngine.Object.FindObjectsOfType<Knight>().Length + ShieldsWaiting() < 2)   // with 2 knights the charges come first; more shields only from spare coins
+            else if (UnityEngine.Object.FindObjectsOfType<Knight>().Length + ShieldsWaiting() < 4)   /* guide: 2 knights on both sides by day 15 */   // with 2 knights the charges come first; more shields only from spare coins
             {
                 var sh = Find(payables, x => x is PayableShield && SafeCanPay(x), home);
                 if (sh != null) { item = sh; what = "shield"; }
@@ -2024,7 +2024,7 @@ namespace KingdomBot
             PayableShop sc = null; int scDisp = 0;
             foreach (var py in payables) { var sh = py as PayableShop; if (sh != null && sh.name.Contains("Scythe")) { sc = sh; scDisp = sh.GetItemCount(); } }
             int farmers = UnityEngine.Object.FindObjectsOfType<Farmer>().Length;
-            if (sc == null || farmers + scDisp >= Mathf.Min(FarmerTarget, 4 * farms) || !SafeCanPay(sc)) return null;
+            if (sc == null || farmers + scDisp >= Mathf.Min(FarmerTarget, 6 * farms) || !SafeCanPay(sc)) return null;
             if (Time.time >= _farmDiagAt) { _farmDiagAt = Time.time + 60f; Plugin.Log("FARM DIAG farms " + farms + " farmers " + farmers + " exposed " + FarmsExposed(home) + " -> scythe first"); }
             return sc;
         }
@@ -2076,7 +2076,7 @@ namespace KingdomBot
             bool wallsOk = WallsOnSide(-1, home) > 0 && WallsOnSide(1, home) > 0;
 
             // farm first (wall schedule saves for it), then the castle
-            if (UseFarms && day >= 10 && day < 14 && UnityEngine.Object.FindObjectsOfType<Knight>().Length == 0 && UnityEngine.Object.FindObjectsOfType<Archer>().Length >= 18 && FarmTarget(payables, home) != null) return false;
+            if (UseFarms && day >= 5 && day < 14 && UnityEngine.Object.FindObjectsOfType<Knight>().Length == 0 && UnityEngine.Object.FindObjectsOfType<Archer>().Length >= 10 && FarmTarget(payables, home) != null) return false;
             // castle first from day 8 (level 5 = shield shops) - only when attacking; survive upgrades normally
             if (assault && day >= (TenthRush ? 4 : 8) && archers >= 6)
             {
@@ -2157,7 +2157,7 @@ namespace KingdomBot
 
             // forward launch point (forum tip): knights die on the long way to far portals -> move the outer wall (and
             // with it the banner) towards the nearest intact portal on a side once the gap is large
-            if (assault && !finalWave && (UnityEngine.Object.FindObjectsOfType<Knight>().Length >= 1 || InnerPortalsDead()) && UnityEngine.Object.FindObjectsOfType<Worker>().Length >= 2 && hour >= 12f && hour < k.dayEnd - 5f)   // afternoons: mornings are for charges
+            if (assault && !finalWave && (UnityEngine.Object.FindObjectsOfType<Knight>().Length >= 1 || InnerPortalsDead() || day >= 7) && UnityEngine.Object.FindObjectsOfType<Worker>().Length >= 2 && hour >= 12f && hour < k.dayEnd - 5f)   // afternoons: mornings are for charges
             {
                 for (int side = -1; side <= 1; side += 2)
                 {

@@ -1206,7 +1206,7 @@ namespace KingdomBot
         int _farmWallTrees;   // 4 coins every other day = ~half of the late-game income; not worth it
         /// THE_TENTH_DAY (a portal destroyed by day 10, guide: castle max + 1 knight, charge on day 8 after the night):
         /// while it is missing the master run rushes castle 5 and one knight before day 11.
-        public bool TenthRush { get { return Mode == "master" && GameState.Day <= 10 && Campaign.Missing(Campaign.TenthDay) && UnityEngine.Object.FindObjectsOfType<Archer>().Length >= 12; } }   // castle-first with a small army starved it (10 archers on day 10) and never made day 10
+        public bool TenthRush { get { return Mode == "master" && GameState.Day <= 10 && UnityEngine.Object.FindObjectsOfType<Archer>().Length >= 12; } }   // kept after the achievement: the early castle/knight rush gave 3 portals by day 13 (Safe in 35 run); without it knights came on day ~22   // castle-first with a small army starved it (10 archers on day 10) and never made day 10
         int KnightGoal { get { return TenthRush ? 1 : KnightTarget; } }
         int ChargeArchers { get { return TenthRush ? 10 : MinChargeArchers; } }
         public bool UseCatapults = false;   // guide + logs: big enemies throw our catapult boulders back over the wall (378 archer hits in one run)

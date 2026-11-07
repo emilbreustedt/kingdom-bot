@@ -437,7 +437,7 @@ namespace KingdomBot
     {
         readonly Queue<string> _q = new Queue<string>();
         string _cur; float _t0, _u0; int _n; bool _started;
-        int _lastCoinIdx = -1, _pressFrames; float _enemyCheckAt; int _payCoins0, _payPrice;
+        int _lastCoinIdx = -1, _pressFrames; float _enemyCheckAt, _lastDx, _overshootLogAt; int _payCoins0, _payPrice;
 
         public bool Idle { get { return _cur == null && _q.Count == 0; } }
         /// <summary>true while creeping onto a payable (game speed is lowered for precision)</summary>
@@ -461,7 +461,7 @@ namespace KingdomBot
             if (_cur == null)
             {
                 if (_q.Count == 0) { c.Dir = 0; c.Sprint = false; c.Pay = false; return; }
-                _cur = _q.Dequeue(); _t0 = Time.time; _u0 = Time.unscaledTime; _n = 0; _started = false; _payTarget = 0; _matchFrames = 0; _payStartDist = -1f; _lastPs = -1; _lastCoinIdx = -1; _pressFrames = 0;
+                _cur = _q.Dequeue(); _lastDx = 0f; _t0 = Time.time; _u0 = Time.unscaledTime; _n = 0; _started = false; _payTarget = 0; _matchFrames = 0; _payStartDist = -1f; _lastPs = -1; _lastCoinIdx = -1; _pressFrames = 0;
             }
             var parts = _cur.Split(' ');
             var p = GameState.Player;
@@ -477,6 +477,9 @@ namespace KingdomBot
                     float tol = Mathf.Max(reqTol, 0.08f * Time.timeScale);   // larger steps per frame at high speed
                     float dx = x - px;
                     c.Pay = false;
+                    if (_lastDx != 0f && Mathf.Sign(dx) != Mathf.Sign(_lastDx) && Mathf.Abs(dx) > 3f && Time.time >= _overshootLogAt)
+                    { _overshootLogAt = Time.time + 2f; float fed = -1f; try { fed = Acc.Get<float>(p, "_wellFedTimer"); } catch { } Plugin.Log("OVERSHOOT " + _cur + ": player x" + px.ToString("0.0") + " dx " + dx.ToString("0.0") + " action " + Acc.ActionName(p) + " stamina " + p.stamina.ToString("0.00") + " fed " + fed.ToString("0") + " timescale " + Time.timeScale); }
+                    _lastDx = dx;
                     // at 32x the tolerance is ~2.5: coins/chests/beggars closer than that were "reached" without ever being touched
                     // (8 chest coins stayed on the ground). Slow the game down for the last few units instead of giving up.
                     if (Mathf.Abs(dx) <= tol && Mathf.Abs(dx) > reqTol && Time.timeScale > 3.5f && pl.Brain != null && Time.time - _t0 < 30f) { pl.Brain.SlowUntil = Time.unscaledTime + 0.6f; }

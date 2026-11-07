@@ -116,6 +116,18 @@ namespace KingdomBot
             if (RunType == "main")
             {
                 // assault phase: once the last open "Safe in X" day has passed nothing more can be won in this run -> next attempt
+                // hopeless pace for the open "Safe in X": the last portal must fall ~5 days before X (dead-portal queues drain)
+                if (Mode == "master" && SafeTargetDay() > 0 && SafeTargetDay() <= 30)
+                {
+                    int dead = 0; foreach (var po in UnityEngine.Object.FindObjectsOfType<Portal>()) { var dm = po.GetComponent<Damageable>(); if (!po.outerSpawner && dm != null && dm.hitPoints <= 0) dead++; }
+                    int killed = Mathf.Max(dead, 4 - LiveInnerPortals());
+                    if ((dayC > 16 && killed == 0) || (dayC > 21 && killed < 3))
+                    {
+                        Plugin.Log("Run finished (pace: day " + dayC + ", portals destroyed " + killed + " - Safe in " + SafeTargetDay() + " out of reach) -> new game");
+                        _newGameAt = Time.unscaledTime + 6f;
+                        return;
+                    }
+                }
                 if (Mode == "master" && SafeTargetDay() > 0 && dayC > SafeTargetDay() && !Campaign.Missing("SURVIVED_UNTIL_DAY_100"))
                 {
                     Plugin.Log("Run finished (assault, day " + dayC + ", portals left) -> new game");

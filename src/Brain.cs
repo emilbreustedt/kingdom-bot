@@ -830,7 +830,7 @@ namespace KingdomBot
                     Plugin.Log("CHEST " + ch.name + " x" + ch.transform.position.x.ToString("0") + " coins=" + ch.coins + " empty=" + ch.isEmpty + " active=" + ch.gameObject.activeInHierarchy + " parent=" + (ch.transform.parent != null ? ch.transform.parent.name : "-") + " root=" + ch.transform.root.name);
                 _mapChecked = true;
                 Plugin.Log("army1: coins reachable on this map = " + avail + " (reroll " + _rerolls + ")");
-                if (avail < 25 && _rerolls < 40 && NormalizeRunType(ConfigMode) == "auto")
+                if (avail < 25 && _rerolls < 200 && NormalizeRunType(ConfigMode) == "auto")
                 {
                     _rerolls++; _lastDaySeen = -1; _pl.Queue.Clear();
                     Acc.Call(Managers.game, "Restart");
@@ -884,7 +884,7 @@ namespace KingdomBot
                 if (ch.isEmpty || OnCooldown(ch.GetInstanceID()) || Mathf.Abs(cx - home) > Army1Range) continue;
                 if (Mathf.Abs(cx - px) < fd) { fd = Mathf.Abs(cx - px); far = ch; }
             }
-            if (far != null && !TooLateFor(far.transform.position.x, home)) { Cool(far.GetInstanceID(), 1e7f);   /* one visit per chest: inactive/template chests gave nothing and were revisited all day */ float cx = far.transform.position.x; Status = "army1: chest (" + far.coins + ")"; Push("goto " + F(cx) + " 0.3 " + F(10f + Mathf.Abs(cx - px) * 0.6f)); Push("wait 1"); return; }
+            if (far != null && !TooLateFor(far.transform.position.x, home)) { Cool(far.GetInstanceID(), 1e7f);   /* one visit per chest: inactive/template chests gave nothing and were revisited all day */ float cx = far.transform.position.x; Status = "army1: chest (" + far.coins + ")"; Push("goto " + F(cx) + " 0.3 " + F(10f + Mathf.Abs(cx - px) * 0.6f)); Push("wait 2.5"); Push("walkto " + F(cx - 3f) + " 0.3 4"); Push("walkto " + F(cx + 3f) + " 0.3 4"); return; }   /* coins spill around the chest: sweep them up */
             var coinFar = NearestCoin(px, home - Army1Range, home + Army1Range);
             if (coinFar != null && !TooLateFor(coinFar.transform.position.x, home) && !(coinFar.droppedByPlayer && Time.time - _lastTap < 15f)) { Cool(coinFar.GetInstanceID(), 1e7f); Status = "army1: coin far"; Push("goto " + F(coinFar.transform.position.x) + " 0.3 " + F(10f + Mathf.Abs(coinFar.transform.position.x - px) * 0.6f)); return; }
             Status = (feast ? "Feast: waiting (deer " + (am != null ? am.counters[4] : -1) + ", " : "army1: waiting (") + archersMade + " archers, " + coins + " coins)";

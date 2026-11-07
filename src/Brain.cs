@@ -895,6 +895,11 @@ namespace KingdomBot
                     Plugin.Log("CHEST " + ch.name + " x" + ch.transform.position.x.ToString("0") + " spill=" + ch.spillRange + " coins=" + ch.coins + " empty=" + ch.isEmpty + " active=" + ch.gameObject.activeInHierarchy + " parent=" + (ch.transform.parent != null ? ch.transform.parent.name : "-") + " root=" + ch.transform.root.name);
                 _mapChecked = true;
                 Plugin.Log("army1: coins reachable on this map = " + avail + " (reroll " + _rerolls + ")");
+                // feast (forum): needs a forest clearing (free wall spot 50-120 out) for a far wall, so the archers hunt the forest
+                int clearings = 0;
+                if (!FirstDayFocus) foreach (var py in UnityEngine.Object.FindObjectsOfType<Payable>()) { float d = Mathf.Abs(py.transform.position.x - home); if (py is PayableUpgrade && py.name.StartsWith("Wall0") && d >= 50f && d <= 120f) clearings++; }
+                Plugin.Log("army1: forest clearings 50-120 out = " + clearings);
+                if (!FirstDayFocus && clearings == 0 && _rerolls < 300 && NormalizeRunType(ConfigMode) == "auto") avail = 0;   // force a reroll
                 if (avail < 18 && _rerolls < 300   /* maps have one chest per side at 100-215: 18 = ground coins + a near chest; archers add hunting coins (guide) */ && NormalizeRunType(ConfigMode) == "auto")
                 {
                     _rerolls++; _lastDaySeen = -1; _pl.Queue.Clear();

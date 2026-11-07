@@ -1807,7 +1807,11 @@ namespace KingdomBot
             int farmsBuilt = 0;
             foreach (var fh in UnityEngine.Object.FindObjectsOfType<Farmhouse>()) if (fh.level > 0 && Mathf.Abs(fh.transform.position.x - home) < 60f) farmsBuilt++;
             int farmers = UnityEngine.Object.FindObjectsOfType<Farmer>().Length;
-            if (farmsBuilt > 0) return null;   // one farm with 4 farmers (guide: "you don't need more than 4 farmers")
+            if (farmsBuilt > 0)
+            {
+                // guide: "upgrade all of your farms" - a level-1 farm linked ONE field (6 farmers, 1 working, day 13)
+                return Find(payables, x => x is PayableUpgrade && x.name.StartsWith("Farmhouse") && !x.name.StartsWith("Farmhouse0") && SafeCanPay(x) && Mathf.Abs(x.transform.position.x - home) < 60f, home);
+            }
             // only a farmhouse spot inside the walls or at most 20 in front of them (the wall then goes beyond the farm);
             // no forest clearing for a farm (that cost the army a lot in the first farm test)
             float lw = WallEdge(-1, home), rw = WallEdge(1, home);

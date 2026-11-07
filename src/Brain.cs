@@ -828,6 +828,32 @@ namespace KingdomBot
                 if (built) { FeastWhy("wall side " + side + ": a built wall already stands beyond the camp"); continue; }
                 if (best == null)
                 {
+                    // no buildable spot: clear the trees around the nearest wall spot beyond the camp (wall spots in the forest
+                    // only become payable once the land around them is cleared - forum: "walls in the forest clearings")
+                    Payable spot = null; float sd = 1e6f;
+                    foreach (var p in payables)
+                    {
+                        if (!(p is PayableUpgrade) || !p.name.StartsWith("Wall0")) continue;
+                        float d = (p.transform.position.x - home) * side;
+                        if (d < camp + 3f || d > 120f || TooLateFor(p.transform.position.x, home)) continue;
+                        if (d < sd) { sd = d; spot = p; }
+                    }
+                    if (spot != null)
+                    {
+                        Payable tree = null; float td = 1e6f;
+                        foreach (var p in payables)
+                        {
+                            if (!p.name.StartsWith("Tree") || OnCooldown(p.GetInstanceID()) || coins < p.price + 1) continue;
+                            float d = Mathf.Abs(p.transform.position.x - spot.transform.position.x);
+                            if (d < 8f && d < td && (!p.isActiveAndEnabled || SafeCanPay(p))) { td = d; tree = p; }
+                        }
+                        if (tree != null)
+                        {
+                            Cool(tree.GetInstanceID(), 120f);
+                            Status = "Feast: clear forest for a wall at x" + spot.transform.position.x.ToString("0") + " (tree x" + tree.transform.position.x.ToString("0") + ")";
+                            PayAt(tree); return true;
+                        }
+                    }
                     var sb = new System.Text.StringBuilder();
                     foreach (var p in payables) if (p is PayableUpgrade && p.name.StartsWith("Wall")) { float d = (p.transform.position.x - home) * side; if (d > 0f) sb.Append(" " + p.name + "@" + p.transform.position.x.ToString("0") + "(" + p.price + (SafeCanPay(p) ? "" : "!") + ")"); }
                     FeastWhy("wall side " + side + ": no spot (camp " + camp.ToString("0") + ", coins " + coins + ", workers " + workers + "):" + sb);

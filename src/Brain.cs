@@ -909,8 +909,31 @@ namespace KingdomBot
         public float Army1Range = 130f;
         public bool BootDays = true;
         public float Army1Check = 90f;    // day 0 is short: 24 coins (8 recruits + 8 bows) must lie within ~80 of the camp, otherwise reroll   // guide: run to the camps on both sides (four camps incl. the town centre) and loot chests on the way
+        // coin ledger for First Day Army: every purse change with the action that was running
+        int _ledgerLast = -1, _ledgerDay = -1; System.Collections.Generic.Dictionary<string, int> _ledgerIn = new System.Collections.Generic.Dictionary<string, int>(), _ledgerOut = new System.Collections.Generic.Dictionary<string, int>();
+        void CoinLedger()
+        {
+            int c = GameState.Coins, d = GameState.Day;
+            if (_ledgerDay != d)
+            {
+                if (_ledgerDay == 0 && (_ledgerIn.Count > 0 || _ledgerOut.Count > 0))
+                {
+                    var sb = new System.Text.StringBuilder("COIN LEDGER day 0 | in:");
+                    foreach (var kv in _ledgerIn) sb.Append(" " + kv.Key + "=" + kv.Value);
+                    sb.Append(" | out:"); foreach (var kv in _ledgerOut) sb.Append(" " + kv.Key + "=" + kv.Value);
+                    Plugin.Log(sb.ToString());
+                }
+                _ledgerIn.Clear(); _ledgerOut.Clear(); _ledgerDay = d; _ledgerLast = c; return;
+            }
+            if (_ledgerLast < 0) { _ledgerLast = c; return; }
+            int delta = c - _ledgerLast; _ledgerLast = c;
+            if (delta == 0) return;
+            string key = System.Text.RegularExpressions.Regex.Replace(Status ?? "?", @"[0-9]+|\(.*\)", "").Trim();
+            var dict = delta > 0 ? _ledgerIn : _ledgerOut; int v; dict.TryGetValue(key, out v); dict[key] = v + Mathf.Abs(delta);
+        }
         void ThinkArmy1(bool feast, bool boot = false)
         {
+            if (!feast && !boot) CoinLedger();
             var k = Managers.kingdom; var am = Managers.achievements;
             float px = GameState.PX, home = k.campfirePosition;
             int coins = GameState.Coins;

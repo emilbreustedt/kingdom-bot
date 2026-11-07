@@ -461,11 +461,14 @@ namespace KingdomBot
                 case "walkto":
                 {
                     float x = F(parts[1]);
-                    float tol = parts.Length > 2 ? F(parts[2]) : 0.4f;
-                    tol = Mathf.Max(tol, 0.08f * Time.timeScale);   // larger steps per frame at high speed
+                    float reqTol = parts.Length > 2 ? F(parts[2]) : 0.4f;
+                    float tol = Mathf.Max(reqTol, 0.08f * Time.timeScale);   // larger steps per frame at high speed
                     float dx = x - px;
                     c.Pay = false;
-                    if (Mathf.Abs(dx) <= tol) { c.Dir = 0; c.Sprint = false; done = true; break; }
+                    // at 32x the tolerance is ~2.5: coins/chests/beggars closer than that were "reached" without ever being touched
+                    // (8 chest coins stayed on the ground). Slow the game down for the last few units instead of giving up.
+                    if (Mathf.Abs(dx) <= tol && Mathf.Abs(dx) > reqTol && Time.timeScale > 3.5f && pl.Brain != null && Time.time - _t0 < 30f) { pl.Brain.SlowUntil = Time.unscaledTime + 0.6f; }
+                    else if (Mathf.Abs(dx) <= tol) { c.Dir = 0; c.Sprint = false; done = true; break; }
                     c.Dir = dx > 0 ? 1 : -1;
                     c.Sprint = parts[0] == "goto" && pl.Brain.MaySprint && Mathf.Abs(dx) > 6f && p.stamina > 0.3f;
                     float maxT = parts.Length > 3 ? F(parts[3]) : 90f;

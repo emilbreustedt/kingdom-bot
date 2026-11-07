@@ -1001,6 +1001,7 @@ namespace KingdomBot
                     Acc.Call(Managers.game, "Restart");
                     Status = "army1: reroll map"; Push("wait 2"); return;
                 }
+                Plugin.Log("army1: map accepted after " + _rerolls + " rerolls"); _rerolls = 0;   // the 300 cap is per attempt (it was a lifetime cap: maps without a chest were played)
             }
             var payables = UnityEngine.Object.FindObjectsOfType<Payable>();
             // 2. danger

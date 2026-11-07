@@ -2193,7 +2193,8 @@ namespace KingdomBot
                     bool knightReady = false; foreach (var kn in UnityEngine.Object.FindObjectsOfType<Knight>()) { try { if ((bool)Acc.Call(kn, "CanCharge")) knightReady = true; } catch { } }
                     if (knightReady && !(am != null && am.flags != null && am.flags[7])) continue;   // a statue trip costs the morning: charges first
                     if (!SafeCanPay(su) || OnCooldown(su.GetInstanceID()) || Mathf.Abs(su.transform.position.x - home) > 200f) continue;
-                    if (budget - AssaultReserve(false) < su.price + 8) continue;
+                    if (GameState.Coins < su.price + 8) continue;   // guide: "day 16 charge the archer's statue, then start the crusade" - with the full reserve it was never charged (0 in 6 runs)
+                    { float sx = su.transform.position.x; int sside = sx < home ? -1 : 1; if ((sx - WallEdge(sside, home)) * sside > 60f || BigEnemyNear(sx, 40f)) continue; }   // the trip to a statue 89 out cost 20 coins
                     Cool(su.GetInstanceID(), 60f);
                     Status = "Statue: charge " + su.name.Replace("(Clone)", "") + " (" + su.price + ")";
                     Push("goto " + F(PayX(su)) + " 0.3 120"); Push("payid " + su.GetInstanceID() + " " + F(PayX(su))); Push("goto " + F(home) + " 1 40");

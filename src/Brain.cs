@@ -1324,6 +1324,8 @@ namespace KingdomBot
                 {
                     bool archerStatue = su.name.Contains("Archer");
                     if (!archerStatue && !lateGame) continue;
+                    bool knightReady = false; foreach (var kn in UnityEngine.Object.FindObjectsOfType<Knight>()) { try { if ((bool)Acc.Call(kn, "CanCharge")) knightReady = true; } catch { } }
+                    if (knightReady && !(am != null && am.flags != null && am.flags[7])) continue;   // a statue trip costs the morning: charges first
                     if (!SafeCanPay(su) || OnCooldown(su.GetInstanceID()) || Mathf.Abs(su.transform.position.x - home) > 200f) continue;
                     if (budget - AssaultReserve(false) < su.price + 8) continue;
                     Cool(su.GetInstanceID(), 60f);

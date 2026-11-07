@@ -622,7 +622,7 @@ namespace KingdomBot
                 catch (System.Exception ex) { Plugin.Log("KNIGHT move failed: " + ex.Message); }
             }
         }
-        float _chargeTrackUntil, _chargeTrackNext;
+        float _chargeTrackUntil, _chargeTrackNext, _chargePaidAt = -1e6f;
         /// <summary>After a charge: log every knight once per game hour (x, fsm state, escort, coins) to see where charges fail.</summary>
         void TrackCharge()
         {
@@ -1535,7 +1535,7 @@ namespace KingdomBot
                 }
                 if (pside == 0) return false;
                 var border = Find(payables, x => x is PayableBorder && SafeCanPay(x) && (x.transform.position.x - home) * pside > 0, px);
-                if (border != null && budget >= border.price + 3) { Status = "Assault: knights CHARGE (" + border.name.Replace("(Clone)", "") + ")"; Cool(border.GetInstanceID(), 60f); _chargeTrackUntil = Time.time + 12f * 10f; _chargeTrackNext = 0f; PayAt(border); return true; }
+                if (border != null && budget >= border.price + 3) { Status = "Assault: knights CHARGE (" + border.name.Replace("(Clone)", "") + ")"; Cool(border.GetInstanceID(), 60f); _chargeTrackUntil = Time.time + 24f * 10f; _chargePaidAt = Time.time; _chargeTrackNext = 0f; PayAt(border); return true; }
             }
             // shields -> knights
             var shield = Find(payables, x => x is PayableShield && SafeCanPay(x), home);
@@ -1547,7 +1547,7 @@ namespace KingdomBot
                 int kc = 0; try { kc = Acc.Wallet(kn).coins; } catch { }
                 if (kc < KnightArmor && kc < poorCoins && !OnCooldown(kn.GetInstanceID())) { poorCoins = kc; poor = kn; }
             }
-            if (poor != null && k.isDaytime && (poorCoins < 1 ? budget >= 2 : budget >= 4 + 3))   // keep the banner price once every knight has a coin
+            if (poor != null && k.isDaytime && Time.time - _chargePaidAt > 24f * 10f && (poorCoins < 1 ? budget >= 2 : budget >= 4 + 3))   /* charge tracking: knights sat in GrabCoin for hours after the banner was paid */   // keep the banner price once every knight has a coin
             {
                 Cool(poor.GetInstanceID(), 6f);
                 Status = "Assault: arm knight (" + poorCoins + "/" + KnightArmor + " coins)";

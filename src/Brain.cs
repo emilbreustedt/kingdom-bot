@@ -870,7 +870,7 @@ namespace KingdomBot
             }
             if (peasants > onDisplay && bow != null && SafeCanPay(bow) && coins >= bow.price) { Status = "army1: buy bow (" + archersMade + "/8)"; PayAt(bow); return; }
             int target = boot ? 12 : feast ? 15 : 8;
-            if (archersMade + peasants < target && coins >= (onDisplay > peasants ? 1 : 3))   /* a bow on display needs a peasant to carry it - it is not an archer yet (7 + 1 bow waited all evening) */
+            if (archersMade + peasants < target && coins >= 1)   /* guide: recruit all four camps first (1 coin each), buy bows later from archer income */   /* a bow on display needs a peasant to carry it - it is not an archer yet (7 + 1 bow waited all evening) */
             {
                 var b = NearestBeggar(px, home - Army1Range, home + Army1Range);
                 if (b != null && !TooLateFor(b.transform.position.x, home)) { Cool(b.GetInstanceID(), 8f); _lastTap = Time.time; Status = "army1: recruit (" + archersMade + "/8)"; Recruit(b); return; }   // whole camp per trip (up to 3)
@@ -881,7 +881,7 @@ namespace KingdomBot
             foreach (var ch in AllChests())
             {
                 float cx = ch.transform.position.x;
-                if (ch.isEmpty || OnCooldown(ch.GetInstanceID()) || Mathf.Abs(cx - home) > Army1Range) continue;
+                if (ch.isEmpty || OnCooldown(ch.GetInstanceID()) || Mathf.Abs(cx - home) > (feast ? Army1Range : 90f)) continue;   /* guide: a chest only if it lies between the camps */
                 if (Mathf.Abs(cx - px) < fd) { fd = Mathf.Abs(cx - px); far = ch; }
             }
             if (far != null && !TooLateFor(far.transform.position.x, home)) { Cool(far.GetInstanceID(), 1e7f);   /* one visit per chest: inactive/template chests gave nothing and were revisited all day */ float cx = far.transform.position.x; Status = "army1: chest (" + far.coins + ")"; Push("goto " + F(cx) + " 0.3 " + F(10f + Mathf.Abs(cx - px) * 0.6f)); Push("wait 2.5"); Push("walkto " + F(cx - 3f) + " 0.3 4"); Push("walkto " + F(cx + 3f) + " 0.3 4"); return; }   /* coins spill around the chest: sweep them up */
@@ -1245,7 +1245,7 @@ namespace KingdomBot
                     int extra = 0;
                     foreach (var o in UnityEngine.Object.FindObjectsOfType<Beggar>())
                     {
-                        if (o == b || extra >= 2 || GameState.Coins < 4 + 2 * extra) continue;
+                        if (o == b || extra >= 2 || GameState.Coins < (RunType == "early" ? 2 + extra : 4 + 2 * extra)) continue;
                         float ox = o.transform.position.x;
                         if (Mathf.Abs(ox - bx) > 10f || OnCooldown(o.GetInstanceID())) continue;
                         Cool(o.GetInstanceID(), 10f); extra++;

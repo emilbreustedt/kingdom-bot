@@ -91,7 +91,7 @@ namespace KingdomBot
             int dayC = am != null && am.counters != null ? am.counters[1] : GameState.Day;
             string phase = "master";
             if (RunType == "main" && Campaign.Missing("SURVIVED_UNTIL_DAY_100")) phase = "survive";   // pure record strategy for Day C
-            else if (RunType == "main" && dayC <= 2 && BootDays) phase = "boot";   // days 0-2: loot chests, recruit, bows (army1 logic) - guide: archers first
+            else if (RunType == "main" && dayC <= 2 && BootDays && !(_bootDone = _bootDone || GameState.Coins >= PurseCap)) phase = "boot";   /* boot only recruits/arms: 49 coins piled up by day 3 and spilled out of the bag - rich = hand over to the main logic */   // days 0-2: loot chests, recruit, bows (army1 logic) - guide: archers first
             if (RunType == "early")
             {
                 if (dayC == 0 && Campaign.Missing(Campaign.FirstDay)) phase = "army1";   // tested: 8 archers at the end of day counter 1 do not count - only day counter 0
@@ -174,7 +174,7 @@ namespace KingdomBot
                 _coinsAtTap = -1;
             }
             int dNow = GameState.Day;
-            if (dNow < _lastDaySeen || _lastDaySeen < 0) { _lastCastleUpgradeDay = -1; _cooldown.Clear(); _mapChecked = false; _merLogged = false; _merDone = false; _merPaidAt = -1f; _mainMapChecked = false; ChooseModeForRun(_lastDaySeen < 0 && dNow > 0); }
+            if (dNow < _lastDaySeen || _lastDaySeen < 0) { _lastCastleUpgradeDay = -1; _cooldown.Clear(); _mapChecked = false; _bootDone = false; _merLogged = false; _merDone = false; _merPaidAt = -1f; _mainMapChecked = false; ChooseModeForRun(_lastDaySeen < 0 && dNow > 0); }
             if (dNow != _lastDaySeen && Managers.achievements != null && Managers.achievements.flags != null)
             {
                 var am = Managers.achievements;
@@ -1745,7 +1745,8 @@ namespace KingdomBot
         public int BankTarget() { int d = GameState.Day; if (TenthRush) return 9 + 6 + 4 + 3; return Mathf.Min(PurseCap, d >= 24 ? 38 : 40); }
         /// <summary>The coin bag overflows at ~39 coins and every spilled coin falls into the water with p=0.5 (measured: 10 coins fell by day 13). Never save above this.</summary>
         public int PurseCap = 34;
-        public float MaxPortalDistance = 155f;   /* castle 4 (8) + castle 5 (9) + 2 shields (12) + banner (4) + purse; 60 delayed the knights by days */   // the assault (3 shields + 5-8 charges) is paid from the bank: castle 5 earns ~1 coin/day
+        public float MaxPortalDistance = 155f;
+        bool _bootDone;   /* castle 4 (8) + castle 5 (9) + 2 shields (12) + banner (4) + purse; 60 delayed the knights by days */   // the assault (3 shields + 5-8 charges) is paid from the bank: castle 5 earns ~1 coin/day
 
         /// <summary>Coins the record strategy must leave alone while the assault saves for castle 4/5 and shields.</summary>
         public static int ShieldsWaitingPublic() { return ShieldsWaiting(); }

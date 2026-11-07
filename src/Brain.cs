@@ -908,6 +908,7 @@ namespace KingdomBot
         int _rerolls; bool _mapChecked;
         public float Army1Range = 130f;
         public bool BootDays = true;
+        public float Army1Chest2 = 110f;   // max distance of the 2nd chest (map reroll otherwise)
         public float Army1Check = 90f;    // day 0 is short: 24 coins (8 recruits + 8 bows) must lie within ~80 of the camp, otherwise reroll   // guide: run to the camps on both sides (four camps incl. the town centre) and loot chests on the way
         // coin ledger for First Day Army: every purse change with the action that was running
         public bool Army1Merchant = false;   // tested: refills a RANDOM shop - the hammer shop turned all recruits into builders (0 archers)
@@ -986,6 +987,13 @@ namespace KingdomBot
                     foreach (var dr in Resources.FindObjectsOfTypeAll<Deer>()) if (dr != null && dr.hideFlags == HideFlags.None && dr.transform.root.gameObject.activeSelf && Mathf.Abs(dr.transform.position.x - home) < 50f) nearDeer++;
                     Plugin.Log("army1: camps within 60 = " + nearCamps + ", deer within 50 = " + nearDeer);
                     if (false && (nearCamps < 2 || nearDeer < 3) && _rerolls < 300 && NormalizeRunType(ConfigMode) == "auto") avail = 0;
+                    // ledger (8 runs): day-0 income 15-24 with one chest, 8 archers need ~25 -> both chests are needed.
+                    // Each map has one chest per side; the far one lies 130-215 out: reroll until it is within Army1Chest2.
+                    var cd = new System.Collections.Generic.List<float>();
+                    foreach (var ch in AllChests()) if (!ch.isEmpty) cd.Add(Mathf.Abs(ch.transform.position.x - home));
+                    cd.Sort(); float second = cd.Count >= 2 ? cd[1] : 1e6f;
+                    Plugin.Log("army1: chest distances " + string.Join(",", cd.ConvertAll(v => v.ToString("0")).ToArray()) + " (need 2nd <= " + Army1Chest2 + ")");
+                    if (second > Army1Chest2 && _rerolls < 300 && NormalizeRunType(ConfigMode) == "auto") avail = 0;
                 }
                 if (avail < 18 && _rerolls < 300   /* maps have one chest per side at 100-215: 18 = ground coins + a near chest; archers add hunting coins (guide) */ && NormalizeRunType(ConfigMode) == "auto")
                 {
@@ -1018,6 +1026,22 @@ namespace KingdomBot
             // 4. fire (opens the bow shop)
             var fire = Find(payables, x => x is PayableUpgrade && x.name.StartsWith("Castle0") && SafeCanPay(x));
             if (fire != null && coins >= fire.price) { Status = "army1: light fire"; PayAt(fire); return; }
+            // far chest FIRST (right after the fire): day 0 is only ~15 h of daylight at ~25 units/h, a chest 100+ out
+            // is only reachable in the morning; camps on the way are recruited on the return trip.
+            if (!feast && !boot && fire == null && Find(payables, x => x.name.StartsWith("Castle0")) == null && GameState.Day == 0)
+            {
+                foreach (var ch in AllChests())
+                {
+                    float cx = ch.transform.position.x, dh = Mathf.Abs(cx - home);
+                    if (ch.isEmpty || dh <= 90f || dh > Army1Chest2 + 5f || OnCooldown(ch.GetInstanceID()) || TooLateFor(cx, home)) continue;
+                    Cool(ch.GetInstanceID(), 1e7f); float sgn = cx >= px ? 1f : -1f;
+                    Status = "army1: far chest first (" + ch.coins + ", " + dh.ToString("0") + " out)"; Plugin.Log(Status + " h" + GameState.Hour.ToString("0.0"));
+                    _traceChest = ch; _traceUntil = Time.time + 40f; _traceNext = 0f;
+                    Push("goto " + F(cx - sgn * 5f) + " 1 " + F(10f + Mathf.Abs(cx - px) * 0.6f)); Push("slow 40"); Push("walkto " + F(cx + sgn * 3f) + " 0.3 20"); Push("wait 2");
+                    Push("walkto " + F(cx - 10f) + " 0.3 14"); Push("walkto " + F(cx + 10f) + " 0.3 24"); Push("walkto " + F(cx) + " 0.3 14");
+                    return;
+                }
+            }
             // merchant (game code): one payment -> a random shop (bows or hammers) is refilled to maxItems for FREE.
             // Forum: "on day one a merchant may appear and offer bows". Only spawns after the tutorial counts as completed.
             if (!feast && !boot)
@@ -1074,7 +1098,7 @@ namespace KingdomBot
             foreach (var ch in AllChests())
             {
                 float cx = ch.transform.position.x;
-                if (ch.isEmpty || OnCooldown(ch.GetInstanceID()) || Mathf.Abs(cx - home) > (feast ? Army1Range : 90f)) continue;   /* guide: a chest only if it lies between the camps */
+                if (ch.isEmpty || OnCooldown(ch.GetInstanceID()) || Mathf.Abs(cx - home) > (feast ? Army1Range : Army1Chest2 + 5f)) continue;   /* guide: a chest only if it lies between the camps */
                 if (Mathf.Abs(cx - px) < fd) { fd = Mathf.Abs(cx - px); far = ch; }
             }
             if (far != null && !TooLateFor(far.transform.position.x, home)) { Cool(far.GetInstanceID(), 1e7f);   /* one visit per chest: inactive/template chests gave nothing and were revisited all day */ float cx = far.transform.position.x; Status = "army1: chest (" + far.coins + ")"; if (!feast) { _traceChest = far; _traceUntil = Time.time + 40f; _traceNext = 0f; } float sgn = cx >= px ? 1f : -1f; Push("goto " + F(cx - sgn * 5f) + " 1 " + F(10f + Mathf.Abs(cx - px) * 0.6f)); Push("slow 40"); Push("walkto " + F(cx + sgn * 3f) + " 0.3 20"); float sr = 10f; Push("wait 2"); Push("walkto " + F(cx - sr) + " 0.3 " + F(4f + sr)); Push("walkto " + F(cx + sr) + " 0.3 " + F(4f + 2f * sr)); Push("walkto " + F(cx) + " 0.3 " + F(4f + sr)); return; }   /* OnTriggerEnter2D spills the coins within spillRange: sweep the whole range */

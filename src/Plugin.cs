@@ -437,7 +437,7 @@ namespace KingdomBot
     {
         readonly Queue<string> _q = new Queue<string>();
         string _cur; float _t0, _u0; int _n; bool _started;
-        int _lastCoinIdx = -1, _pressFrames; float _enemyCheckAt;
+        int _lastCoinIdx = -1, _pressFrames; float _enemyCheckAt; int _payCoins0, _payPrice;
 
         public bool Idle { get { return _cur == null && _q.Count == 0; } }
         /// <summary>true while creeping onto a payable (game speed is lowered for precision)</summary>
@@ -541,7 +541,7 @@ namespace KingdomBot
                         bool match = sel != null && (sel.GetInstanceID() == id || (sel is PayableShield && IdIsShield(id)));
                         if (match && payable && _matchFrames < 3) { _matchFrames++; c.Dir = 0; break; }   // stand still first: a moving king slides out of the trigger mid-payment
                         if (!(match && payable)) _matchFrames = 0;
-                        if (match && payable) { id = sel.GetInstanceID(); _payTarget = id; _started = true; _t0 = Time.time; c.Dir = 0; c.Pay = true; }
+                        if (match && payable) { id = sel.GetInstanceID(); _payTarget = id; _started = true; _t0 = Time.time; c.Dir = 0; c.Pay = true; _payCoins0 = GameState.Coins; _payPrice = sel.price; }
                         else if (Time.time - _t0 > 10f + _payStartDist * 1.5f)
                         {
                             string tinfo = "?";
@@ -586,6 +586,7 @@ namespace KingdomBot
                     // never release in the "Holding" phase (state 1): releasing there drops a coin on the ground
                     // keep holding through "Holding" (1) AND "Transaction" (2): releasing during the transaction cancelled
                     // expensive purchases (castle 5 for 9 coins) half-way and the coins were lost
+                    if (_payCoins0 - GameState.Coins > _payPrice + 3 && _payPrice > 0) { Plugin.Log("payid: ABORT - spent " + (_payCoins0 - GameState.Coins) + " for price " + _payPrice + " (" + (sel != null ? sel.name : "?") + ")"); c.Pay = false; done = true; break; }   /* Wall3 (9) drained 25 coins */
                     if ((ps == 1 || ps == 2) && Time.time - _t0 < 15f) { c.Pay = true; break; }
                     if (_payTarget != 0) id = _payTarget;
                     if (sel != null && sel.GetInstanceID() != id && ps != 3) { Plugin.Log("payid: wrong selection " + sel.name); c.Pay = false; done = true; break; }

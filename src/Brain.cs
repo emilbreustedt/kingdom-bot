@@ -911,9 +911,11 @@ namespace KingdomBot
         public float Army1Check = 90f;    // day 0 is short: 24 coins (8 recruits + 8 bows) must lie within ~80 of the camp, otherwise reroll   // guide: run to the camps on both sides (four camps incl. the town centre) and loot chests on the way
         // coin ledger for First Day Army: every purse change with the action that was running
         public bool Army1Merchant = false;   // tested: refills a RANDOM shop - the hammer shop turned all recruits into builders (0 archers)
+        float _hbNext;
+        public float SlowUntil;   // unscaled time: Plugin caps the game speed until then
         bool _merLogged; Chest _traceChest; float _traceUntil, _traceNext;
         int _ledgerLast = -1, _ledgerDay = -1; System.Collections.Generic.Dictionary<string, int> _ledgerIn = new System.Collections.Generic.Dictionary<string, int>(), _ledgerOut = new System.Collections.Generic.Dictionary<string, int>();
-        void CoinLedger()
+        public void CoinLedger()
         {
             int c = GameState.Coins, d = GameState.Day;
             if (_traceChest != null && Time.time < _traceUntil && Time.time >= _traceNext)
@@ -922,6 +924,7 @@ namespace KingdomBot
                 int n = 0; foreach (var cn in UnityEngine.Object.FindObjectsOfType<Coin>()) { float dx = cn.transform.position.x - tx; if (Mathf.Abs(dx) > 25f) continue; n++; if (n <= 12) sb2.Append(" " + dx.ToString("0.0") + "/" + cn.transform.position.y.ToString("0.0") + (cn.pickedUp ? "P" : "") + (cn.droppedByPlayer ? "D" : "") + (OnCooldown(cn.GetInstanceID()) ? "C" : "")); }
                 Plugin.Log("CHEST TRACE t+" + (Time.time - _traceUntil + 15f).ToString("0") + " chestCoins=" + _traceChest.coins + " purse=" + c + " px-chest=" + (GameState.PX - tx).ToString("0.0") + " status=" + Status + " coins near(" + n + "):" + sb2);
             }
+            if (d == 0 && Time.time >= _hbNext) { _hbNext = Time.time + 15f; Plugin.Log("A1 HB h" + GameState.Hour.ToString("0.0") + " x" + GameState.PX.ToString("0") + " c" + c + " | " + Status); }
             if (_ledgerDay != d)
             {
                 if (_ledgerDay == 0 && (_ledgerIn.Count > 0 || _ledgerOut.Count > 0))
@@ -941,7 +944,6 @@ namespace KingdomBot
         }
         void ThinkArmy1(bool feast, bool boot = false)
         {
-            if (!feast && !boot) CoinLedger();
             var k = Managers.kingdom; var am = Managers.achievements;
             float px = GameState.PX, home = k.campfirePosition;
             int coins = GameState.Coins;
@@ -1009,7 +1011,7 @@ namespace KingdomBot
             foreach (var ch in AllChests())
             {
                 float cx = ch.transform.position.x;
-                if (!ch.isEmpty && ch.gameObject.activeInHierarchy && !OnCooldown(ch.GetInstanceID()) && Mathf.Abs(cx - px) < 25f) { Cool(ch.GetInstanceID(), 60f);   /* the camp chest refills during the day */ Status = "army1: chest near (" + ch.coins + ")"; if (!feast && ch.coins > 0) { _traceChest = ch; _traceUntil = Time.time + 15f; _traceNext = 0f; } Push("goto " + F(cx) + " 0.3 15"); Push("wait 1"); return; }
+                if (!ch.isEmpty && ch.gameObject.activeInHierarchy && !OnCooldown(ch.GetInstanceID()) && Mathf.Abs(cx - px) < 25f) { Cool(ch.GetInstanceID(), 60f);   /* the camp chest refills during the day */ Status = "army1: chest near (" + ch.coins + ")"; if (!feast && ch.coins > 0) { _traceChest = ch; _traceUntil = Time.time + 15f; _traceNext = 0f; } float thr = cx + (cx >= px ? 3f : -3f); Push("goto " + F(cx - (cx >= px ? 5f : -5f)) + " 1 15"); Push("slow 25"); Push("walkto " + F(thr) + " 0.3 20"); Push("wait 2"); return; }
             }
             var coin = NearestCoin(px, px - 25f, px + 25f);
             if (coin != null && !(coin.droppedByPlayer && Time.time - _lastTap < 15f)) { Cool(coin.GetInstanceID(), 1e7f); Status = "army1: coin"; Push("goto " + F(coin.transform.position.x) + " 0.3 15"); return; }
@@ -1075,7 +1077,7 @@ namespace KingdomBot
                 if (ch.isEmpty || OnCooldown(ch.GetInstanceID()) || Mathf.Abs(cx - home) > (feast ? Army1Range : 90f)) continue;   /* guide: a chest only if it lies between the camps */
                 if (Mathf.Abs(cx - px) < fd) { fd = Mathf.Abs(cx - px); far = ch; }
             }
-            if (far != null && !TooLateFor(far.transform.position.x, home)) { Cool(far.GetInstanceID(), 1e7f);   /* one visit per chest: inactive/template chests gave nothing and were revisited all day */ float cx = far.transform.position.x; Status = "army1: chest (" + far.coins + ")"; if (!feast) { _traceChest = far; _traceUntil = Time.time + 40f; _traceNext = 0f; } Push("goto " + F(cx) + " 0.3 " + F(10f + Mathf.Abs(cx - px) * 0.6f)); float sr = 10f; Push("wait 2"); Push("walkto " + F(cx - sr) + " 0.3 " + F(4f + sr)); Push("walkto " + F(cx + sr) + " 0.3 " + F(4f + 2f * sr)); Push("walkto " + F(cx) + " 0.3 " + F(4f + sr)); return; }   /* OnTriggerEnter2D spills the coins within spillRange: sweep the whole range */
+            if (far != null && !TooLateFor(far.transform.position.x, home)) { Cool(far.GetInstanceID(), 1e7f);   /* one visit per chest: inactive/template chests gave nothing and were revisited all day */ float cx = far.transform.position.x; Status = "army1: chest (" + far.coins + ")"; if (!feast) { _traceChest = far; _traceUntil = Time.time + 40f; _traceNext = 0f; } float sgn = cx >= px ? 1f : -1f; Push("goto " + F(cx - sgn * 5f) + " 1 " + F(10f + Mathf.Abs(cx - px) * 0.6f)); Push("slow 40"); Push("walkto " + F(cx + sgn * 3f) + " 0.3 20"); float sr = 10f; Push("wait 2"); Push("walkto " + F(cx - sr) + " 0.3 " + F(4f + sr)); Push("walkto " + F(cx + sr) + " 0.3 " + F(4f + 2f * sr)); Push("walkto " + F(cx) + " 0.3 " + F(4f + sr)); return; }   /* OnTriggerEnter2D spills the coins within spillRange: sweep the whole range */
             var coinFar = NearestCoin(px, home - 60f, home + 60f);   /* FarCoin found phantom coins (4 h trips for nothing) */
             if (coinFar != null && !TooLateFor(coinFar.transform.position.x, home) && !(coinFar.droppedByPlayer && Time.time - _lastTap < 15f)) { Cool(coinFar.GetInstanceID(), 1e7f); Status = "army1: coin far"; Push("goto " + F(coinFar.transform.position.x) + " 0.3 " + F(10f + Mathf.Abs(coinFar.transform.position.x - px) * 0.6f)); return; }
             // guide: "collect coins from your archers" - hunting archers hand their coins to the king only when he passes by

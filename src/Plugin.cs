@@ -52,6 +52,7 @@ namespace KingdomBot
             if (Input.GetKeyDown(KeyCode.F10)) { Speed = Speed >= 32f ? 1f : Speed * 2f; Log("Speed: " + Speed); }
             ApplySpeed();
 
+            if (Brain != null && Brain.Mode == "army1" && Managers.game != null && (int)Managers.game.gameState == 2) { try { Brain.CoinLedger(); } catch (System.Exception e) { Log("ledger: " + e.Message); } }
             if (Time.unscaledTime >= _nextCmdPoll) { _nextCmdPoll = Time.unscaledTime + 0.5f; PollCommandFile(); }
 
             // intro (also after a new game): queued commands can never finish there -> clear them and skip the intro directly
@@ -113,7 +114,8 @@ namespace KingdomBot
             bool normal = g != null && (int)g.gameState == 2 && (int)g.menuState == 0;
             if (!normal) { _appliedSpeed = 1f; return; }
             // game sets 1.0 itself after effects; we only replace "1" or our own previous value
-            float want = Queue.Positioning ? Mathf.Min(Speed, 2f) : Speed;   // precise positioning for payments
+            float want = Queue.Positioning ? Mathf.Min(Speed, 2f) : Speed;
+            if (Brain != null && Time.unscaledTime < Brain.SlowUntil) want = Mathf.Min(want, 3f);   // chest triggers are missed at 32x (king skips over the small collider)   // precise positioning for payments
             if (Mathf.Approximately(Time.timeScale, 1f) || Mathf.Approximately(Time.timeScale, _appliedSpeed))
             {
                 Time.timeScale = want;
@@ -596,6 +598,8 @@ namespace KingdomBot
                 }
                 case "shot":
                     Application.CaptureScreenshot(Path.Combine(Plugin.Dir, "shot.png")); done = true; break;
+                case "slow":   // slow N: cap the game speed at 3x for N game seconds (chest triggers)
+                    pl.Brain.SlowUntil = Time.unscaledTime + F(parts[1]) / 3f; done = true; break;
                 case "wait":
                     c.Dir = 0; c.Sprint = false; c.Pay = false;
                     if (Time.time - _t0 >= F(parts[1]) || Time.unscaledTime - _u0 >= F(parts[1])) done = true;   /* also ends if game time stands still */

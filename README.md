@@ -155,6 +155,13 @@ What finally worked (all verified in the game, see the git history for details):
   map check runs again (boot phase skipped it) and requires every inner portal within 185.
   Best runs: castle 5 on day 11-14, all portals down on day 25, final wave lasted until day 31.
 
+- **Safe in 25/30, evening of 2026-11-07:** typical run now: castle 5 on day 11-15, 1-2 portals by day 24 (pace end).
+  Added after a user-provided guide and live observations: early farm (day 5) with upgrade, wall beyond it and 6
+  farmers; farmer/archer tax trips; recruiting whole camps and in passing; night shopping; crown guard checked before
+  every purchase; knights armed to 5 coins, 2 per side, shields on the charge side; charges only when they end before
+  dusk; forward walls only for portals > 130 beyond the wall; intruder avoidance first. Open problem: about 2/3 of all
+  archers die (mostly charge escorts at the portals at dusk), and the late economy is thin (7-12 coins/day).
+
 **Kingdom: New Lands** (`newlands/`) — the Classic strategy runs via a small compatibility layer (`Compat.cs`);
 first achievements earned: Day V/X/XV, Five Days, Ninth Day, Second Day Gift. Boat escape (wreck → wharf → beach,
 land transition via the map) is implemented but not completed yet. See `docs/new-lands.md`.

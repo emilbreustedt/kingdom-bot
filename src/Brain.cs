@@ -1117,6 +1117,9 @@ namespace KingdomBot
                 if (hm2 != null && hm2.GetItemCount() == 0 && SafeCanPay(hm2) && coins >= hm2.price) { Status = "Feast: buy hammer (forest walls)"; PayAt(hm2); return; }
             }
             if (peasants > onDisplay && bow != null && SafeCanPay(bow) && coins >= bow.price && (!routeMode || nextBeggar == null || GameState.Hour >= k.dayEnd - 3f || !k.isDaytime || (nearShop && coins >= bow.price + 2))) {   /* day counter 0 lasts until dawn: recruit by day, arm them in the evening/night with the archers' coins */ Status = "army1: buy bow (" + archersMade + "/8)"; PayAt(bow); return; }
+            // night (day counter still 0): a bow already on display lets the next recruit arm himself at once (the last peasant missed dawn by minutes)
+            if (!feast && !boot && bow != null && am != null && am.counters[1] == 0 && !k.isDaytime && archersMade + onDisplay < target && onDisplay < 2 && coins >= bow.price + 1 && SafeCanPay(bow))
+            { Status = "army1: pre-buy bow (" + archersMade + "/8)"; PayAt(bow); return; }
             if (archersMade + peasants < target && coins >= 1)   /* guide: recruit all four camps first (1 coin each), buy bows later from archer income */   /* a bow on display needs a peasant to carry it - it is not an archer yet (7 + 1 bow waited all evening) */
             {
                 var b = NearestBeggar(px, home - Army1Range, home + Army1Range);
@@ -1137,13 +1140,14 @@ namespace KingdomBot
             // idle afternoon (h11-h19 was spent waiting with 0-1 coins): drive deer into the archers - 2 coins per deer
             if (!feast && !boot && Army1Herd && FeastStep(true)) { Status = "army1: " + Status; return; }
             // guide: "collect coins from your archers" - hunting archers hand their coins to the king only when he passes by
-            if (!feast && k.isDaytime && !OnCooldown(777100))
+            bool night0 = am != null && am.counters != null && am.counters[1] == 0 && !k.isDaytime;   // archers carry their hunting coins at night too - they arrived only at h4.3 in a 7-archer run
+            if (!feast && (k.isDaytime || night0) && !OnCooldown(777100))
             {
                 Archer pick = null; float pd = 0f;
                 foreach (var ar in UnityEngine.Object.FindObjectsOfType<Archer>())
                 {
                     float ax = ar.transform.position.x, d = Mathf.Abs(ax - px);
-                    if (d < 6f || Mathf.Abs(ax - home) > 70f || OnCooldown(ar.GetInstanceID()) || TooLateFor(ax, home)) continue;
+                    if (d < 6f || Mathf.Abs(ax - home) > 70f || OnCooldown(ar.GetInstanceID()) || (!night0 && TooLateFor(ax, home))) continue;
                     if (d > pd) { pd = d; pick = ar; }
                 }
                 if (pick != null)

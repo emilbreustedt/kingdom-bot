@@ -1944,6 +1944,7 @@ namespace KingdomBot
         /// Any coin within 12 units is picked up first (at night only inside the walls).</summary>
         bool SweepNearCoins()
         {
+            if (GameState.Coins >= PurseCap + 3) return false;
             var k = Managers.kingdom; float px = GameState.PX, home = k.campfirePosition;
             float l = WallEdge(-1, home), r = WallEdge(1, home);
             bool night = !k.isDaytime || GameState.Hour >= k.dayEnd - 0.5f;
@@ -2002,6 +2003,7 @@ namespace KingdomBot
         /// the king passes by. Saving used to patrol inside the walls only. Ride out to them (and pick up coins out there) when it is safe.</summary>
         bool CollectOutside(string label, float home, float px)
         {
+            if (GameState.Coins >= PurseCap + 3) return false;
             var k = Managers.kingdom;
             if (!k.isDaytime || GameState.Hour > k.dayEnd - 3f) return false;
             float l = WallEdge(-1, home), r = WallEdge(1, home);
@@ -2568,6 +2570,7 @@ namespace KingdomBot
 
         Coin NearestCoin(float px, float minX, float maxX)
         {
+            if (Mode == "master" && GameState.Coins >= PurseCap + 3) return null;   // bag overflows at ~39-42: leave coins on the ground until something was bought
             Coin best = null; float bd = float.MaxValue;
             foreach (var c in UnityEngine.Object.FindObjectsOfType<Coin>())
             {

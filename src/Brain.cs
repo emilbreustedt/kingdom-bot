@@ -834,7 +834,7 @@ namespace KingdomBot
         int _rerolls; bool _mapChecked;
         public float Army1Range = 130f;
         public bool BootDays = true;
-        public float Army1Check = 110f;    // day 0 is short: 24 coins (8 recruits + 8 bows) must lie within ~80 of the camp, otherwise reroll   // guide: run to the camps on both sides (four camps incl. the town centre) and loot chests on the way
+        public float Army1Check = 90f;    // day 0 is short: 24 coins (8 recruits + 8 bows) must lie within ~80 of the camp, otherwise reroll   // guide: run to the camps on both sides (four camps incl. the town centre) and loot chests on the way
         void ThinkArmy1(bool feast, bool boot = false)
         {
             var k = Managers.kingdom; var am = Managers.achievements;
@@ -845,13 +845,13 @@ namespace KingdomBot
             if (!_mapChecked && !feast && !boot)
             {
                 int avail = coins;
-                avail += CountCoins(home, Army1Check);
+                foreach (var c in UnityEngine.Object.FindObjectsOfType<Coin>()) if (!c.pickedUp && Mathf.Abs(c.transform.position.x - home) < Army1Check) avail++;
                 foreach (var ch in AllChests()) if (!ch.isEmpty && Mathf.Abs(ch.transform.position.x - home) < Army1Check) avail += ch.coins;
                 foreach (var ch in AllChests())
                     Plugin.Log("CHEST " + ch.name + " x" + ch.transform.position.x.ToString("0") + " coins=" + ch.coins + " empty=" + ch.isEmpty + " active=" + ch.gameObject.activeInHierarchy + " parent=" + (ch.transform.parent != null ? ch.transform.parent.name : "-") + " root=" + ch.transform.root.name);
                 _mapChecked = true;
                 Plugin.Log("army1: coins reachable on this map = " + avail + " (reroll " + _rerolls + ")");
-                if (avail < 10 && _rerolls < 200   /* maps have one chest per side at 100-215: 18 = ground coins + a near chest; archers add hunting coins (guide) */ && NormalizeRunType(ConfigMode) == "auto")
+                if (avail < 18 && _rerolls < 300   /* maps have one chest per side at 100-215: 18 = ground coins + a near chest; archers add hunting coins (guide) */ && NormalizeRunType(ConfigMode) == "auto")
                 {
                     _rerolls++; _lastDaySeen = -1; _pl.Queue.Clear();
                     Acc.Call(Managers.game, "Restart");
@@ -906,7 +906,7 @@ namespace KingdomBot
                 if (Mathf.Abs(cx - px) < fd) { fd = Mathf.Abs(cx - px); far = ch; }
             }
             if (far != null && !TooLateFor(far.transform.position.x, home)) { Cool(far.GetInstanceID(), 1e7f);   /* one visit per chest: inactive/template chests gave nothing and were revisited all day */ float cx = far.transform.position.x; Status = "army1: chest (" + far.coins + ")"; Push("goto " + F(cx) + " 0.3 " + F(10f + Mathf.Abs(cx - px) * 0.6f)); Push("wait 2.5"); Push("walkto " + F(cx - 3f) + " 0.3 4"); Push("walkto " + F(cx + 3f) + " 0.3 4"); return; }   /* coins spill around the chest: sweep them up */
-            var coinFar = FarCoin(px, home - 60f, home + 60f, home);   /* a 130-out coin trip took 8 game hours for 3 coins */
+            var coinFar = NearestCoin(px, home - 60f, home + 60f);   /* FarCoin found phantom coins (4 h trips for nothing) */
             if (coinFar != null && !TooLateFor(coinFar.transform.position.x, home) && !(coinFar.droppedByPlayer && Time.time - _lastTap < 15f)) { Cool(coinFar.GetInstanceID(), 1e7f); Status = "army1: coin far"; Push("goto " + F(coinFar.transform.position.x) + " 0.3 " + F(10f + Mathf.Abs(coinFar.transform.position.x - px) * 0.6f)); return; }
             // guide: "collect coins from your archers" - hunting archers hand their coins to the king only when he passes by
             if (!feast && k.isDaytime && !OnCooldown(777100))

@@ -223,6 +223,7 @@ namespace KingdomBot
             if ((Mode == "survive" || Mode == "master") && GameState.Player != null && (int)Managers.game.gameState == 2 && HorseStep()) return;
             if (Mode == "master" && GameState.Player != null && (int)Managers.game.gameState == 2)
             {
+                TrackCharge();
                 // master = record-run defence (LegacyBrain) + portal assault steps on top
                 var kk = Managers.kingdom;
                 int d = GameState.Day; float hr = GameState.Hour, pxx = GameState.PX, hm = kk.campfirePosition;
@@ -620,6 +621,24 @@ namespace KingdomBot
                 }
                 catch (System.Exception ex) { Plugin.Log("KNIGHT move failed: " + ex.Message); }
             }
+        }
+        float _chargeTrackUntil, _chargeTrackNext;
+        /// <summary>After a charge: log every knight once per game hour (x, fsm state, escort, coins) to see where charges fail.</summary>
+        void TrackCharge()
+        {
+            if (Time.time > _chargeTrackUntil || Time.time < _chargeTrackNext) return;
+            _chargeTrackNext = Time.time + 10f;
+            var sb = new System.Text.StringBuilder("CHARGE TRACK d" + GameState.Day + " h" + GameState.Hour.ToString("0.0") + ":");
+            foreach (var kn in UnityEngine.Object.FindObjectsOfType<Knight>())
+            {
+                object cur = null; try { var fsm = Acc.Get<object>(kn, "_fsm"); cur = fsm.GetType().GetField("current").GetValue(fsm); } catch { }
+                int ar = -1; try { var a = Acc.Get<object>(kn, "_archers"); ar = (int)a.GetType().GetProperty("Count").GetValue(a, null); } catch { }
+                int kc = -1; try { kc = Acc.Wallet(kn).coins; } catch { }
+                sb.Append(" [x" + kn.transform.position.x.ToString("0") + " " + cur + " esc=" + ar + " c=" + kc + "]");
+            }
+            int en = 0; foreach (var e in UnityEngine.Object.FindObjectsOfType<Enemy>()) if (IsLiveEnemy(e)) en++;
+            sb.Append(" enemies=" + en);
+            Plugin.Log(sb.ToString());
         }
         int _knightDiagDay = -1, _knightMoveWarned;
         int _rerolls; bool _mapChecked;
@@ -1516,7 +1535,7 @@ namespace KingdomBot
                 }
                 if (pside == 0) return false;
                 var border = Find(payables, x => x is PayableBorder && SafeCanPay(x) && (x.transform.position.x - home) * pside > 0, px);
-                if (border != null && budget >= border.price + 3) { Status = "Assault: knights CHARGE (" + border.name.Replace("(Clone)", "") + ")"; Cool(border.GetInstanceID(), 60f); PayAt(border); return true; }
+                if (border != null && budget >= border.price + 3) { Status = "Assault: knights CHARGE (" + border.name.Replace("(Clone)", "") + ")"; Cool(border.GetInstanceID(), 60f); _chargeTrackUntil = Time.time + 12f * 10f; _chargeTrackNext = 0f; PayAt(border); return true; }
             }
             // shields -> knights
             var shield = Find(payables, x => x is PayableShield && SafeCanPay(x), home);

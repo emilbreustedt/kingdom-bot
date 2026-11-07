@@ -613,6 +613,26 @@ namespace KingdomBot
                 if (po.outerSpawner || (dm != null && dm.hitPoints <= 0)) continue;
                 if (po.transform.position.x < home) aliveL++; else aliveR++;
             }
+            // stale targets: a knight whose target spawner is already destroyed (or on the other side after a switch) stands
+            // forever with _shouldCharge=True (day 26-36: target Portal@134 dead, last portal never charged)
+            var fTs = typeof(Knight).GetField("_targetSpawner", System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+            var fTc = typeof(Knight).GetField("_targetCoin", System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+            foreach (var kn in UnityEngine.Object.FindObjectsOfType<Knight>())
+            {
+                try
+                {
+                    var ts = fTs != null ? fTs.GetValue(kn) as Component : null;
+                    if (ts == null) continue;
+                    var dm = ts.GetComponent<Damageable>();
+                    bool dead = dm != null && dm.hitPoints <= 0;
+                    bool otherSide = (ts.transform.position.x - home) * (kn.transform.position.x - home) < 0;
+                    if (!dead && !otherSide) continue;
+                    fTs.SetValue(kn, null);
+                    if (fTc != null) fTc.SetValue(kn, null);
+                    Plugin.Log("KNIGHT target reset (" + (dead ? "dead" : "other side") + " " + ts.name.Replace("(Clone)", "") + "@" + ts.transform.position.x.ToString("0") + ") x" + kn.transform.position.x.ToString("0"));
+                }
+                catch (System.Exception ex) { Plugin.Log("KNIGHT target reset failed: " + ex.Message); }
+            }
             if ((aliveL == 0) == (aliveR == 0)) return;
             string target = aliveL == 0 ? "Right" : "Left";
             foreach (var kn in UnityEngine.Object.FindObjectsOfType<Knight>())

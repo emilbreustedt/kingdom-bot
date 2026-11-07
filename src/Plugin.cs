@@ -138,6 +138,14 @@ namespace KingdomBot
                 if (l == "savequit")
                 {
                     // same as the menu's "save & quit": keeps the current run when the bot is updated
+                    // never during the final wave / with all portals down: such a save does not load back (two won-able runs lost)
+                    try
+                    {
+                        var am = Managers.achievements;
+                        bool fw = (am != null && am.flags != null && am.flags.Length > 7 && am.flags[7]) || (Managers.enemies != null && Managers.enemies.finalWaveSpawned);
+                        if (fw) { Log("savequit REFUSED: final wave / all portals destroyed - the run would be lost"); continue; }
+                    }
+                    catch { }
                     try { if (Managers.saves != null && GameState.Player != null && Managers.game != null && (int)Managers.game.gameState == 2) Managers.saves.Save("AUTO"); Log("Saved run (day " + GameState.Day + ")"); }
                     catch (Exception e) { Log("save failed: " + e.Message); }
                     Application.Quit(); continue;

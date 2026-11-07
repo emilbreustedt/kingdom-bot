@@ -1463,8 +1463,6 @@ namespace KingdomBot
         {
             var k = Managers.kingdom;
             if (!k.isDaytime || hour > k.dayEnd - 4f) return false;
-            // a ready knight goes first: saving for the next shield must not block the morning charge
-            if (hour >= 7f && hour < k.dayEnd - 7f) foreach (var kn in UnityEngine.Object.FindObjectsOfType<Knight>()) { try { if ((bool)Acc.Call(kn, "CanCharge")) return false; } catch { } }
             int coins = GameState.Coins;
             // a bought shield is a tool: only a peasant can take it (and becomes a knight). Without idle peasants it
             // just lies at the shop -> recruit a beggar for it.
@@ -1477,6 +1475,8 @@ namespace KingdomBot
                     if (b != null) { Cool(b.GetInstanceID(), 10f); Status = "Assault: recruit a peasant for the shield"; Recruit(b); return true; }
                 }
             }
+            // a ready knight goes first: saving for the next shield (but after recruiting for waiting shields) must not block the morning charge
+            if (hour >= 7f && hour < k.dayEnd - 7f) foreach (var kn in UnityEngine.Object.FindObjectsOfType<Knight>()) { try { if ((bool)Acc.Call(kn, "CanCharge")) return false; } catch { } }
             Payable item = null; string what = null;
             var castle = Find(payables, x => x is PayableUpgrade && x.name.StartsWith("Castle") && SafeCanPay(x) && CastleIndex(x.name) <= 5);
             int target = 0;

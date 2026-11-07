@@ -174,7 +174,7 @@ namespace KingdomBot
                 _coinsAtTap = -1;
             }
             int dNow = GameState.Day;
-            if (dNow < _lastDaySeen || _lastDaySeen < 0) { _lastCastleUpgradeDay = -1; _cooldown.Clear(); _mapChecked = false; _bootDone = false; _merLogged = false; _merDone = false; _merPaidAt = -1f; _mainMapChecked = false; ChooseModeForRun(_lastDaySeen < 0 && dNow > 0); }
+            if (dNow < _lastDaySeen || _lastDaySeen < 0) { _lastCastleUpgradeDay = -1; _cooldown.Clear(); _mapChecked = false; _bootDone = false; _mainSide = 0; _merLogged = false; _merDone = false; _merPaidAt = -1f; _mainMapChecked = false; ChooseModeForRun(_lastDaySeen < 0 && dNow > 0); }
             if (dNow != _lastDaySeen && Managers.achievements != null && Managers.achievements.flags != null)
             {
                 var am = Managers.achievements;
@@ -1781,6 +1781,19 @@ namespace KingdomBot
         }       // castle 4 (8) + castle 5 (12) + 2 shields (12) + purse   // while saving for castle/shields the army only grows to this size (else nothing is ever saved)
 
         /// <summary>Farmhouse payable to build next (first farm once scythes are sold, second one from day 12), or null.</summary>
+        /// <summary>User idea: one "main side" for farm and the first charges (both portals there first: that side becomes safe
+        /// for the farm), the other side keeps its beggar camps for recruiting. Main side = fewer camps within 90 (tie: left).</summary>
+        int MainSide()
+        {
+            if (_mainSide != 0) return _mainSide;
+            float home = Managers.kingdom.campfirePosition; int l = 0, r = 0;
+            foreach (var bc in UnityEngine.Object.FindObjectsOfType<BeggarCamp>()) { float d = bc.transform.position.x - home; if (Mathf.Abs(d) < 90f) { if (d < 0) l++; else r++; } }
+            _mainSide = r < l ? 1 : -1;
+            Plugin.Log("MAIN SIDE " + (_mainSide < 0 ? "left" : "right") + " (beggar camps L " + l + " / R " + r + ")");
+            return _mainSide;
+        }
+        int _mainSide;
+
         Payable FarmTarget(Payable[] payables, float home)
         {
             bool scytheShop = false;
@@ -1793,6 +1806,9 @@ namespace KingdomBot
             // only a farmhouse spot inside the walls or at most 20 in front of them (the wall then goes beyond the farm);
             // no forest clearing for a farm (that cost the army a lot in the first farm test)
             float lw = WallEdge(-1, home), rw = WallEdge(1, home);
+            int ms = MainSide();
+            var farmMain = Find(payables, x => x is PayableUpgrade && x.name.StartsWith("Farmhouse") && SafeCanPay(x) && (x.transform.position.x - home) * ms > 0 && Mathf.Abs(x.transform.position.x - home) < 45f, home);
+            if (farmMain != null) return farmMain;
             var farm = Find(payables, x => x is PayableUpgrade && x.name.StartsWith("Farmhouse") && SafeCanPay(x)
                                            && Mathf.Abs(x.transform.position.x - home) < 45f, home);   /* guide: farm close to the castle, then the wall beyond it (FarmWall) */   /* only inside the walls: a farm 20 in front stayed exposed (farm wall never built), max 1 farmer, no late income */
             if (farm != null) return farm;
@@ -2254,7 +2270,8 @@ namespace KingdomBot
                     bool bannerOk = false; foreach (var bo in UnityEngine.Object.FindObjectsOfType<PayableBorder>()) if ((bo.transform.position.x - home) * ps > 0 && SafeCanPay(bo)) bannerOk = true;
                     bool knightOk = false; foreach (var kn in knights) { try { if ((kn.transform.position.x - home) * ps > 0 && (bool)Acc.Call(kn, "CanCharge")) knightOk = true; } catch { } }
                     if (!bannerOk || !knightOk) { if (_chargeSkipLog != day * 10 + (ps + 1)) { _chargeSkipLog = day * 10 + (ps + 1); Plugin.Log("CHARGE skip d" + day + " h" + hour.ToString("0.0") + " side " + ps + " portal " + pd.ToString("0") + ": bannerOk=" + bannerOk + " knightOk=" + knightOk); } continue; }
-                    if (pd < bestPd) { bestPd = pd; pside = ps; }
+                    float score = pd + (ps == MainSide() ? 0f : 80f);   // main side first (both of its portals), then the camp side
+                    if (score < bestPd) { bestPd = score; pside = ps; }
                 }
                 if (pside == 0) return false;
                 var border = Find(payables, x => x is PayableBorder && SafeCanPay(x) && (x.transform.position.x - home) * pside > 0, px);

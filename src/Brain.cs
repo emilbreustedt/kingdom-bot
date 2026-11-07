@@ -255,6 +255,7 @@ namespace KingdomBot
             {
                 TrackCharge();
                 DeadPortalTrace();
+                if (AvoidIntruder()) return;   // first: a boss inside the walls at dawn took the coins while "saving for shield" ran (day 23); it only ran after all saving/assault steps
                 FinalWaveDiag();
                 if (SweepNearCoins()) return;
                 if (NightTowers()) return;

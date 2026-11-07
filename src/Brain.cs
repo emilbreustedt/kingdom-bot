@@ -587,6 +587,32 @@ namespace KingdomBot
                 if (c != null && c.hideFlags == HideFlags.None && c.gameObject.hideFlags == HideFlags.None && c.transform.root.gameObject.activeSelf) l.Add(c);
             return l;
         }
+        /// <summary>Knights stay on the side they were created on; once that side has no living inner portal they idle.
+        /// Move them to the side where portals remain (the knight walks over to that wall).</summary>
+        void RebalanceKnights(float home)
+        {
+            int aliveL = 0, aliveR = 0;
+            foreach (var po in UnityEngine.Object.FindObjectsOfType<Portal>())
+            {
+                var dm = po.GetComponent<Damageable>();
+                if (po.outerSpawner || (dm != null && dm.hitPoints <= 0)) continue;
+                if (po.transform.position.x < home) aliveL++; else aliveR++;
+            }
+            if ((aliveL == 0) == (aliveR == 0)) return;
+            string target = aliveL == 0 ? "Right" : "Left";
+            foreach (var kn in UnityEngine.Object.FindObjectsOfType<Knight>())
+            {
+                try
+                {
+                    var f = typeof(Knight).GetField("side", System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+                    object cur = f != null ? f.GetValue(kn) : null;
+                    if (cur == null || cur.ToString() == target) continue;
+                    f.SetValue(kn, System.Enum.Parse(f.FieldType, target));
+                    Plugin.Log("KNIGHT moved " + cur + " -> " + target + " (no living portal on its side) x" + kn.transform.position.x.ToString("0"));
+                }
+                catch (System.Exception ex) { Plugin.Log("KNIGHT move failed: " + ex.Message); }
+            }
+        }
         int _knightDiagDay = -1;
         int _rerolls; bool _mapChecked;
         public float Army1Range = 130f;
@@ -1444,6 +1470,7 @@ namespace KingdomBot
                 if (UseCatapults && ws != null && hour >= 12f && budget - AssaultReserve(true) >= ws.price + 3) { Status = "Buy catapult (" + ws.price + ")"; PayAt(ws); return true; }
             }
             if (finalWave || !assault) return false;   // survive mode / all inner portals gone: only defend
+            RebalanceKnights(home);
             var knights = UnityEngine.Object.FindObjectsOfType<Knight>();
             // ready to charge: at least 2 knights, each with a coin of armour (waiting for 4 fully armed knights took
             // until the next boss night, which killed them before any charge)

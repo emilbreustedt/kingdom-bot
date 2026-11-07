@@ -668,6 +668,14 @@ namespace KingdomBot
                 catch (System.Exception ex) { Plugin.Log("KNIGHT move failed: " + ex.Message); }
             }
         }
+        /// <summary>Number of living inner portals.</summary>
+        static int LiveInnerPortals()
+        {
+            int n = 0;
+            foreach (var po in UnityEngine.Object.FindObjectsOfType<Portal>()) { var dm = po.GetComponent<Damageable>(); if (!po.outerSpawner && (dm == null || dm.hitPoints > 0)) n++; }
+            return n;
+        }
+        public int FinalArchers = 26, FinalBank = 30;   // the final wave (70-95 enemies) beat 11-14 archers with no coins twice
         /// <summary>Charge window (7h .. dusk-7h) while a knight could charge: the king should stay home.</summary>
         bool KnightReadyWindow()
         {
@@ -777,6 +785,7 @@ namespace KingdomBot
                 if (f.FieldType == typeof(float) || f.FieldType == typeof(int) || f.FieldType == typeof(bool)) { try { sb.Append(" " + f.Name + "=" + f.GetValue(em)); } catch { } }
             return sb.ToString();
         }
+        int _finalPrepDay = -1;
         int _knightDiagDay = -1, _knightMoveWarned;
         int _rerolls; bool _mapChecked;
         public float Army1Range = 130f;
@@ -1055,7 +1064,7 @@ namespace KingdomBot
             // beggars before long trips (the mason shrine trip took 10 game hours with 38 coins in the purse)
             {
                 int arNow = UnityEngine.Object.FindObjectsOfType<Archer>().Length;
-                if (arNow < Mathf.Min(3 * day + 6, 20) && hour < k.dayEnd - 5f && GameState.Coins >= (item != null ? item.price : 0) + 6)
+                if (arNow < Mathf.Min(3 * day + 6, LiveInnerPortals() == 1 ? FinalArchers : 20) && hour < k.dayEnd - 5f && GameState.Coins >= (item != null ? item.price : 0) + 6)
                 {
                     int pe = UnityEngine.Object.FindObjectsOfType<Peasant>().Length, disp = 0; PayableShop bw = null, hm = null;
                     foreach (var py in payables) { var sh = py as PayableShop; if (sh == null) continue; disp += sh.GetItemCount(); if (sh.name.Contains("Bow")) bw = sh; if (sh.name.Contains("Hammer")) hm = sh; }
@@ -1371,6 +1380,7 @@ namespace KingdomBot
             if ((amR != null && amR.flags != null && amR.flags.Length > 7 && amR.flags[7]) || (Managers.enemies != null && Managers.enemies.finalWaveSpawned)) return 0;
             // a weak base comes first: no builders or too few archers -> the reserve must not block hammers/bows/recruits
             if (UnityEngine.Object.FindObjectsOfType<Worker>().Length < 2 || UnityEngine.Object.FindObjectsOfType<Archer>().Length < b.MinChargeArchers) return 0;
+            if (LiveInnerPortals() == 1 && UnityEngine.Object.FindObjectsOfType<Archer>().Length >= b.FinalArchers - 6) return b.FinalBank + 4;   // bank for the final wave before the last charge
             Payable castle = null;
             foreach (var x in UnityEngine.Object.FindObjectsOfType<Payable>())
                 if (x is PayableUpgrade && x.name.StartsWith("Castle") && CastleIndex(x.name) >= 4 && CastleIndex(x.name) <= 5) { castle = x; break; }
@@ -1662,7 +1672,9 @@ namespace KingdomBot
                 Plugin.Log("CHARGE CHECK d" + day + " h" + hour.ToString("0.0") + ": knights " + knights.Length + " armed(CanCharge)=" + armed + " archers " + archers + "/" + ChargeArchers
                     + " recovery=" + recovery + " clearL=" + FieldClear(home, -1) + " clearR=" + FieldClear(home, 1) + " budget " + budget + " banners" + bl);
             }
-            if (k.isDaytime && hour < k.dayEnd - 7f && hour >= 7f && armed && archers >= ChargeArchers &&   /* coins arrive during the day (hunting): morning-only charges never had the banner price */ (recovery || FieldClear(home, -1) || FieldClear(home, 1)))
+            bool lastPortalReady = LiveInnerPortals() != 1 || (archers >= FinalArchers && budget >= FinalBank);
+            if (!lastPortalReady && morning && _finalPrepDay != day) { _finalPrepDay = day; Plugin.Log("FINAL PREP d" + day + ": last portal waits - archers " + archers + "/" + FinalArchers + " budget " + budget + "/" + FinalBank); }
+            if (lastPortalReady && k.isDaytime && hour < k.dayEnd - 7f && hour >= 7f && armed && archers >= ChargeArchers &&   /* coins arrive during the day (hunting): morning-only charges never had the banner price */ (recovery || FieldClear(home, -1) || FieldClear(home, 1)))
             {
                 // banner on the side of the nearest intact inner portal (each charge goes to that side's portal)
                 float bestPd = float.MaxValue; int pside = 0;

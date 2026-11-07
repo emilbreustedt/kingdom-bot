@@ -1535,7 +1535,7 @@ namespace KingdomBot
                 }
                 if (pside == 0) return false;
                 var border = Find(payables, x => x is PayableBorder && SafeCanPay(x) && (x.transform.position.x - home) * pside > 0, px);
-                if (border != null && budget >= border.price + 3) { Status = "Assault: knights CHARGE (" + border.name.Replace("(Clone)", "") + ")"; Cool(border.GetInstanceID(), 60f); _chargeTrackUntil = Time.time + 24f * 10f; _chargePaidAt = Time.time; _chargeTrackNext = 0f; PayAt(border); return true; }
+                if (border != null && budget >= border.price) {   /* budget already keeps the 4-coin crown guard */ Status = "Assault: knights CHARGE (" + border.name.Replace("(Clone)", "") + ")"; Cool(border.GetInstanceID(), 60f); _chargeTrackUntil = Time.time + 24f * 10f; _chargePaidAt = Time.time; _chargeTrackNext = 0f; PayAt(border); return true; }
             }
             // shields -> knights
             var shield = Find(payables, x => x is PayableShield && SafeCanPay(x), home);

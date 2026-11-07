@@ -120,7 +120,7 @@ namespace KingdomBot
             if (evening || (dawn && nearest != null && Mathf.Abs(nearest.transform.position.x - home) < 40f))
             {
                 _safeMode = true;
-                if (Mathf.Abs(px - home) > 3f) { Status = "Abend: nach Hause"; Push("goto " + F(home + 1.5f) + " 1"); return; }
+                if (Mathf.Abs(px - home) > 3f) { Status = "Abend: nach Hause"; Push("goto " + F(home + 1.5f) + " 1 20"); return; }
                 // at night: grab coins that fall inside the walls, otherwise wait by the fire
                 var nc = NearestCoin(px, leftSafe + 1f, rightSafe - 1f);
                 if (nc != null && Mathf.Abs(nc.transform.position.x - px) < 8f) { Status = "Nacht: Münze"; Push("walkto " + F(nc.transform.position.x) + " 0.3"); return; }

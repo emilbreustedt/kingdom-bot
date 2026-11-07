@@ -498,7 +498,7 @@ namespace KingdomBot
                     }
                     c.Dir = dx > 0 ? 1 : -1;
                     c.Sprint = parts[0] == "goto" && pl.Brain.MaySprint && Mathf.Abs(dx) > 6f && p.stamina > 0.3f;
-                    float maxT = parts.Length > 3 ? F(parts[3]) : 90f;
+                    float maxT = parts.Length > 3 ? F(parts[3]) : 40f;   // 90 s = 9 game hours: "evening: go home" blocked whole mornings (enemy next to the king)
                     if (Time.time - _t0 > maxT) { c.Dir = 0; c.Sprint = false; done = true; }
                     break;
                 }

@@ -830,7 +830,7 @@ namespace KingdomBot
                     Plugin.Log("CHEST " + ch.name + " x" + ch.transform.position.x.ToString("0") + " coins=" + ch.coins + " empty=" + ch.isEmpty + " active=" + ch.gameObject.activeInHierarchy + " parent=" + (ch.transform.parent != null ? ch.transform.parent.name : "-") + " root=" + ch.transform.root.name);
                 _mapChecked = true;
                 Plugin.Log("army1: coins reachable on this map = " + avail + " (reroll " + _rerolls + ")");
-                if (avail < 25 && _rerolls < 200 && NormalizeRunType(ConfigMode) == "auto")
+                if (avail < 18 && _rerolls < 200   /* maps have one chest per side at 100-215: 18 = ground coins + a near chest; archers add hunting coins (guide) */ && NormalizeRunType(ConfigMode) == "auto")
                 {
                     _rerolls++; _lastDaySeen = -1; _pl.Queue.Clear();
                     Acc.Call(Managers.game, "Restart");

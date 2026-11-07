@@ -298,6 +298,8 @@ namespace KingdomBot
             // ---------- 9. patrol to collect taxes ----------
             Status = "Patrouille (Steuern)";
             float target = px < home ? rightSafe - 1f : leftSafe + 1f;
+            // the farm may lie just outside the wall: the patrol reaches its farmers by day (they pay taxes only to a passing king)
+            if (k.isDaytime && hour < k.dayEnd - 3f) foreach (var fm in UnityEngine.Object.FindObjectsOfType<Farmer>()) { float fx = fm.transform.position.x; if (Mathf.Abs(fx - home) < 60f && (target - home) * (fx - home) > 0 && Mathf.Abs(fx - home) > Mathf.Abs(target - home)) target = fx; }
             Push("walkto " + F(target) + " 1");
         }
 

@@ -2077,16 +2077,23 @@ namespace KingdomBot
             }
             if (best != null && bd < 60f) { Cool(best.GetInstanceID(), 30f); Status = label + ": coin outside"; Push("goto " + F(best.transform.position.x) + " 0.3 " + F(10f + bd * 0.5f)); return true; }
             if (OnCooldown(777200)) return false;
-            Archer pick = null; float pd = 0f;
+            Component pick = null; float pd = 0f;
             foreach (var ar in UnityEngine.Object.FindObjectsOfType<Archer>())
             {
                 float ax = ar.transform.position.x, d = Mathf.Abs(ax - px);
                 if ((ax > l - 2f && ax < r + 2f) || d < 6f || OnCooldown(ar.GetInstanceID()) || !safeX(ax)) continue;
                 if (d > pd) { pd = d; pick = ar; }
             }
+            // farmers pay their harvest as taxes too - only when the king rides past (user: "does the king fetch the farm money?")
+            foreach (var fm in UnityEngine.Object.FindObjectsOfType<Farmer>())
+            {
+                float fx = fm.transform.position.x, d = Mathf.Abs(fx - px);
+                if (d < 6f || OnCooldown(fm.GetInstanceID()) || !safeX(fx)) continue;
+                if (d + 30f > pd) { pd = d + 30f; pick = fm; }   // farmers first: the farm is the steady income
+            }
             if (pick == null) return false;
-            Cool(pick.GetInstanceID(), 60f); Cool(777200, 4f);
-            Status = label + ": collect from archers outside";
+            Cool(pick.GetInstanceID(), 60f); Cool(777200, 4f); pd = Mathf.Abs(pick.transform.position.x - px);
+            Status = label + (pick is Farmer ? ": collect from farmers" : ": collect from archers outside");
             Push("goto " + F(pick.transform.position.x) + " 1 " + F(10f + pd * 0.5f)); Push("wait 1");
             return true;
         }

@@ -849,6 +849,17 @@ namespace KingdomBot
                 foreach (var c in UnityEngine.Object.FindObjectsOfType<Coin>()) if (!c.pickedUp && Mathf.Abs(c.transform.position.x - home) < Army1Check) avail++;
                 foreach (var ch in AllChests()) if (!ch.isEmpty && Mathf.Abs(ch.transform.position.x - home) < Army1Check) avail += ch.coins;
                 if (!_chestTypeLogged) { _chestTypeLogged = true; var ct = typeof(Chest); var sb = new System.Text.StringBuilder("CHEST TYPE base=" + ct.BaseType + " methods:"); foreach (var m in ct.GetMethods(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.DeclaredOnly)) sb.Append(" " + m.Name); sb.Append(" fields:"); foreach (var f in ct.GetFields(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.DeclaredOnly)) sb.Append(" " + f.Name); Plugin.Log(sb.ToString()); }
+                {
+                    var census = new System.Collections.Generic.Dictionary<string, int>(); var samples = new System.Collections.Generic.Dictionary<string, string>();
+                    foreach (var c in Resources.FindObjectsOfTypeAll<Coin>())
+                    {
+                        if (c == null || c.hideFlags != HideFlags.None) continue;
+                        string key = c.name + " | parent=" + (c.transform.parent != null ? c.transform.parent.name : "-") + " | active=" + c.gameObject.activeSelf + " | picked=" + c.pickedUp;
+                        int cnt; census.TryGetValue(key, out cnt); census[key] = cnt + 1;
+                        if (!samples.ContainsKey(key)) samples[key] = c.transform.position.x.ToString("0");
+                    }
+                    foreach (var kv in census) Plugin.Log("COIN CENSUS " + kv.Value + "x " + kv.Key + " (e.g. x" + samples[kv.Key] + ")");
+                }
                 foreach (var ch in AllChests())
                     Plugin.Log("CHEST " + ch.name + " x" + ch.transform.position.x.ToString("0") + " spill=" + ch.spillRange + " coins=" + ch.coins + " empty=" + ch.isEmpty + " active=" + ch.gameObject.activeInHierarchy + " parent=" + (ch.transform.parent != null ? ch.transform.parent.name : "-") + " root=" + ch.transform.root.name);
                 _mapChecked = true;
@@ -891,8 +902,18 @@ namespace KingdomBot
                 PayableShop hm = null; foreach (var py in payables) { var sh = py as PayableShop; if (sh != null && sh.name.Contains("Hammer")) hm = sh; }
                 if (hm != null && SafeCanPay(hm) && coins >= hm.price) { Status = "boot: buy hammer"; PayAt(hm); return; }
             }
-            if (peasants > onDisplay && bow != null && SafeCanPay(bow) && coins >= bow.price) { Status = "army1: buy bow (" + archersMade + "/8)"; PayAt(bow); return; }
             int target = boot ? 12 : feast ? 15 : 8;
+            // guide route (First Day Army): recruit at every camp first, buy all bows when back at the camp. Buy a bow
+            // right away only when standing near the shop or when nobody is left to recruit (no back-and-forth trips).
+            bool routeMode = !boot && !feast;
+            Beggar nextBeggar = null;
+            if (routeMode && archersMade + peasants < target && coins >= 1)
+            {
+                nextBeggar = NearestBeggar(px, home - Army1Range, home + Army1Range);
+                if (nextBeggar != null && TooLateFor(nextBeggar.transform.position.x, home)) nextBeggar = null;
+            }
+            bool nearShop = bow != null && Mathf.Abs(PayX(bow) - px) < 20f;
+            if (peasants > onDisplay && bow != null && SafeCanPay(bow) && coins >= bow.price && (!routeMode || nearShop || nextBeggar == null)) { Status = "army1: buy bow (" + archersMade + "/8)"; PayAt(bow); return; }
             if (archersMade + peasants < target && coins >= 1)   /* guide: recruit all four camps first (1 coin each), buy bows later from archer income */   /* a bow on display needs a peasant to carry it - it is not an archer yet (7 + 1 bow waited all evening) */
             {
                 var b = NearestBeggar(px, home - Army1Range, home + Army1Range);

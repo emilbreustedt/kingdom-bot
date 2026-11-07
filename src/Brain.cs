@@ -283,7 +283,6 @@ namespace KingdomBot
                 _armyFirst = false;
                 // assault only once the defence is solid (the castle rush + shields cost ~40 coins)
                 bool ready = (d >= 12 && (arch >= 15 || UnityEngine.Object.FindObjectsOfType<Knight>().Length > 0)) || d >= 20 || (TenthRush && d >= 4 && arch >= 8);   // a knight waiting for the 15th archer wasted days 11-15
-                if (hr >= 4f && hr <= 12f && Time.time >= _mornHbAt) { _mornHbAt = Time.time + 10f; Plugin.Log("MORNING d" + d + " h" + hr.ToString("0.0") + " x" + pxx.ToString("0") + " c" + GameState.Coins + " ready=" + ready + " night=" + night + " danger=" + danger + " isDay=" + kk.isDaytime + " knightReady=" + KnightReady() + " | " + Status); }
                 if (!night && DrainStep(hm, hr, pxx)) return;
                 if (ready && !night && !danger && AssaultStep(UnityEngine.Object.FindObjectsOfType<Payable>(), d, hr, bud, arch, hm, pxx)) return;
             }
@@ -955,6 +954,7 @@ namespace KingdomBot
             }
             var amL = Managers.achievements;
             if (amL != null && amL.counters != null) { int dc = amL.counters[1]; if (_lastDC == 0 && dc == 1) Plugin.Log("FDA DAWN archers=" + UnityEngine.Object.FindObjectsOfType<Archer>().Length + " made=" + amL.counters[3] + " coins=" + c + " h" + GameState.Hour.ToString("0.0")); _lastDC = dc; }
+            if (Mode == "master" && GameState.Hour >= 4f && GameState.Hour <= 12f && Time.time >= _mornHbAt) { _mornHbAt = Time.time + 10f; var kq = Managers.kingdom; var enq = NearestEnemy(GameState.PX); Plugin.Log("MORNING d" + d + " h" + GameState.Hour.ToString("0.0") + " x" + GameState.PX.ToString("0") + " c" + c + " isDay=" + kq.isDaytime + " knightReady=" + KnightReady() + " nearestEnemy=" + (enq != null ? (enq.transform.position.x - GameState.PX).ToString("0") : "-") + " cmd=" + _pl.Queue.Describe() + " | " + Status); }
             if (d == 0 && Time.time >= _hbNext) { _hbNext = Time.time + 15f; Plugin.Log("A1 HB h" + GameState.Hour.ToString("0.0") + " x" + GameState.PX.ToString("0") + " c" + c + " | " + Status); }
             if (_ledgerDay != d)
             {

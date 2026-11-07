@@ -622,6 +622,14 @@ namespace KingdomBot
                 catch (System.Exception ex) { Plugin.Log("KNIGHT move failed: " + ex.Message); }
             }
         }
+        /// <summary>Charge window (7h .. dusk-7h) while a knight could charge: the king should stay home.</summary>
+        bool KnightReadyWindow()
+        {
+            var k = Managers.kingdom; float h = GameState.Hour;
+            if (k == null || !k.isDaytime || h < 6f || h >= k.dayEnd - 7f) return false;
+            foreach (var kn in UnityEngine.Object.FindObjectsOfType<Knight>()) { try { if ((bool)Acc.Call(kn, "CanCharge")) return true; } catch { } }
+            return false;
+        }
         float _chargeTrackUntil, _chargeTrackNext, _chargePaidAt = -1e6f;
         /// <summary>After a charge: log every knight once per game hour (x, fsm state, escort, coins) to see where charges fail.</summary>
         void TrackCharge()
@@ -1100,6 +1108,7 @@ namespace KingdomBot
         /// </summary>
         bool GrassStep()
         {
+            if (KnightReadyWindow()) return false;   // the king outside the walls blocked the morning charge (days 18-21)
             var k = Managers.kingdom;
             int day = GameState.Day; float hour = GameState.Hour, px = GameState.PX, home = k.campfirePosition;
             if (day < 10 || !k.isDaytime || hour < 8f || hour > k.dayEnd - 6f) return false;
@@ -1547,7 +1556,7 @@ namespace KingdomBot
                 int kc = 0; try { kc = Acc.Wallet(kn).coins; } catch { }
                 if (kc < KnightArmor && kc < poorCoins && !OnCooldown(kn.GetInstanceID())) { poorCoins = kc; poor = kn; }
             }
-            if (poor != null && k.isDaytime && Time.time - _chargePaidAt > 24f * 10f && (poorCoins < 1 ? budget >= 2 : budget >= 4 + 3))   /* charge tracking: knights sat in GrabCoin for hours after the banner was paid */   // keep the banner price once every knight has a coin
+            if (poor != null && k.isDaytime && !KnightReadyWindow() && Time.time - _chargePaidAt > 24f * 10f && (poorCoins < 1 ? budget >= 2 : budget >= 4 + 3))   /* charge tracking: knights sat in GrabCoin for hours after the banner was paid */   // keep the banner price once every knight has a coin
             {
                 Cool(poor.GetInstanceID(), 6f);
                 Status = "Assault: arm knight (" + poorCoins + "/" + KnightArmor + " coins)";
@@ -1627,7 +1636,8 @@ namespace KingdomBot
         void PayAt(Payable py)
         {
             Cool(py.GetInstanceID(), 6f);
-            float x = PayX(py);
+            float x = PayX(py), d = Mathf.Abs(x - GameState.PX);
+            if (d > 8f) Push("goto " + F(x + (GameState.PX < x ? -3f : 3f)) + " 1.5 " + F(Mathf.Max(20f, d * 0.6f)));   // gallop the long way (walking everywhere wasted hours a day)
             Push("walkto " + F(x) + " 0.3");
             Push("payid " + py.GetInstanceID() + " " + F(x));
         }

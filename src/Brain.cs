@@ -1569,7 +1569,7 @@ namespace KingdomBot
             }
             int farmers = UnityEngine.Object.FindObjectsOfType<Farmer>().Length;
             int peasants = UnityEngine.Object.FindObjectsOfType<Peasant>().Length;
-            if (farmers < Mathf.Min(FarmerTarget, 6 * farmsBuilt) && (!FarmsExposed(home) || _farmWallTrees >= FarmWallTreeCap) && peasants > onDisplay && SafeCanPay(scythe) && coins >= scythe.price + 1)
+            if (farmers < Mathf.Min(FarmerTarget, 6 * farmsBuilt) && (!FarmsExposed(home) || _farmWallTrees >= FarmWallTreeCap) && peasants > onDisplay && SafeCanPay(scythe) && coins >= scythe.price + 1 && Affordable(scythe.price))
             { Status = "Economy: buy scythe (farmers " + farmers + ")"; PayAt(scythe); return true; }
             return false;
         }
@@ -2482,6 +2482,8 @@ namespace KingdomBot
 
         void PayAt(Payable py)
         {
+            // crown guard decided here, before riding to the shop (hundreds of "skipped - crown guard" scythe trips in one run)
+            if (Mode == "master" && !(py is PayableBorder) && !Affordable(py.price)) { Cool(py.GetInstanceID(), 20f); Push("wait 0.5"); return; }
             Cool(py.GetInstanceID(), 6f);
             float x = PayX(py), d = Mathf.Abs(x - GameState.PX);
             if (d > 8f) Push("goto " + F(x + (GameState.PX < x ? -3f : 3f)) + " 1.5 " + F(Mathf.Max(20f, d * 0.6f)));   // gallop the long way (walking everywhere wasted hours a day)

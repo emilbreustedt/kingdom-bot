@@ -368,6 +368,8 @@ namespace KingdomBot
 
         void PayAt(Payable py)
         {
+            // crown guard decided here, before riding to the shop (hundreds of "skipped - crown guard" scythe trips in one run)
+            if ((Plugin.Instance != null && Plugin.Instance.Brain != null && Plugin.Instance.Brain.Mode == "master") && !(py is PayableBorder) && !Brain.Affordable(py.price)) { Cool(py.GetInstanceID(), 20f); Push("wait 0.5"); return; }
             Cool(py.GetInstanceID(), 6f);
             Push("walkto " + F(py.transform.position.x) + " 0.3");
             Push("payid " + py.GetInstanceID() + " " + F(py.transform.position.x));

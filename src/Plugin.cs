@@ -325,6 +325,18 @@ namespace KingdomBot
         }
     }
 
+    /// <summary>User observation "overflowing purse": a full coin bag spills coins (some into the water = lost). Count them.</summary>
+    [HarmonyPatch(typeof(Player), "CoinFellFromBag")]
+    static class Patch_CoinFell
+    {
+        public static int Fell;
+        static void Prefix(Player __instance)
+        {
+            Fell++;
+            if (Fell == 1 || Fell % 10 == 0) { float p = -1f; try { p = KingdomBot.Acc.Get<float>(__instance, "overflowCoinsWaterProbability"); } catch { } Plugin.Log("PURSE OVERFLOW: coin fell out of the bag (#" + Fell + ", purse " + GameState.Coins + ", water prob " + p + ", day " + GameState.Day + ")"); }
+        }
+    }
+
     /// <summary>Diagnostics: log who sets the achievement flags (e.g. "coin dropped on ground").</summary>
     [HarmonyPatch(typeof(AchievementManager), "SetFlag")]
     static class Patch_SetFlag

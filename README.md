@@ -146,6 +146,15 @@ What finally worked (all verified in the game, see the git history for details):
   **Earned** after: night recruiting up to 75 out, collecting archer coins at night, pre-buying bows at night
   (dawn results then 4-8 archers; the 8 came on the 10th try).
 
+- **Safe in 25/30 (open) - main-run economy and assault fixes (2026-11-07):** daily coin ledger showed ~5 coins/day.
+  Fixed: castle chest (5-7 coins/day) was emptied once per run; the king now collects from archers hunting outside
+  the walls and sweeps tax coins next to him; horse grazes (2 s on grass = 48 s gallop without stamina); 3-4 builders
+  instead of archers/3; scythes for built farms; max 22 archers until castle 5; the purse is kept below ~30 (the bag
+  spills at ~39 and half of the spilled coins fall into the water); payments abort when more than price+3 flow out;
+  goto timeouts 20-40 s (90 s = 9 game hours stuck); charges may start at dawn (knights march ~13 units/h); the main
+  map check runs again (boot phase skipped it) and requires every inner portal within 185.
+  Best runs: castle 5 on day 11-14, all portals down on day 25, final wave lasted until day 31.
+
 **Kingdom: New Lands** (`newlands/`) — the Classic strategy runs via a small compatibility layer (`Compat.cs`);
 first achievements earned: Day V/X/XV, Five Days, Ninth Day, Second Day Gift. Boat escape (wreck → wharf → beach,
 land transition via the map) is implemented but not completed yet. See `docs/new-lands.md`.

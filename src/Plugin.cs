@@ -593,6 +593,7 @@ namespace KingdomBot
                     // never release in the "Holding" phase (state 1): releasing there drops a coin on the ground
                     // keep holding through "Holding" (1) AND "Transaction" (2): releasing during the transaction cancelled
                     // expensive purchases (castle 5 for 9 coins) half-way and the coins were lost
+                    if (GameState.Day >= 10 && GameState.Coins < 6 && _payCoins0 >= 6 && !(sel is PayableBorder)) { Plugin.Log("payid: ABORT - crown guard (purse " + GameState.Coins + ", " + (sel != null ? sel.name : "?") + ")"); c.Pay = false; done = true; break; }   /* outer wall payments drained the purse to 0 twice: crown lost */
                     if (_payCoins0 - GameState.Coins > _payPrice + 3 && _payPrice > 0) { Plugin.Log("payid: ABORT - spent " + (_payCoins0 - GameState.Coins) + " for price " + _payPrice + " (" + (sel != null ? sel.name : "?") + ")"); c.Pay = false; done = true; break; }   /* Wall3 (9) drained 25 coins */
                     if ((ps == 1 || ps == 2) && Time.time - _t0 < 15f) { c.Pay = true; break; }
                     if (_payTarget != 0) id = _payTarget;

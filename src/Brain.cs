@@ -174,7 +174,7 @@ namespace KingdomBot
                 _coinsAtTap = -1;
             }
             int dNow = GameState.Day;
-            if (dNow < _lastDaySeen || _lastDaySeen < 0) { _lastCastleUpgradeDay = -1; _cooldown.Clear(); _mapChecked = false; _mainMapChecked = false; ChooseModeForRun(_lastDaySeen < 0 && dNow > 0); }
+            if (dNow < _lastDaySeen || _lastDaySeen < 0) { _lastCastleUpgradeDay = -1; _cooldown.Clear(); _mapChecked = false; _merLogged = false; _mainMapChecked = false; ChooseModeForRun(_lastDaySeen < 0 && dNow > 0); }
             if (dNow != _lastDaySeen && Managers.achievements != null && Managers.achievements.flags != null)
             {
                 var am = Managers.achievements;
@@ -910,6 +910,7 @@ namespace KingdomBot
         public bool BootDays = true;
         public float Army1Check = 90f;    // day 0 is short: 24 coins (8 recruits + 8 bows) must lie within ~80 of the camp, otherwise reroll   // guide: run to the camps on both sides (four camps incl. the town centre) and loot chests on the way
         // coin ledger for First Day Army: every purse change with the action that was running
+        bool _merLogged;
         int _ledgerLast = -1, _ledgerDay = -1; System.Collections.Generic.Dictionary<string, int> _ledgerIn = new System.Collections.Generic.Dictionary<string, int>(), _ledgerOut = new System.Collections.Generic.Dictionary<string, int>();
         void CoinLedger()
         {
@@ -918,7 +919,7 @@ namespace KingdomBot
             {
                 if (_ledgerDay == 0 && (_ledgerIn.Count > 0 || _ledgerOut.Count > 0))
                 {
-                    var sb = new System.Text.StringBuilder("COIN LEDGER day 0 | in:");
+                    var sb = new System.Text.StringBuilder("COIN LEDGER day 0 (tutorialDone=" + (Managers.tutorial != null && Managers.tutorial.isCompleted) + " merchantSeen=" + _merLogged + ") | in:");
                     foreach (var kv in _ledgerIn) sb.Append(" " + kv.Key + "=" + kv.Value);
                     sb.Append(" | out:"); foreach (var kv in _ledgerOut) sb.Append(" " + kv.Key + "=" + kv.Value);
                     Plugin.Log(sb.ToString());
@@ -1008,6 +1009,23 @@ namespace KingdomBot
             // 4. fire (opens the bow shop)
             var fire = Find(payables, x => x is PayableUpgrade && x.name.StartsWith("Castle0") && SafeCanPay(x));
             if (fire != null && coins >= fire.price) { Status = "army1: light fire"; PayAt(fire); return; }
+            // merchant (game code): one payment -> a random shop (bows or hammers) is refilled to maxItems for FREE.
+            // Forum: "on day one a merchant may appear and offer bows". Only spawns after the tutorial counts as completed.
+            if (!feast && !boot)
+            {
+                var mer = UnityEngine.Object.FindObjectOfType<Merchant>();
+                if (mer != null && !_merLogged)
+                {
+                    _merLogged = true; var shopsL = new System.Text.StringBuilder();
+                    foreach (var sh in k.shops) if (sh != null) shopsL.Append(" " + sh.name + "(" + sh.GetItemCount() + "/" + sh.maxItems + " $" + sh.price + ")");
+                    Plugin.Log("MERCHANT seen d" + GameState.Day + " h" + GameState.Hour.ToString("0.0") + " x" + mer.transform.position.x.ToString("0") + " price=" + mer.price + " canPay=" + mer.CanPay() + " shops:" + shopsL);
+                }
+                if (mer != null && mer.CanPay() && coins >= mer.price && Mathf.Abs(mer.transform.position.x - home) < 70f && !TooLateFor(mer.transform.position.x, home))
+                {
+                    int bowFree = 0; foreach (var sh in k.shops) if (sh != null && sh.name.Contains("Bow")) bowFree = sh.maxItems - sh.GetItemCount();
+                    if (bowFree * 2 > mer.price + 1) { Status = "army1: pay the merchant (" + mer.price + ", bow slots free " + bowFree + ")"; Plugin.Log(Status); PayAt(mer); return; }
+                }
+            }
             // 5. bows for every idle peasant, otherwise recruit until 8 archers are possible
             int peasants = UnityEngine.Object.FindObjectsOfType<Peasant>().Length;
             int archersMade = am != null ? am.counters[3] : 0;

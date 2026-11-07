@@ -604,16 +604,24 @@ namespace KingdomBot
             {
                 try
                 {
-                    var f = typeof(Knight).GetField("side", System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-                    object cur = f != null ? f.GetValue(kn) : null;
-                    if (cur == null || cur.ToString() == target) continue;
-                    f.SetValue(kn, System.Enum.Parse(f.FieldType, target));
+                    var bf = System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.FlattenHierarchy;
+                    System.Reflection.FieldInfo f = null; System.Reflection.PropertyInfo pr = null;
+                    for (var t = kn.GetType(); t != null && f == null && pr == null; t = t.BaseType)
+                    {
+                        f = t.GetField("side", bf) ?? t.GetField("_side", bf);
+                        if (f == null) { pr = t.GetProperty("side", bf); if (pr != null && !pr.CanWrite) pr = null; }
+                    }
+                    object cur = f != null ? f.GetValue(kn) : pr != null ? pr.GetValue(kn, null) : null;
+                    if (cur == null) { if (_knightMoveWarned++ == 0) Plugin.Log("KNIGHT move: no writable side member found"); continue; }
+                    if (cur.ToString() == target) continue;
+                    var ft = f != null ? f.FieldType : pr.PropertyType;
+                    if (f != null) f.SetValue(kn, System.Enum.Parse(ft, target)); else pr.SetValue(kn, System.Enum.Parse(ft, target), null);
                     Plugin.Log("KNIGHT moved " + cur + " -> " + target + " (no living portal on its side) x" + kn.transform.position.x.ToString("0"));
                 }
                 catch (System.Exception ex) { Plugin.Log("KNIGHT move failed: " + ex.Message); }
             }
         }
-        int _knightDiagDay = -1;
+        int _knightDiagDay = -1, _knightMoveWarned;
         int _rerolls; bool _mapChecked;
         public float Army1Range = 130f;
         public bool BootDays = true;

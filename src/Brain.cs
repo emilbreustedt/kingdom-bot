@@ -1157,7 +1157,7 @@ namespace KingdomBot
         }   // escorts (4 per knight) + enough defenders at home   // after day 40 no "Safe in X" is reachable
         public int BurstCoins = 50;   // castle 4 (8) + castle 5 (9) + 2 shields (12) + 4 banners (16) + purse; castle 5 earns ~1 coin/day, every charge (4) must come from the bank
         /// <summary>Bank needed before castle 4: the full bank early, a smaller one from day 24 (late income ~= upkeep, the bank plateaus ~40).</summary>
-        public int BankTarget() { int d = GameState.Day; if (TenthRush) return 9 + 6 + 4 + 3; return d >= 24 ? 38 : d >= 18 ? BurstCoins : 60; }   // the assault (3 shields + 5-8 charges) is paid from the bank: castle 5 earns ~1 coin/day
+        public int BankTarget() { int d = GameState.Day; if (TenthRush) return 9 + 6 + 4 + 3; return d >= 24 ? 38 : 40; }   /* castle 4 (8) + castle 5 (9) + 2 shields (12) + banner (4) + purse; 60 delayed the knights by days */   // the assault (3 shields + 5-8 charges) is paid from the bank: castle 5 earns ~1 coin/day
 
         /// <summary>Coins the record strategy must leave alone while the assault saves for castle 4/5 and shields.</summary>
         public static int ShieldsWaitingPublic() { return ShieldsWaiting(); }

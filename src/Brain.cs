@@ -258,6 +258,7 @@ namespace KingdomBot
                 FinalWaveDiag();
                 if (SweepNearCoins()) return;
                 if (NightTowers()) return;
+                if (NightShop()) return;
                 bool chargeWindow = Managers.kingdom.isDaytime && GameState.Hour < 7.5f && KnightReady();   // dawn belongs to the charge: day 18 h5.2 a tower was paid, at h12 it was "too late, wait for dawn"
                 if (!chargeWindow && OverflowSpend()) return;
                 try { if (!chargeWindow && Graze()) return; } catch (System.Exception e) { if (Time.time >= _grazeErrAt) { _grazeErrAt = Time.time + 60f; Plugin.Log("Graze error (skipped): " + e.Message); } }
@@ -1966,6 +1967,31 @@ namespace KingdomBot
             // no statues here: the trip to a statue 89 out cost 20 coins in enemy hits before paying (day 21)
             if (pick == null) { Cool(777500, 20f); return false; }
             Status = "Purse full (" + coins + "): " + what + " " + pick.name.Replace("(Clone)", "") + " (" + pick.price + ")"; Plugin.Log(Status + " d" + GameState.Day);
+            PayAt(pick); return true;
+        }
+
+        /// <summary>User: "can tools and knights be bought at night?" - the shops stand at the camp inside the walls and the king only
+        /// waited at the fire. Shields (up to 4 knights), scythes (farm), bows - only for a peasant who can pick it up, 12-coin guard.</summary>
+        bool NightShop()
+        {
+            var k = Managers.kingdom; bool night = !k.isDaytime || GameState.Hour >= k.dayEnd - 1f;
+            if (!night || GameState.Day < 3 || OnCooldown(777600)) return false;
+            float home = k.campfirePosition, px = GameState.PX;
+            var en = NearestEnemy(px); if (en != null && Mathf.Abs(en.transform.position.x - home) < 25f) return false;
+            int coins = GameState.Coins;
+            var payables = UnityEngine.Object.FindObjectsOfType<Payable>();
+            int peasants = UnityEngine.Object.FindObjectsOfType<Peasant>().Length, onDisplay = 0; PayableShop bow = null;
+            foreach (var py in payables) { var sh = py as PayableShop; if (sh == null) continue; onDisplay += sh.GetItemCount(); if (sh.name.Contains("Bow")) bow = sh; }
+            if (peasants <= onDisplay + ShieldsWaiting()) { Cool(777600, 10f); return false; }
+            float l = WallEdge(-1, home), r = WallEdge(1, home);
+            Payable pick = null; string what = null;
+            if (UnityEngine.Object.FindObjectsOfType<Knight>().Length + ShieldsWaiting() < 4)
+            { pick = Find(payables, x => x is PayableShield && SafeCanPay(x) && x.price <= coins - 12 && x.transform.position.x > l && x.transform.position.x < r, home); what = "shield"; }
+            if (pick == null) { var sc = ScytheFirst(payables, home); if (sc != null && sc.price <= coins - 12) { pick = sc; what = "scythe"; } }
+            if (pick == null && bow != null && SafeCanPay(bow) && bow.price <= coins - 12 && UnityEngine.Object.FindObjectsOfType<Archer>().Length < PreCastleArcherCap(30)) { pick = bow; what = "bow"; }
+            if (pick == null) { Cool(777600, 10f); return false; }
+            Cool(777600, 3f);
+            Status = "Night: buy " + what + " (" + pick.price + ")"; Plugin.Log(Status + " d" + GameState.Day);
             PayAt(pick); return true;
         }
 

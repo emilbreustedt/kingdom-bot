@@ -849,7 +849,7 @@ namespace KingdomBot
             foreach (var ch in AllChests())
             {
                 float cx = ch.transform.position.x;
-                if (!ch.isEmpty && ch.gameObject.activeInHierarchy && !OnCooldown(ch.GetInstanceID()) && Mathf.Abs(cx - px) < 25f) { Cool(ch.GetInstanceID(), 1e7f); Status = "army1: chest near (" + ch.coins + ")"; Push("goto " + F(cx) + " 0.3 15"); Push("wait 1"); return; }
+                if (!ch.isEmpty && ch.gameObject.activeInHierarchy && !OnCooldown(ch.GetInstanceID()) && Mathf.Abs(cx - px) < 25f) { Cool(ch.GetInstanceID(), 60f);   /* the camp chest refills during the day */ Status = "army1: chest near (" + ch.coins + ")"; Push("goto " + F(cx) + " 0.3 15"); Push("wait 1"); return; }
             }
             var coin = NearestCoin(px, px - 25f, px + 25f);
             if (coin != null && !(coin.droppedByPlayer && Time.time - _lastTap < 15f)) { Cool(coin.GetInstanceID(), 1e7f); Status = "army1: coin"; Push("goto " + F(coin.transform.position.x) + " 0.3 15"); return; }

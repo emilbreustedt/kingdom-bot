@@ -1497,6 +1497,7 @@ namespace KingdomBot
             if (RunType == "challenge") { Push("walkto " + F(bx) + " 0.3 25"); Push("handtap " + b.GetInstanceID()); Push("wait 1.5"); }
             else
             {
+                if (RunType == "early") Push("slow 12");   // at 32x the king stops 2.5 units short and the coin lands out of the beggar's reach (8 coins came back in one run)
                 Push("walkto " + F(bx) + " 0.8 25"); Push("tap 1"); Push("wait 2.5");
                 // the whole camp in one trip: other beggars standing close by get a coin too (up to 3 per trip)
                 if (GameState.Coins >= 4)
@@ -1508,6 +1509,7 @@ namespace KingdomBot
                         float ox = o.transform.position.x;
                         if (Mathf.Abs(ox - bx) > 10f || OnCooldown(o.GetInstanceID())) continue;
                         Cool(o.GetInstanceID(), 10f); extra++;
+                        if (RunType == "early") Push("slow 10");
                         Push("walkto " + F(ox) + " 0.8 10"); Push("tap 1"); Push("wait 2.5");
                     }
                 }
@@ -2331,7 +2333,7 @@ namespace KingdomBot
             {
                 float x = b.transform.position.x;
                 if (x < minX || x > maxX || OnCooldown(b.GetInstanceID())) continue;
-                if (Managers.kingdom != null && TooLateFor(x, Managers.kingdom.campfirePosition)) continue;   // day-4 game over: recruited a beggar 98 out at 16:30
+                if (Managers.kingdom != null && TooLateFor(x, Managers.kingdom.campfirePosition) && !(Mode == "army1" && GameState.Day == 0 && Mathf.Abs(x - Managers.kingdom.campfirePosition) < 35f)) continue;   // army1: day counter 0 lasts until dawn - camps next to the town centre are fine at night   // day-4 game over: recruited a beggar 98 out at 16:30
                 bool nearPortal = false;
                 foreach (var po in UnityEngine.Object.FindObjectsOfType<Portal>()) if (Mathf.Abs(po.transform.position.x - x) < 25f) nearPortal = true;
                 if (nearPortal) continue;

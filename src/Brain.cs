@@ -908,6 +908,24 @@ namespace KingdomBot
             if (far != null && !TooLateFor(far.transform.position.x, home)) { Cool(far.GetInstanceID(), 1e7f);   /* one visit per chest: inactive/template chests gave nothing and were revisited all day */ float cx = far.transform.position.x; Status = "army1: chest (" + far.coins + ")"; Push("goto " + F(cx) + " 0.3 " + F(10f + Mathf.Abs(cx - px) * 0.6f)); Push("wait 2.5"); Push("walkto " + F(cx - 3f) + " 0.3 4"); Push("walkto " + F(cx + 3f) + " 0.3 4"); return; }   /* coins spill around the chest: sweep them up */
             var coinFar = FarCoin(px, home - 60f, home + 60f, home);   /* a 130-out coin trip took 8 game hours for 3 coins */
             if (coinFar != null && !TooLateFor(coinFar.transform.position.x, home) && !(coinFar.droppedByPlayer && Time.time - _lastTap < 15f)) { Cool(coinFar.GetInstanceID(), 1e7f); Status = "army1: coin far"; Push("goto " + F(coinFar.transform.position.x) + " 0.3 " + F(10f + Mathf.Abs(coinFar.transform.position.x - px) * 0.6f)); return; }
+            // guide: "collect coins from your archers" - hunting archers hand their coins to the king only when he passes by
+            if (!feast && k.isDaytime && !OnCooldown(777100))
+            {
+                Archer pick = null; float pd = 0f;
+                foreach (var ar in UnityEngine.Object.FindObjectsOfType<Archer>())
+                {
+                    float ax = ar.transform.position.x, d = Mathf.Abs(ax - px);
+                    if (d < 6f || Mathf.Abs(ax - home) > 70f || OnCooldown(ar.GetInstanceID()) || TooLateFor(ax, home)) continue;
+                    if (d > pd) { pd = d; pick = ar; }
+                }
+                if (pick != null)
+                {
+                    Cool(pick.GetInstanceID(), 30f); Cool(777100, 3f);
+                    Status = "army1: collect archer coins";
+                    Push("goto " + F(pick.transform.position.x) + " 1 " + F(8f + pd * 0.5f)); Push("wait 1");
+                    return;
+                }
+            }
             Status = (feast ? "Feast: waiting (deer " + (am != null ? am.counters[4] : -1) + ", " : "army1: waiting (") + archersMade + " archers, " + coins + " coins)";
             if (Mathf.Abs(px - home) > 3f) Push("walkto " + F(home) + " 1 6"); else Push("wait 1");
         }

@@ -121,7 +121,7 @@ namespace KingdomBot
                 {
                     int dead = 0; foreach (var po in UnityEngine.Object.FindObjectsOfType<Portal>()) { var dm = po.GetComponent<Damageable>(); if (!po.outerSpawner && dm != null && dm.hitPoints <= 0) dead++; }
                     int killed = Mathf.Max(dead, 4 - LiveInnerPortals());
-                    if ((dayC > 16 && killed == 0) || (dayC > 21 && killed < 3))
+                    if ((dayC > 18 && killed == 0) || (dayC > 22 && killed < 3))
                     {
                         Plugin.Log("Run finished (pace: day " + dayC + ", portals destroyed " + killed + " - Safe in " + SafeTargetDay() + " out of reach) -> new game");
                         _newGameAt = Time.unscaledTime + 6f;

@@ -1590,7 +1590,7 @@ namespace KingdomBot
         int KnightGoal { get { return TenthRush ? 1 : KnightTarget; } }
         int ChargeArchers { get { return TenthRush ? 10 : MinChargeArchers; } }
         public bool UseCatapults = false;   // guide + logs: big enemies throw our catapult boulders back over the wall (378 archer hits in one run)
-        public int KnightTarget = 3;   // 3 knights destroy portals reliably; every shield (6) is a banner payment less at castle 5 (~1 coin/day)
+        public int KnightTarget = 5;   // 3 knights destroy portals reliably; every shield (6) is a banner payment less at castle 5 (~1 coin/day)
 
         /// <summary>Recruit a beggar: hand-over (coin never touches the ground) only in the challenge run (Eighth Day);
         /// elsewhere a normal tap, which works more reliably.</summary>
@@ -1915,7 +1915,7 @@ namespace KingdomBot
                 target = CastleIndex(castle.name) == 4 ? BankTarget() : castle.price + 3;
                 if (CastleIndex(castle.name) == 4) what = "castle 4+5 and shields";
             }
-            else if (UnityEngine.Object.FindObjectsOfType<Knight>().Length + ShieldsWaiting() < 4)   /* guide: 2 knights on both sides by day 15 */   // with 2 knights the charges come first; more shields only from spare coins
+            else if (UnityEngine.Object.FindObjectsOfType<Knight>().Length + ShieldsWaiting() < 5)   /* guide: 2 knights on both sides by day 15 */   // with 2 knights the charges come first; more shields only from spare coins
             {
                 var sh = ShieldShop(payables, home, 999);
                 if (sh != null) { item = sh; what = "shield"; }
@@ -2009,7 +2009,7 @@ namespace KingdomBot
             if (peasants <= onDisplay + ShieldsWaiting()) { Cool(777600, 10f); return false; }
             float l = WallEdge(-1, home), r = WallEdge(1, home);
             Payable pick = null; string what = null;
-            if (UnityEngine.Object.FindObjectsOfType<Knight>().Length + ShieldsWaiting() < 4)
+            if (UnityEngine.Object.FindObjectsOfType<Knight>().Length + ShieldsWaiting() < 5)
             { pick = ShieldShop(payables, home, coins - 12); what = "shield"; }
             if (pick == null) { var sc = ScytheFirst(payables, home); if (sc != null && sc.price <= coins - 12) { pick = sc; what = "scythe"; } }
             if (pick == null && bow != null && SafeCanPay(bow) && bow.price <= coins - 12 && UnityEngine.Object.FindObjectsOfType<Archer>().Length < PreCastleArcherCap(30)) { pick = bow; what = "bow"; }
@@ -2356,7 +2356,7 @@ namespace KingdomBot
                     int readyHere = 0; foreach (var kn in knights) { try { int kcn = Acc.Wallet(kn).coins; if ((kn.transform.position.x - home) * ps > 0 && (bool)Acc.Call(kn, "CanCharge") && (kcn >= 3 || day >= 22)) readyHere++; } catch { } }
                     // each knight takes 4 escort archers; single-knight charges failed and cost ~30 archers between day 13 and 21
                     // (archers 22 -> 10, made 22 -> 41). Guide: 2 knights per side. Alone only from day 22 (schedule).
-                    bool knightOk = readyHere >= 2 || (readyHere >= 1 && day >= 22);
+                    bool knightOk = readyHere >= 3 || (readyHere >= 2 && day >= 20) || (readyHere >= 1 && day >= 23);   /* 2-knight charges rarely destroyed a portal (7 runs: 0-2 portals by day 24) - concentrate */
                     if (!bannerOk || !knightOk) { if (_chargeSkipLog != day * 10 + (ps + 1)) { _chargeSkipLog = day * 10 + (ps + 1); Plugin.Log("CHARGE skip d" + day + " h" + hour.ToString("0.0") + " side " + ps + " portal " + pd.ToString("0") + ": bannerOk=" + bannerOk + " knightOk=" + knightOk); } continue; }
                     float score = pd + (ps == MainSide() ? 0f : 80f);   // main side first (both of its portals), then the camp side
                     if (score < bestPd) { bestPd = score; pside = ps; }

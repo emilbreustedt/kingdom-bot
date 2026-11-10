@@ -174,7 +174,7 @@ namespace KingdomBot
                 _coinsAtTap = -1;
             }
             int dNow = GameState.Day;
-            if (dNow < _lastDaySeen || _lastDaySeen < 0) { _lastCastleUpgradeDay = -1; _cooldown.Clear(); _mapChecked = false; _bootDone = false; _mainSide = 0; _merLogged = false; _merDone = false; _merPaidAt = -1f; _mainMapChecked = false; ChooseModeForRun(_lastDaySeen < 0 && dNow > 0); }
+            if (dNow < _lastDaySeen || _lastDaySeen < 0) { _lastCastleUpgradeDay = -1; _cooldown.Clear(); _mapChecked = false; _bootDone = false; _mainSide = 0; _blitz = false; _merLogged = false; _merDone = false; _merPaidAt = -1f; _mainMapChecked = false; ChooseModeForRun(_lastDaySeen < 0 && dNow > 0); }
             if (dNow != _lastDaySeen && Managers.achievements != null && Managers.achievements.flags != null)
             {
                 var am = Managers.achievements;
@@ -1600,7 +1600,9 @@ namespace KingdomBot
         int KnightGoal { get { return TenthRush ? 1 : KnightTarget; } }
         int ChargeArchers { get { return TenthRush ? 10 : MinChargeArchers; } }
         public bool UseCatapults = false;   // guide + logs: big enemies throw our catapult boulders back over the wall (378 archer hits in one run)
-        public int KnightTarget = 5;   // 3 knights destroy portals reliably; every shield (6) is a banner payment less at castle 5 (~1 coin/day)
+        public int KnightTarget = 5;
+        public int BlitzKnights = 4, BlitzLatestDay = 19;
+        bool _blitz;   // 3 knights destroy portals reliably; every shield (6) is a banner payment less at castle 5 (~1 coin/day)
 
         /// <summary>Recruit a beggar: hand-over (coin never touches the ground) only in the challenge run (Eighth Day);
         /// elsewhere a normal tap, which works more reliably.</summary>
@@ -2372,7 +2374,10 @@ namespace KingdomBot
                     int readyHere = 0; foreach (var kn in knights) { try { int kcn = Acc.Wallet(kn).coins; if ((kn.transform.position.x - home) * ps > 0 && (bool)Acc.Call(kn, "CanCharge") && (kcn >= 1 || day >= 22)) readyHere++; } catch { } }
                     // each knight takes 4 escort archers; single-knight charges failed and cost ~30 archers between day 13 and 21
                     // (archers 22 -> 10, made 22 -> 41). Guide: 2 knights per side. Alone only from day 22 (schedule).
-                    bool knightOk = readyHere >= 2 || (readyHere >= 1 && day >= 21);   /* 91 charges / 36 portals: frequency matters more - the 3-knight rule blocked charges (58 knight-days "knight not ready") */   /* 2-knight charges rarely destroyed a portal (7 runs: 0-2 portals by day 24) - concentrate */
+                    // user decision (direction 2): muster first, then strike in quick succession. Single knights used to die one by one
+                    // before enough were together (seeded map: mostly 1 knight, 1-2 portals by day 24).
+                    if (!_blitz && (knights.Length >= BlitzKnights || day >= BlitzLatestDay)) { _blitz = true; Plugin.Log("BLITZ starts d" + day + " with " + knights.Length + " knights"); }
+                    bool knightOk = _blitz && readyHere >= 1;   /* 91 charges / 36 portals: frequency matters more - the 3-knight rule blocked charges (58 knight-days "knight not ready") */   /* 2-knight charges rarely destroyed a portal (7 runs: 0-2 portals by day 24) - concentrate */
                     if (!bannerOk || !knightOk) { if (_chargeSkipLog != day * 10 + (ps + 1)) { _chargeSkipLog = day * 10 + (ps + 1); Plugin.Log("CHARGE skip d" + day + " h" + hour.ToString("0.0") + " side " + ps + " portal " + pd.ToString("0") + ": bannerOk=" + bannerOk + " knightOk=" + knightOk); } continue; }
                     float score = pd + (ps == ChargeSide() ? 0f : 80f);   // main side first (both of its portals), then the camp side
                     if (score < bestPd) { bestPd = score; pside = ps; }

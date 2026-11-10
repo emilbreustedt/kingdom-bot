@@ -162,6 +162,11 @@ What finally worked (all verified in the game, see the git history for details):
   dusk; forward walls only for portals > 130 beyond the wall; intruder avoidance first. Open problem: about 2/3 of all
   archers die (mostly charge escorts at the portals at dusk), and the late economy is thin (7-12 coins/day).
 
+- **Map seeds:** the level is generated from `UnityEngine.Random`; the plugin seeds it right before
+  `Level.GenerateInternal` (log: `LEVEL SEED n`). Maps accepted by the main map check are appended to
+  `BepInEx/KingdomBot/good_seeds.txt`; a number in `BepInEx/KingdomBot/force_seed.txt` replays that exact map
+  (delete the file for random maps again).
+
 **Kingdom: New Lands** (`newlands/`) — the Classic strategy runs via a small compatibility layer (`Compat.cs`);
 first achievements earned: Day V/X/XV, Five Days, Ninth Day, Second Day Gift. Boat escape (wreck → wharf → beach,
 land transition via the map) is implemented but not completed yet. See `docs/new-lands.md`.

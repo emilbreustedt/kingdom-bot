@@ -121,7 +121,7 @@ namespace KingdomBot
                 {
                     int dead = 0; foreach (var po in UnityEngine.Object.FindObjectsOfType<Portal>()) { var dm = po.GetComponent<Damageable>(); if (!po.outerSpawner && dm != null && dm.hitPoints <= 0) dead++; }
                     int killed = Mathf.Max(dead, 4 - LiveInnerPortals());
-                    if ((dayC > 20 && killed == 0) || (dayC > 23 && killed < 3))
+                    if ((dayC > 22 && killed == 0) || (dayC > 23 && killed < 3))   /* blitz: muster first, portals fall later but faster */
                     {
                         Plugin.Log("Run finished (pace: day " + dayC + ", portals destroyed " + killed + " - Safe in " + SafeTargetDay() + " out of reach) -> new game");
                         _newGameAt = Time.unscaledTime + 6f;
@@ -1601,7 +1601,7 @@ namespace KingdomBot
         int ChargeArchers { get { return TenthRush ? 10 : MinChargeArchers; } }
         public bool UseCatapults = false;   // guide + logs: big enemies throw our catapult boulders back over the wall (378 archer hits in one run)
         public int KnightTarget = 5;
-        public int BlitzKnights = 4, BlitzLatestDay = 19;
+        public int BlitzKnights = 4, BlitzLatestDay = 17;
         bool _blitz; int _homeLogDay;   // 3 knights destroy portals reliably; every shield (6) is a banner payment less at castle 5 (~1 coin/day)
 
         /// <summary>Recruit a beggar: hand-over (coin never touches the ground) only in the challenge run (Eighth Day);

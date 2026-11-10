@@ -980,6 +980,23 @@ namespace KingdomBot
                     fl.Append(" | linked " + linked + " | payables near farms:");
                     foreach (var fh in UnityEngine.Object.FindObjectsOfType<Farmhouse>()) if (Mathf.Abs(fh.transform.position.x - hm0) < 80f) foreach (var py in UnityEngine.Object.FindObjectsOfType<Payable>()) if (Mathf.Abs(py.transform.position.x - fh.transform.position.x) < 15f) fl.Append(" " + py.name.Replace("(Clone)", "") + "@" + py.transform.position.x.ToString("0") + "$" + py.price);
                     Plugin.Log(fl.ToString()); } catch (System.Exception e) { Plugin.Log("FARM log: " + e.Message); }
+                try
+                {
+                    // the wave schedule: cycles of N regular days -> 1 boss day -> 1 recovery day (Director.AddCycle)
+                    var dir = Managers.director; var evs = Acc.Get<object>(dir, "_events") as System.Collections.IList;
+                    var ws = new System.Text.StringBuilder("WAVES ahead (day " + d + ", regular days per cycle " + Acc.Get<object>(dir, "numRegularDays") + "):");
+                    var seen = new System.Collections.Generic.HashSet<string>();
+                    if (evs != null) foreach (var ev in evs)
+                    {
+                        if (ev == null) continue; object wv = null; try { wv = ev.GetType().GetProperty("wave", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic).GetValue(ev, null); } catch { }
+                        if (wv == null || (wv as UnityEngine.Object) == null) continue;
+                        int sd = -1; try { sd = (int)ev.GetType().GetField("startDay", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic).GetValue(ev); } catch { }
+                        object sdSide = null; try { sdSide = ev.GetType().GetField("side", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic).GetValue(ev); } catch { }
+                        string wkey = sd + ":" + ((UnityEngine.Object)wv).name; if (!seen.Add(wkey + sdSide)) continue;
+                        ws.Append(" d" + sd + " " + ((UnityEngine.Object)wv).name + "(" + sdSide + ")");
+                    }
+                    Plugin.Log(ws.ToString());
+                } catch (System.Exception e) { Plugin.Log("WAVES log: " + e.Message); }
                 { var cs = new System.Text.StringBuilder("CHESTS day " + d + ":"); foreach (var ch in AllChests()) cs.Append(" x" + ch.transform.position.x.ToString("0") + "=" + ch.coins + (ch.gameObject.activeInHierarchy ? "" : "(inactive)")); Plugin.Log(cs.ToString()); }
                 _ledgerIn.Clear(); _ledgerOut.Clear(); _ledgerDay = d; _ledgerLast = c; return;
             }

@@ -368,6 +368,8 @@ namespace KingdomBot
 
         void PayAt(Payable py)
         {
+            // forum (user): never clear the trees of a beggar camp - a camp never comes back (farm/forward-wall/gap clearing did that)
+            if (py != null && py.name.StartsWith("Tree")) { foreach (var bc in UnityEngine.Object.FindObjectsOfType<BeggarCamp>()) if (Mathf.Abs(bc.transform.position.x - py.transform.position.x) < 15f) { Cool(py.GetInstanceID(), 600f); Push("wait 0.3"); return; } }
             // crown guard decided here, before riding to the shop (hundreds of "skipped - crown guard" scythe trips in one run)
             if ((Plugin.Instance != null && Plugin.Instance.Brain != null && Plugin.Instance.Brain.Mode == "master") && !(py is PayableBorder) && !Brain.Affordable(py.price)) { Cool(py.GetInstanceID(), 20f); Push("wait 0.5"); return; }
             Cool(py.GetInstanceID(), 6f);

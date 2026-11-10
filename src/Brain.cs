@@ -1603,7 +1603,7 @@ namespace KingdomBot
         public bool UseCatapults = false;   // guide + logs: big enemies throw our catapult boulders back over the wall (378 archer hits in one run)
         public int KnightTarget = 5;
         public int BlitzKnights = 4, BlitzLatestDay = 17;
-        bool _blitz; int _homeLogDay;   // 3 knights destroy portals reliably; every shield (6) is a banner payment less at castle 5 (~1 coin/day)
+        public bool _blitz; int _homeLogDay;   // 3 knights destroy portals reliably; every shield (6) is a banner payment less at castle 5 (~1 coin/day)
 
         /// <summary>Recruit a beggar: hand-over (coin never touches the ground) only in the challenge run (Eighth Day);
         /// elsewhere a normal tap, which works more reliably.</summary>
@@ -1795,9 +1795,9 @@ namespace KingdomBot
             foreach (var x in UnityEngine.Object.FindObjectsOfType<Payable>())
                 if (x is PayableUpgrade && x.name.StartsWith("Castle") && CastleIndex(x.name) >= 4 && CastleIndex(x.name) <= 5) { castle = x; break; }
             if (castle != null) return CastleIndex(castle.name) == 4 ? (includeBank ? b.BankTarget() : 0) : Mathf.Min(b.PurseCap, castle.price + 2 * 6 + 4 * 4 + 3);   // castle 5 + 2 shields + 4 banners + purse
-            int missing = Mathf.Max(0, 2 - UnityEngine.Object.FindObjectsOfType<Knight>().Length - ShieldsWaiting());
+            int missing = Mathf.Max(0, (b._blitz ? 2 : b.BlitzKnights) - UnityEngine.Object.FindObjectsOfType<Knight>().Length - ShieldsWaiting());   // muster phase: shields for 4 knights are reserved (only 18 of 283 coins went to shields)
             int inner = 0; foreach (var po in UnityEngine.Object.FindObjectsOfType<Portal>()) { var dm = po.GetComponent<Damageable>(); if (!po.outerSpawner && (dm == null || dm.hitPoints > 0)) inner++; }
-            return missing * 6 + Mathf.Max(1, inner) * 4 + 3;   // shields for 2 knights + one banner per remaining portal + purse
+            return Mathf.Min(b.PurseCap, missing * 6 + Mathf.Max(1, inner) * 4 + 3);   // shields for 2 knights + one banner per remaining portal + purse
         }       // castle 4 (8) + castle 5 (12) + 2 shields (12) + purse   // while saving for castle/shields the army only grows to this size (else nothing is ever saved)
 
         /// <summary>Farmhouse payable to build next (first farm once scythes are sold, second one from day 12), or null.</summary>
@@ -2001,8 +2001,10 @@ namespace KingdomBot
             var k = Managers.kingdom; if (!k.isDaytime || GameState.Hour > k.dayEnd - 2f) return false;
             float home = k.campfirePosition, px = GameState.PX;
             var payables = UnityEngine.Object.FindObjectsOfType<Payable>();
-            Payable pick = Find(payables, x => x is PayableUpgrade && x.name.StartsWith("Castle") && !x.name.StartsWith("Castle0") && SafeCanPay(x) && x.price <= coins - 12, home);
-            string what = "castle";
+            Payable pick = null; string what = "castle";
+            // blitz needs shields: spending d3-20 was 283 coins, only 18 on shields (towers 21, purse-full towers/castle 39)
+            if (CastleLevelNow() >= 5 && UnityEngine.Object.FindObjectsOfType<Knight>().Length + ShieldsWaiting() < KnightTarget) { pick = ShieldShop(payables, home, coins - 12); what = "shield"; }
+            if (pick == null) { pick = Find(payables, x => x is PayableUpgrade && x.name.StartsWith("Castle") && !x.name.StartsWith("Castle0") && SafeCanPay(x) && x.price <= coins - 12, home); what = "castle"; }
             // no wall upgrades here: Wall3 (price 9) drained 25 coins at the outer wall on day 22 and left the king broke at night
             if (pick == null) { pick = Find(payables, x => x is PayableUpgrade && x.name.StartsWith("Tower") && SafeCanPay(x) && x.price <= coins - 12 && Mathf.Abs(x.transform.position.x - home) < Mathf.Abs(WallEdge(x.transform.position.x < home ? -1 : 1, home) - home) - 2f, home); what = "tower"; }
             if (pick == null) { pick = ShieldShop(payables, home, coins - 12); what = "shield"; }
@@ -2073,6 +2075,7 @@ namespace KingdomBot
             var k = Managers.kingdom; int day = GameState.Day;
             bool night = !k.isDaytime || GameState.Hour >= k.dayEnd - 1f;
             if (!night || day < 9 || OnCooldown(777400)) return false;
+            if (CastleLevelNow() >= 5 && UnityEngine.Object.FindObjectsOfType<Knight>().Length + ShieldsWaiting() < 4) return false;   // shields first (blitz)
             float px = GameState.PX, home = k.campfirePosition;
             var en = NearestEnemy(px); if (en != null && Mathf.Abs(en.transform.position.x - home) < 25f) return false;
             int budget = Mathf.Min(GameState.Coins - AssaultReserve(true) - 4, GameState.Coins - 12);   // keep a crown guard for the dawn (night tower + morning trip left 7 coins: crown lost day 21)

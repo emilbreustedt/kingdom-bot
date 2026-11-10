@@ -325,6 +325,22 @@ namespace KingdomBot
         }
     }
 
+    /// <summary>User: "can we reuse maps?" - the level comes from UnityEngine.Random: seed it right before generation.
+    /// force_seed.txt (a number) replays that map; accepted maps are written to good_seeds.txt by the map check.</summary>
+    [HarmonyPatch(typeof(Level), "GenerateInternal")]
+    static class Patch_LevelSeed
+    {
+        public static int LastSeed;
+        static void Prefix()
+        {
+            int seed = 0;
+            try { var f = Path.Combine(Plugin.Dir, "force_seed.txt"); if (File.Exists(f)) int.TryParse(File.ReadAllText(f).Trim(), out seed); } catch { }
+            if (seed == 0) seed = new System.Random().Next(1, int.MaxValue);
+            UnityEngine.Random.seed = seed; LastSeed = seed;
+            Plugin.Log("LEVEL SEED " + seed);
+        }
+    }
+
     /// <summary>User observation "overflowing purse": a full coin bag spills coins (some into the water = lost). Count them.</summary>
     [HarmonyPatch(typeof(Player), "CoinFellFromBag")]
     static class Patch_CoinFell

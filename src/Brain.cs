@@ -1840,7 +1840,7 @@ namespace KingdomBot
         {
             int cs = ChargeSide();
             var sh = Find(payables, x => x is PayableShield && SafeCanPay(x) && x.price <= maxPrice && (x.transform.position.x - home) * cs > 0, home);
-            return sh ?? Find(payables, x => x is PayableShield && SafeCanPay(x) && x.price <= maxPrice, home);
+            return sh;   // no fallback: a shop holds one shield until it is picked up - the 2nd shield went to the other side (4 knights next to far portals 154/162 while 126 was free)
         }
 
         Payable FarmTarget(Payable[] payables, float home)

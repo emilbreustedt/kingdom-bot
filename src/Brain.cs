@@ -2130,7 +2130,7 @@ namespace KingdomBot
             int peasants = UnityEngine.Object.FindObjectsOfType<Peasant>().Length, onDisplay = 0; PayableShop bow = null;
             foreach (var py in payables) { var sh = py as PayableShop; if (sh == null) continue; onDisplay += sh.GetItemCount(); if (sh.name.Contains("Bow")) bow = sh; }
             int archers = UnityEngine.Object.FindObjectsOfType<Archer>().Length;
-            if (bow == null || peasants <= onDisplay + ShieldsWaiting() + 1 || archers >= AssaultArmyCap || !SafeCanPay(bow) || !Affordable(bow.price)) { Cool(777700, 8f); return false; }
+            if (bow == null || peasants <= onDisplay + ShieldsWaiting() + 1 || archers >= PreCastleArcherCap(AssaultArmyCap) || !SafeCanPay(bow) || !Affordable(bow.price)) { Cool(777700, 8f); return false; }
             Cool(777700, 2f);
             Status = "Idle recruits: buy bow (" + peasants + " idle)"; PayAt(bow); return true;
         }
@@ -2537,7 +2537,7 @@ namespace KingdomBot
         public static int PreCastleArcherCap(int normalCap)
         {
             if (Plugin.Instance == null || Plugin.Instance.Brain == null || Plugin.Instance.Brain.Mode != "master") return normalCap;
-            return CastleLevelNow() < 5 ? Mathf.Min(normalCap, 22) : normalCap;
+            return (CastleLevelNow() < 5 || MusterPhase()) ? Mathf.Min(normalCap, 22) : normalCap;   // muster: 22 archers = 4 knights x 4 escorts + 6 home; the rest of the coins go into shields (army grew to 33, budget for shields stayed 5-7)
         }
 
         static int CastleIndex(string name)

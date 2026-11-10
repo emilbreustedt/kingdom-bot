@@ -2257,7 +2257,7 @@ namespace KingdomBot
             // forward launch point (forum tip): knights die on the long way to far portals -> move the outer wall (and
             // with it the banner) towards the nearest intact portal on a side once the gap is large
             if (assault && hour >= 12f && _fwGateDay != day && UnityEngine.Object.FindObjectsOfType<Knight>().Length >= 1) { _fwGateDay = day; Plugin.Log("FORWARD GATE d" + day + " h" + hour.ToString("0.0") + ": workers " + UnityEngine.Object.FindObjectsOfType<Worker>().Length + " finalWave " + finalWave + " dayEnd " + k.dayEnd.ToString("0.0")); }
-            if (assault && !finalWave && (UnityEngine.Object.FindObjectsOfType<Knight>().Length >= 1 || InnerPortalsDead()) && UnityEngine.Object.FindObjectsOfType<Worker>().Length >= 2   /* forward walls from day 7 (guide) left thin walls far out: ~60 archer hits there at dusk, castle fell on day 24 */ && hour >= 12f && hour < k.dayEnd - 5f)   // afternoons: mornings are for charges
+            if (assault && !finalWave && (UnityEngine.Object.FindObjectsOfType<Knight>().Length >= 1 || InnerPortalsDead() || (day >= 12 && CastleLevelNow() >= 4)) && UnityEngine.Object.FindObjectsOfType<Worker>().Length >= 2   /* forward walls from day 7 (guide) left thin walls far out: ~60 archer hits there at dusk, castle fell on day 24 */ && hour >= 12f && hour < k.dayEnd - 5f)   // afternoons: mornings are for charges
             {
                 for (int side = -1; side <= 1; side += 2)
                 {
@@ -2289,7 +2289,8 @@ namespace KingdomBot
                     }
                     var pick = spot ?? (portalRel - outerRel < 200f ? tree : null);
                     if (_fwDiagDay != day * 10 + side + 1) { _fwDiagDay = day * 10 + side + 1; Plugin.Log("FORWARD DIAG d" + day + " h" + hour.ToString("0.0") + " side " + side + ": gap " + (portalRel - outerRel).ToString("0") + " spot " + (spot != null ? spot.name + "@" + spot.transform.position.x.ToString("0") : "-") + " tree " + (tree != null ? tree.transform.position.x.ToString("0") : "-") + " budget " + budget + " reserve " + AssaultReserve(false)); }   /* portal 182 out (gap ~144) was never reachable: march 12.8 h */   // clearing a whole forest for a far portal eats the charge money
-                    if (pick != null && budget - AssaultReserve(false) >= pick.price + 2)
+                    bool unreachable = !deadTarget && portalRel - outerRel > 130f;   // no charge can finish before dusk: the forward wall comes before more shields (90 knight-days were "too late (march)")
+                    if (pick != null && (budget - AssaultReserve(false) >= pick.price + 2 || (unreachable && GameState.Coins >= pick.price + 6)))
                     {
                         Status = "Forward wall " + (side < 0 ? "left" : "right") + (spot != null ? "" : ": cut tree") + " (portal gap " + (portalRel - outerRel).ToString("0") + ")";
                         Cool(pick.GetInstanceID(), 90f); PayAt(pick); return true;
@@ -2356,7 +2357,7 @@ namespace KingdomBot
                     int readyHere = 0; foreach (var kn in knights) { try { int kcn = Acc.Wallet(kn).coins; if ((kn.transform.position.x - home) * ps > 0 && (bool)Acc.Call(kn, "CanCharge") && (kcn >= 3 || day >= 22)) readyHere++; } catch { } }
                     // each knight takes 4 escort archers; single-knight charges failed and cost ~30 archers between day 13 and 21
                     // (archers 22 -> 10, made 22 -> 41). Guide: 2 knights per side. Alone only from day 22 (schedule).
-                    bool knightOk = readyHere >= 3 || (readyHere >= 2 && day >= 20) || (readyHere >= 1 && day >= 23);   /* 2-knight charges rarely destroyed a portal (7 runs: 0-2 portals by day 24) - concentrate */
+                    bool knightOk = readyHere >= 2 || (readyHere >= 1 && day >= 21);   /* 91 charges / 36 portals: frequency matters more - the 3-knight rule blocked charges (58 knight-days "knight not ready") */   /* 2-knight charges rarely destroyed a portal (7 runs: 0-2 portals by day 24) - concentrate */
                     if (!bannerOk || !knightOk) { if (_chargeSkipLog != day * 10 + (ps + 1)) { _chargeSkipLog = day * 10 + (ps + 1); Plugin.Log("CHARGE skip d" + day + " h" + hour.ToString("0.0") + " side " + ps + " portal " + pd.ToString("0") + ": bannerOk=" + bannerOk + " knightOk=" + knightOk); } continue; }
                     float score = pd + (ps == MainSide() ? 0f : 80f);   // main side first (both of its portals), then the camp side
                     if (score < bestPd) { bestPd = score; pside = ps; }

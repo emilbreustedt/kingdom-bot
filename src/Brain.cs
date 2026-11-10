@@ -1805,14 +1805,19 @@ namespace KingdomBot
         /// Shields are bought on that side so 2 knights stand together (user: shields were bought on both sides).</summary>
         int ChargeSide()
         {
-            int ms = MainSide(); float home = Managers.kingdom.campfirePosition;
+            // the side whose nearest living inner portal is closest (run: 3 knights on the main side with portals 158/206 out,
+            // the other side had one 90 out with a payable banner and no knight). Tie (within 20): main side.
+            int ms = MainSide(); float home = Managers.kingdom.campfirePosition; float nl = 1e6f, nr = 1e6f;
             foreach (var po in UnityEngine.Object.FindObjectsOfType<Portal>())
             {
                 var dm = po.GetComponent<Damageable>();
                 if (po.outerSpawner || (dm != null && dm.hitPoints <= 0)) continue;
-                if ((po.transform.position.x - home) * ms > 0) return ms;
+                float d = po.transform.position.x - home;
+                if (d < 0) nl = Mathf.Min(nl, -d); else nr = Mathf.Min(nr, d);
             }
-            return -ms;
+            if (nl >= 1e6f && nr >= 1e6f) return ms;
+            if (Mathf.Abs(nl - nr) < 20f) return ms;
+            return nl < nr ? -1 : 1;
         }
         /// <summary>Shield shop on the charge side (falls back to any).</summary>
         Payable ShieldShop(Payable[] payables, float home, int maxPrice)
@@ -2353,17 +2358,17 @@ namespace KingdomBot
                     if (hour + march + 4f > k.dayEnd) {   /* no dawn exception: 90 of 138 archer hits were escorts 80-160 out at dusk (arrival ~h15) */   /* at dawn always: a portal 162 out fell to a dawn charge, the estimate is pessimistic */ if (_chargeLateLog != day * 10 + (ps + 1)) { _chargeLateLog = day * 10 + (ps + 1); Plugin.Log("CHARGE too late d" + day + " h" + hour.ToString("0.0") + ": portal " + pd.ToString("0") + " out needs " + march.ToString("0.0") + " h march - wait for dawn"); } continue; }
                     // that side needs a payable banner and a ready knight standing there (day 9/10: the nearest portal was
                     // right, the only knight and the only payable banner left -> no charge, Tenth Day missed)
-                    bool bannerOk = false; foreach (var bo in UnityEngine.Object.FindObjectsOfType<PayableBorder>()) if ((bo.transform.position.x - home) * ps > 0 && SafeCanPay(bo)) bannerOk = true;
+                    bool bannerOk = false; foreach (var bo in UnityEngine.Object.FindObjectsOfType<PayableBorder>()) { bool cp = false; try { cp = bo.CanPay(); } catch { } if ((bo.transform.position.x - home) * ps > 0 && cp) bannerOk = true; }   // no isActiveAndEnabled: banners ~20 away were "not payable" at dawn
                     int readyHere = 0; foreach (var kn in knights) { try { int kcn = Acc.Wallet(kn).coins; if ((kn.transform.position.x - home) * ps > 0 && (bool)Acc.Call(kn, "CanCharge") && (kcn >= 3 || day >= 22)) readyHere++; } catch { } }
                     // each knight takes 4 escort archers; single-knight charges failed and cost ~30 archers between day 13 and 21
                     // (archers 22 -> 10, made 22 -> 41). Guide: 2 knights per side. Alone only from day 22 (schedule).
                     bool knightOk = readyHere >= 2 || (readyHere >= 1 && day >= 21);   /* 91 charges / 36 portals: frequency matters more - the 3-knight rule blocked charges (58 knight-days "knight not ready") */   /* 2-knight charges rarely destroyed a portal (7 runs: 0-2 portals by day 24) - concentrate */
                     if (!bannerOk || !knightOk) { if (_chargeSkipLog != day * 10 + (ps + 1)) { _chargeSkipLog = day * 10 + (ps + 1); Plugin.Log("CHARGE skip d" + day + " h" + hour.ToString("0.0") + " side " + ps + " portal " + pd.ToString("0") + ": bannerOk=" + bannerOk + " knightOk=" + knightOk); } continue; }
-                    float score = pd + (ps == MainSide() ? 0f : 80f);   // main side first (both of its portals), then the camp side
+                    float score = pd + (ps == ChargeSide() ? 0f : 80f);   // main side first (both of its portals), then the camp side
                     if (score < bestPd) { bestPd = score; pside = ps; }
                 }
                 if (pside == 0) return false;
-                var border = Find(payables, x => x is PayableBorder && SafeCanPay(x) && (x.transform.position.x - home) * pside > 0, px);
+                var border = Find(UnityEngine.Object.FindObjectsOfType<PayableBorder>(), x => { bool cp = false; try { cp = x.CanPay(); } catch { } return cp && (x.transform.position.x - home) * pside > 0; }, px);
                 if (border != null && budget >= border.price)
                 {
                     // charge tracking: a knight first walks to every coin near his wall (hours of delay -> night fight).

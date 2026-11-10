@@ -2345,7 +2345,7 @@ namespace KingdomBot
             {
                 _chargeDiagDay = day;
                 var bl = new System.Text.StringBuilder();
-                foreach (var bo in UnityEngine.Object.FindObjectsOfType<PayableBorder>()) bl.Append(" " + bo.transform.position.x.ToString("0") + (SafeCanPay(bo) ? "" : "!"));
+                foreach (var bo in Resources.FindObjectsOfTypeAll<PayableBorder>()) { if (bo == null || bo.hideFlags != HideFlags.None || !bo.gameObject.scene.IsValid()) continue; bool cp = false; try { cp = bo.CanPay(); } catch { } bl.Append(" " + bo.transform.position.x.ToString("0") + "$" + bo.price + (bo.isActiveAndEnabled ? "" : "(inactive)") + (cp ? "" : "!")); }
                 Plugin.Log("CHARGE CHECK d" + day + " h" + hour.ToString("0.0") + ": knights " + knights.Length + " armed(CanCharge)=" + armed + " archers " + archers + "/" + ChargeArchers
                     + " recovery=" + recovery + " clearL=" + FieldClear(home, -1) + " clearR=" + FieldClear(home, 1) + " budget " + budget + " banners" + bl);
             }
@@ -2369,7 +2369,7 @@ namespace KingdomBot
                     // that side needs a payable banner and a ready knight standing there (day 9/10: the nearest portal was
                     // right, the only knight and the only payable banner left -> no charge, Tenth Day missed)
                     bool bannerOk = false; foreach (var bo in UnityEngine.Object.FindObjectsOfType<PayableBorder>()) { bool cp = false; try { cp = bo.CanPay(); } catch { } if ((bo.transform.position.x - home) * ps > 0 && cp) bannerOk = true; }   // no isActiveAndEnabled: banners ~20 away were "not payable" at dawn
-                    int readyHere = 0; foreach (var kn in knights) { try { int kcn = Acc.Wallet(kn).coins; if ((kn.transform.position.x - home) * ps > 0 && (bool)Acc.Call(kn, "CanCharge") && (kcn >= 3 || day >= 22)) readyHere++; } catch { } }
+                    int readyHere = 0; foreach (var kn in knights) { try { int kcn = Acc.Wallet(kn).coins; if ((kn.transform.position.x - home) * ps > 0 && (bool)Acc.Call(kn, "CanCharge") && (kcn >= 1 || day >= 22)) readyHere++; } catch { } }
                     // each knight takes 4 escort archers; single-knight charges failed and cost ~30 archers between day 13 and 21
                     // (archers 22 -> 10, made 22 -> 41). Guide: 2 knights per side. Alone only from day 22 (schedule).
                     bool knightOk = readyHere >= 2 || (readyHere >= 1 && day >= 21);   /* 91 charges / 36 portals: frequency matters more - the 3-knight rule blocked charges (58 knight-days "knight not ready") */   /* 2-knight charges rarely destroyed a portal (7 runs: 0-2 portals by day 24) - concentrate */

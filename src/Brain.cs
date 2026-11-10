@@ -1623,7 +1623,7 @@ namespace KingdomBot
         public bool UseCatapults = false;   // guide + logs: big enemies throw our catapult boulders back over the wall (378 archer hits in one run)
         public int KnightTarget = 5;
         public int BlitzKnights = 4, BlitzLatestDay = 17;
-        public bool _blitz; int _homeLogDay;   // 3 knights destroy portals reliably; every shield (6) is a banner payment less at castle 5 (~1 coin/day)
+        public bool _blitz; int _homeLogDay, _bossSkipLog;   // 3 knights destroy portals reliably; every shield (6) is a banner payment less at castle 5 (~1 coin/day)
 
         /// <summary>Recruit a beggar: hand-over (coin never touches the ground) only in the challenge run (Eighth Day);
         /// elsewhere a normal tap, which works more reliably.</summary>
@@ -2009,6 +2009,24 @@ namespace KingdomBot
         static bool KnightReady()
         {
             foreach (var kn in UnityEngine.Object.FindObjectsOfType<Knight>()) { try { if ((bool)Acc.Call(kn, "CanCharge")) return true; } catch { } }
+            return false;
+        }
+
+        /// <summary>Wave schedule (Director events): is a boss wave scheduled for the given day? Cycles are N regular days ->
+        /// boss day -> recovery day. Charges on a boss day cost the escorts that the boss night needs at home.</summary>
+        static bool BossWaveOn(int day)
+        {
+            try
+            {
+                var evs = Acc.Get<object>(Managers.director, "_events") as System.Collections.IList; if (evs == null) return false;
+                foreach (var ev in evs)
+                {
+                    if (ev == null) continue; object wv = null; try { wv = ev.GetType().GetProperty("wave", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic).GetValue(ev, null); } catch { }
+                    var wo = wv as UnityEngine.Object; if (wo == null || !wo.name.Contains("Boss")) continue;
+                    int sd = -1; try { sd = (int)ev.GetType().GetField("startDay", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic).GetValue(ev); } catch { }
+                    if (sd == day) return true;
+                }
+            } catch { }
             return false;
         }
 
@@ -2453,7 +2471,9 @@ namespace KingdomBot
                     int readyAll = 0; foreach (var kn in knights) { try { if ((bool)Acc.Call(kn, "CanCharge")) readyAll++; } catch { } }
                     bool homeSafe = archers >= 4 * readyAll + 6;   // 10 kept the blitz waiting for 6 days (archers stuck at 19-21)
                     if (_blitz && readyHere >= 1 && !homeSafe && _homeLogDay != day) { _homeLogDay = day; Plugin.Log("CHARGE waits d" + day + ": archers " + archers + " < 4x" + readyAll + " escorts + 6 home"); }
-                    bool knightOk = _blitz && readyHere >= 1 && homeSafe;   /* 91 charges / 36 portals: frequency matters more - the 3-knight rule blocked charges (58 knight-days "knight not ready") */   /* 2-knight charges rarely destroyed a portal (7 runs: 0-2 portals by day 24) - concentrate */
+                    bool bossToday = BossWaveOn(day) && !(LiveInnerPortals() == 1 && day >= 22);
+                    if (bossToday && _bossSkipLog != day) { _bossSkipLog = day; Plugin.Log("CHARGE skipped d" + day + ": boss wave tonight - escorts stay home"); }
+                    bool knightOk = _blitz && readyHere >= 1 && homeSafe && !bossToday;   /* 91 charges / 36 portals: frequency matters more - the 3-knight rule blocked charges (58 knight-days "knight not ready") */   /* 2-knight charges rarely destroyed a portal (7 runs: 0-2 portals by day 24) - concentrate */
                     if (!bannerOk || !knightOk) { if (_chargeSkipLog != day * 10 + (ps + 1)) { _chargeSkipLog = day * 10 + (ps + 1); Plugin.Log("CHARGE skip d" + day + " h" + hour.ToString("0.0") + " side " + ps + " portal " + pd.ToString("0") + ": bannerOk=" + bannerOk + " knightOk=" + knightOk); } continue; }
                     float score = pd + (ps == ChargeSide() ? 0f : 80f);   // main side first (both of its portals), then the camp side
                     if (score < bestPd) { bestPd = score; pside = ps; }

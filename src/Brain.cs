@@ -2262,7 +2262,7 @@ namespace KingdomBot
             // forward launch point (forum tip): knights die on the long way to far portals -> move the outer wall (and
             // with it the banner) towards the nearest intact portal on a side once the gap is large
             if (assault && hour >= 12f && _fwGateDay != day && UnityEngine.Object.FindObjectsOfType<Knight>().Length >= 1) { _fwGateDay = day; Plugin.Log("FORWARD GATE d" + day + " h" + hour.ToString("0.0") + ": workers " + UnityEngine.Object.FindObjectsOfType<Worker>().Length + " finalWave " + finalWave + " dayEnd " + k.dayEnd.ToString("0.0")); }
-            if (assault && !finalWave && (UnityEngine.Object.FindObjectsOfType<Knight>().Length >= 1 || InnerPortalsDead() || (day >= 12 && CastleLevelNow() >= 4)) && UnityEngine.Object.FindObjectsOfType<Worker>().Length >= 2   /* forward walls from day 7 (guide) left thin walls far out: ~60 archer hits there at dusk, castle fell on day 24 */ && hour >= 12f && hour < k.dayEnd - 5f)   // afternoons: mornings are for charges
+            if (assault && !finalWave && (UnityEngine.Object.FindObjectsOfType<Knight>().Length >= 1 || InnerPortalsDead() || (day >= 12 && CastleLevelNow() >= 4)) && UnityEngine.Object.FindObjectsOfType<Worker>().Length >= 2   /* forward walls from day 7 (guide) left thin walls far out: ~60 archer hits there at dusk, castle fell on day 24 */ && hour >= 7f && hour < k.dayEnd - 5f)   // afternoons: mornings are for charges
             {
                 for (int side = -1; side <= 1; side += 2)
                 {

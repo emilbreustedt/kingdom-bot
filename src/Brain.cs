@@ -2077,13 +2077,16 @@ namespace KingdomBot
             var payables = UnityEngine.Object.FindObjectsOfType<Payable>();
             int peasants = UnityEngine.Object.FindObjectsOfType<Peasant>().Length, onDisplay = 0; PayableShop bow = null;
             foreach (var py in payables) { var sh = py as PayableShop; if (sh == null) continue; onDisplay += sh.GetItemCount(); if (sh.name.Contains("Bow")) bow = sh; }
-            if (peasants <= onDisplay + ShieldsWaiting()) { Cool(777600, 10f); return false; }
+            bool idle = peasants > onDisplay + ShieldsWaiting();   // shields/scythes/bows need an idle peasant, upgrades do not
             float l = WallEdge(-1, home), r = WallEdge(1, home);
             Payable pick = null; string what = null;
-            if (UnityEngine.Object.FindObjectsOfType<Knight>().Length + ShieldsWaiting() < 5)
+            if (idle && UnityEngine.Object.FindObjectsOfType<Knight>().Length + ShieldsWaiting() < 5)
             { pick = ShieldShop(payables, home, coins - 12); what = "shield"; }
-            if (pick == null) { var sc = ScytheFirst(payables, home); if (sc != null && sc.price <= coins - 12) { pick = sc; what = "scythe"; } }
-            if (pick == null && bow != null && SafeCanPay(bow) && bow.price <= coins - 12 && UnityEngine.Object.FindObjectsOfType<Archer>().Length < PreCastleArcherCap(30)) { pick = bow; what = "bow"; }
+            if (pick == null && idle) { var sc = ScytheFirst(payables, home); if (sc != null && sc.price <= coins - 12) { pick = sc; what = "scythe"; } }
+            if (pick == null && idle && bow != null && SafeCanPay(bow) && bow.price <= coins - 12 && UnityEngine.Object.FindObjectsOfType<Archer>().Length < PreCastleArcherCap(30)) { pick = bow; what = "bow"; }
+            // user: use the night better - castle and farm upgrades stand inside the walls (no peasant needed)
+            if (pick == null) { pick = Find(payables, x => x is PayableUpgrade && x.name.StartsWith("Castle") && !x.name.StartsWith("Castle0") && SafeCanPay(x) && x.price <= coins - 12, home); what = "castle"; }
+            if (pick == null) { pick = Find(payables, x => x is PayableUpgrade && x.name.StartsWith("Farmhouse") && !x.name.StartsWith("Farmhouse0") && SafeCanPay(x) && x.price <= coins - 12 && x.transform.position.x > l + 2f && x.transform.position.x < r - 2f, home); what = "farm upgrade"; }
             if (pick == null) { Cool(777600, 10f); return false; }
             Cool(777600, 3f);
             Status = "Night: buy " + what + " (" + pick.price + ")"; Plugin.Log(Status + " d" + GameState.Day);
@@ -2098,7 +2101,7 @@ namespace KingdomBot
             if (_tourDay != day) { _tourDay = day; _tourLeg = 0; _tourLegStart = -1f; }
             if (_tourLegStart < 0f) _tourLegStart = hour;
             if (hour - _tourLegStart > 4f) { _tourLeg++; _tourLegStart = hour; Plugin.Log("Tour leg skipped (blocked) d" + day); }
-            if (_tourLeg >= 3 || day < 3 || !k.isDaytime || hour < 8f || hour > k.dayEnd - 4f) return false;
+            if (_tourLeg >= 3 || day < 3 || !k.isDaytime || hour < 7f || hour > k.dayEnd - 4f) return false;
             if (BigEnemyNear(px, 40f)) return false;
             if (_tourLeg < 2)
             {

@@ -1432,7 +1432,7 @@ namespace KingdomBot
             // 2. outer wall of the weaker side below today's target
             if (item == null)
             {
-                int target = WallTarget(day), bestLvl = 99;
+                int target = WallTarget(day), bestLvl = 99; if (MusterPhase()) target = Mathf.Min(target, 2);
                 for (int side = -1; side <= 1; side += 2)
                 {
                     var outer = OuterWall(side, home);
@@ -1443,7 +1443,7 @@ namespace KingdomBot
             }
             // 3. towers next to the outer walls: archers in a guard slot are immune to troll/boss hits
             // (guides say "no towers" for fast wins, but without them a boss broke in on day 27 and took the crown)
-            if (item == null && day >= 9)
+            if (item == null && day >= 9 && !MusterPhase())
             {
                 int ttarget = day >= 20 ? 3 : day >= 14 ? 2 : 1, bestT = 99;
                 for (int side = -1; side <= 1; side += 2)
@@ -2030,6 +2030,15 @@ namespace KingdomBot
             return false;
         }
 
+        /// <summary>User decision: from castle 5 until 4 knights (and before the blitz) the coins go into shields - walls are only
+        /// kept at level 2 (wrecks are rebuilt), no towers (runs had 1-2 knights by day 17 while towers/walls ate the coins).</summary>
+        public static bool MusterPhase()
+        {
+            var b = Plugin.Instance != null ? Plugin.Instance.Brain : null;
+            if (b == null || b.Mode != "master" || b._blitz || CastleLevelNow() < 5) return false;
+            return UnityEngine.Object.FindObjectsOfType<Knight>().Length + ShieldsWaiting() < b.BlitzKnights;
+        }
+
         /// <summary>Purse near the bag limit (~39-43 spills, half into the water): spend on what the assault needs anyway -
         /// castle upgrades first (castle 5 is the bottleneck), then wall upgrades, then towers. Day 3 sat at 37-43 coins all day.</summary>
         bool OverflowSpend()
@@ -2044,7 +2053,7 @@ namespace KingdomBot
             if (CastleLevelNow() >= 5 && UnityEngine.Object.FindObjectsOfType<Knight>().Length + ShieldsWaiting() < KnightTarget) { pick = ShieldShop(payables, home, coins - 12); what = "shield"; }
             if (pick == null) { pick = Find(payables, x => x is PayableUpgrade && x.name.StartsWith("Castle") && !x.name.StartsWith("Castle0") && SafeCanPay(x) && x.price <= coins - 12, home); what = "castle"; }
             // no wall upgrades here: Wall3 (price 9) drained 25 coins at the outer wall on day 22 and left the king broke at night
-            if (pick == null) { pick = Find(payables, x => x is PayableUpgrade && x.name.StartsWith("Tower") && SafeCanPay(x) && x.price <= coins - 12 && Mathf.Abs(x.transform.position.x - home) < Mathf.Abs(WallEdge(x.transform.position.x < home ? -1 : 1, home) - home) - 2f, home); what = "tower"; }
+            if (pick == null && !MusterPhase()) { pick = Find(payables, x => x is PayableUpgrade && x.name.StartsWith("Tower") && SafeCanPay(x) && x.price <= coins - 12 && Mathf.Abs(x.transform.position.x - home) < Mathf.Abs(WallEdge(x.transform.position.x < home ? -1 : 1, home) - home) - 2f, home); what = "tower"; }
             if (pick == null) { pick = ShieldShop(payables, home, coins - 12); what = "shield"; }
             // no statues here: the trip to a statue 89 out cost 20 coins in enemy hits before paying (day 21)
             if (pick == null) { Cool(777500, 20f); return false; }

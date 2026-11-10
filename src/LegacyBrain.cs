@@ -237,7 +237,7 @@ namespace KingdomBot
             }
 
             // ---------- 7. strengthen walls, then towers ----------
-            if (archers >= 8 && budget >= 3)
+            if (archers >= 8 && budget >= 3 && !Brain.MusterPhase())   // muster: coins go into shields
             {
                 var up = Find(payables, x => x is PayableUpgrade && IsBuiltWall(x) && SafeCanPay(x) && x.price <= budget, home);
                 if (up != null) { Status = "Mauer verstärken (" + up.price + ")"; PayAt(up); return; }

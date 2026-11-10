@@ -1533,6 +1533,15 @@ namespace KingdomBot
                 if (!(p is PayableUpgrade) || !SafeCanPay(p)) continue;
                 if (p.gameObject == w.gameObject || (p.transform.parent != null && p.transform.parent.gameObject == w.gameObject)) return p;
             }
+            // far walls: their upgrade payable is inactive (FindObjectsOfType skips it, isActiveAndEnabled false) - a new outer wall
+            // stayed at L1 for 10 days (castle fell on day 24). Search all objects; the payable activates when the king arrives.
+            foreach (var p in Resources.FindObjectsOfTypeAll<PayableUpgrade>())
+            {
+                if (p == null || p.hideFlags != HideFlags.None || !p.gameObject.scene.IsValid()) continue;
+                if (!(p.gameObject == w.gameObject || (p.transform.parent != null && p.transform.parent.gameObject == w.gameObject))) continue;
+                bool cp = false; try { cp = p.CanPay(); } catch { }
+                if (cp) return p;
+            }
             return null;
         }
 

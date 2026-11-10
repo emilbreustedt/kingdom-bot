@@ -2510,7 +2510,7 @@ namespace KingdomBot
             }
             // shields -> knights
             var shield = ShieldShop(payables, home, 999);
-            if (shield != null && UnityEngine.Object.FindObjectsOfType<Knight>().Length + ShieldsWaiting() < KnightGoal && budget - (UnityEngine.Object.FindObjectsOfType<Knight>().Length >= 2 ? AssaultReserve(false) : 0) >= shield.price + 3 + (UnityEngine.Object.FindObjectsOfType<Knight>().Length >= 1 ? 4 : 0)) { Status = "Assault: buy shield (" + shield.price + ")"; PayAt(shield); return true; }
+            if (shield != null && UnityEngine.Object.FindObjectsOfType<Knight>().Length + ShieldsWaiting() < KnightGoal && (MusterPhase() ? Affordable(shield.price) : budget - (UnityEngine.Object.FindObjectsOfType<Knight>().Length >= 2 ? AssaultReserve(false) : 0) >= shield.price + 3 + (UnityEngine.Object.FindObjectsOfType<Knight>().Length >= 1 ? 4 : 0)))   /* muster: the shield reserve blocked the shield purchase itself (4 shields in a whole run, all at night) */ { Status = "Assault: buy shield (" + shield.price + ")"; PayAt(shield); return true; }
             // arm the knights: coins in a knight's purse are knocked out before he loses his shield
             Knight poor = null; int poorCoins = 99;
             foreach (var kn in knights)

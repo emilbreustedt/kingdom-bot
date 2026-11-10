@@ -2738,6 +2738,7 @@ namespace KingdomBot
                 float x = b.transform.position.x;
                 if (x < minX || x > maxX || OnCooldown(b.GetInstanceID())) continue;
                 if (Managers.kingdom != null && TooLateForBeggar(x)) continue;   /* run with 29 coins income ended with 10 unspent coins: the evening archer coins need a night trip to a camp */   // army1: day counter 0 lasts until dawn - camps next to the town centre are fine at night   // day-4 game over: recruited a beggar 98 out at 16:30
+                if (Mode == "master" && Managers.kingdom != null && GameState.Hour < 7f) { float hmB = Managers.kingdom.campfirePosition; if (x < WallEdge(-1, hmB) || x > WallEdge(1, hmB)) continue; }   // dawn: the night's enemies are still out (recruit trip at h5.3 lost 21 coins and the crown, day 20)
                 bool nearPortal = false;
                 foreach (var po in UnityEngine.Object.FindObjectsOfType<Portal>()) if (Mathf.Abs(po.transform.position.x - x) < 25f) nearPortal = true;
                 if (nearPortal) continue;

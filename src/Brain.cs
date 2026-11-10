@@ -1602,7 +1602,7 @@ namespace KingdomBot
         public bool UseCatapults = false;   // guide + logs: big enemies throw our catapult boulders back over the wall (378 archer hits in one run)
         public int KnightTarget = 5;
         public int BlitzKnights = 4, BlitzLatestDay = 19;
-        bool _blitz;   // 3 knights destroy portals reliably; every shield (6) is a banner payment less at castle 5 (~1 coin/day)
+        bool _blitz; int _homeLogDay;   // 3 knights destroy portals reliably; every shield (6) is a banner payment less at castle 5 (~1 coin/day)
 
         /// <summary>Recruit a beggar: hand-over (coin never touches the ground) only in the challenge run (Eighth Day);
         /// elsewhere a normal tap, which works more reliably.</summary>
@@ -1632,7 +1632,7 @@ namespace KingdomBot
                 }
             }
         }
-        public int AssaultArmyCap = 25;
+        public int AssaultArmyCap = 30;   // blitz: 4 knights x 4 escorts + 10 at home
         public int MasterRunEndDay = 40;   // after day 40 no "Safe in X" is reachable (runs with all portals destroyed continue)
         public int MinChargeArchers = 12;   // 16 blocked charges for days in weaker runs; escort = 4 per knight
         public float GrassStrip = 30f;   // tree-free strip in front of the outer walls (rabbits / hunting income)
@@ -2377,7 +2377,12 @@ namespace KingdomBot
                     // user decision (direction 2): muster first, then strike in quick succession. Single knights used to die one by one
                     // before enough were together (seeded map: mostly 1 knight, 1-2 portals by day 24).
                     if (!_blitz && (knights.Length >= BlitzKnights || day >= BlitzLatestDay)) { _blitz = true; Plugin.Log("BLITZ starts d" + day + " with " + knights.Length + " knights"); }
-                    bool knightOk = _blitz && readyHere >= 1;   /* 91 charges / 36 portals: frequency matters more - the 3-knight rule blocked charges (58 knight-days "knight not ready") */   /* 2-knight charges rarely destroyed a portal (7 runs: 0-2 portals by day 24) - concentrate */
+                    // a banner sends EVERY ready knight with 4 escorts each: keep 10 archers home (blitz with 4 knights left 8 of 28
+                    // archers, a boss walked in that evening, game over day 17)
+                    int readyAll = 0; foreach (var kn in knights) { try { if ((bool)Acc.Call(kn, "CanCharge")) readyAll++; } catch { } }
+                    bool homeSafe = archers >= 4 * readyAll + 10;
+                    if (_blitz && readyHere >= 1 && !homeSafe && _homeLogDay != day) { _homeLogDay = day; Plugin.Log("CHARGE waits d" + day + ": archers " + archers + " < 4x" + readyAll + " escorts + 10 home"); }
+                    bool knightOk = _blitz && readyHere >= 1 && homeSafe;   /* 91 charges / 36 portals: frequency matters more - the 3-knight rule blocked charges (58 knight-days "knight not ready") */   /* 2-knight charges rarely destroyed a portal (7 runs: 0-2 portals by day 24) - concentrate */
                     if (!bannerOk || !knightOk) { if (_chargeSkipLog != day * 10 + (ps + 1)) { _chargeSkipLog = day * 10 + (ps + 1); Plugin.Log("CHARGE skip d" + day + " h" + hour.ToString("0.0") + " side " + ps + " portal " + pd.ToString("0") + ": bannerOk=" + bannerOk + " knightOk=" + knightOk); } continue; }
                     float score = pd + (ps == ChargeSide() ? 0f : 80f);   // main side first (both of its portals), then the camp side
                     if (score < bestPd) { bestPd = score; pside = ps; }

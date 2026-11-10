@@ -584,7 +584,7 @@ namespace KingdomBot
                         if (match && payable && _matchFrames < 3) { _matchFrames++; c.Dir = 0; break; }   // stand still first: a moving king slides out of the trigger mid-payment
                         if (!(match && payable)) _matchFrames = 0;
                         // crown guard BEFORE paying (aborting half-way dropped the coins: scythes started with 6-8 coins, 5x in a row)
-                        if (match && payable && GameState.Day >= 10 && GameState.Coins - sel.price < 6 && !(sel is PayableBorder)) { Plugin.Log("payid: skipped - crown guard (purse " + GameState.Coins + ", price " + sel.price + ", " + sel.name + ")"); c.Pay = false; done = true; break; }
+                        if (match && payable && GameState.Day >= 10 && !Brain.Affordable(sel.price) && !(sel is PayableBorder)) { Plugin.Log("payid: skipped - crown guard (purse " + GameState.Coins + ", price " + sel.price + ", " + sel.name + ")"); c.Pay = false; done = true; break; }
                         if (match && payable) { id = sel.GetInstanceID(); _payTarget = id; _started = true; _t0 = Time.time; c.Dir = 0; c.Pay = true; _payCoins0 = GameState.Coins; _payPrice = sel.price; }
                         else if (Time.time - _t0 > 10f + _payStartDist * 1.5f)
                         {

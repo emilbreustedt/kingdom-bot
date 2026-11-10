@@ -1632,6 +1632,7 @@ namespace KingdomBot
         /// elsewhere a normal tap, which works more reliably.</summary>
         void Recruit(Beggar b)
         {
+            if (Mode == "master" && UnityEngine.Object.FindObjectsOfType<Peasant>().Length >= 3) { Cool(b.GetInstanceID(), 30f); Push("wait 0.3"); return; }   // enough idle recruits
             // far beggars (camps 80+ away): gallop close first - walking (speed 2) with a 25 s timeout never arrived
             float bx = b.transform.position.x, dist = Mathf.Abs(bx - GameState.PX);
             if (dist > 12f) Push("goto " + F(bx + (GameState.PX < bx ? -4f : 4f)) + " 1.5 " + F(Mathf.Max(30f, dist * 0.6f)));

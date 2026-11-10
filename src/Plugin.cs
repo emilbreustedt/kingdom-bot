@@ -491,7 +491,7 @@ namespace KingdomBot
                     float x = F(parts[1]);
                     // recruit in passing (user: "whenever he rides past beggars he should take them"): stop, drop one coin, ride on
                     if (_passTapUntil > Time.time) { c.Dir = 0; c.Sprint = false; c.Pay = !_passPressed; _passPressed = true; break; }
-                    if (parts[0] == "goto" && pl.Brain != null && pl.Brain.Mode == "master" && GameState.Coins >= (GameState.Day >= 10 ? 7 : 2) && Time.time >= _passScanAt)
+                    if (parts[0] == "goto" && pl.Brain != null && pl.Brain.Mode == "master" && GameState.Coins >= (GameState.Day >= 10 ? 7 : 2) && Time.time >= _passScanAt && UnityEngine.Object.FindObjectsOfType<Peasant>().Length < 3)   /* 68 in-passing recruits in one run, 23 idle peasants (archers at cap): the coins were missing for shields */
                     {
                         _passScanAt = Time.time + 0.15f;
                         bool selNone = false; try { selNone = Acc.Selected(p) == null; } catch { }

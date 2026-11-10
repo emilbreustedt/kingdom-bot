@@ -466,7 +466,7 @@ namespace KingdomBot
                 var up = Find(payables, x => x is PayableUpgrade && IsBuiltWall(x) && SafeCanPay(x) && x.price <= budget, home);
                 if (up != null) { Status = "Upgrade wall (" + up.price + ")"; PayAt(up); return; }
                 var tower = Find(payables, x => x is PayableUpgrade && x.name.StartsWith("Tower") && SafeCanPay(x) && x.price <= budget && Between(x.transform.position.x, leftSafe - 1f, rightSafe + 1f), home);
-                if (tower != null) { Status = "Build tower (" + tower.price + ")"; PayAt(tower); return; }
+                if (tower != null && UseTowers) { Status = "Build tower (" + tower.price + ")"; PayAt(tower); return; }
             }
 
             // ---------- 8. more walls further out ----------
@@ -1443,7 +1443,7 @@ namespace KingdomBot
             }
             // 3. towers next to the outer walls: archers in a guard slot are immune to troll/boss hits
             // (guides say "no towers" for fast wins, but without them a boss broke in on day 27 and took the crown)
-            if (item == null && day >= 9 && !MusterPhase())
+            if (item == null && day >= 9 && !MusterPhase() && UseTowers)
             {
                 int ttarget = day >= 20 ? 3 : day >= 14 ? 2 : 1, bestT = 99;
                 for (int side = -1; side <= 1; side += 2)
@@ -1623,6 +1623,9 @@ namespace KingdomBot
         public bool UseCatapults = false;   // guide + logs: big enemies throw our catapult boulders back over the wall (378 archer hits in one run)
         public int KnightTarget = 5;
         public int BlitzKnights = 4, BlitzLatestDay = 17;
+        /// <summary>Forum (user): towers are a red herring - the gold is better spent on recruits and bows, towers at the front wall
+        /// become useless after expanding, and they hem in farmland (fields stretch 4-6 plots if nothing blocks them).</summary>
+        public static bool UseTowers = false;
         public bool _blitz; int _homeLogDay, _bossSkipLog;   // 3 knights destroy portals reliably; every shield (6) is a banner payment less at castle 5 (~1 coin/day)
 
         /// <summary>Recruit a beggar: hand-over (coin never touches the ground) only in the challenge run (Eighth Day);
@@ -2053,7 +2056,7 @@ namespace KingdomBot
             if (CastleLevelNow() >= 5 && UnityEngine.Object.FindObjectsOfType<Knight>().Length + ShieldsWaiting() < KnightTarget) { pick = ShieldShop(payables, home, coins - 12); what = "shield"; }
             if (pick == null) { pick = Find(payables, x => x is PayableUpgrade && x.name.StartsWith("Castle") && !x.name.StartsWith("Castle0") && SafeCanPay(x) && x.price <= coins - 12, home); what = "castle"; }
             // no wall upgrades here: Wall3 (price 9) drained 25 coins at the outer wall on day 22 and left the king broke at night
-            if (pick == null && !MusterPhase()) { pick = Find(payables, x => x is PayableUpgrade && x.name.StartsWith("Tower") && SafeCanPay(x) && x.price <= coins - 12 && Mathf.Abs(x.transform.position.x - home) < Mathf.Abs(WallEdge(x.transform.position.x < home ? -1 : 1, home) - home) - 2f, home); what = "tower"; }
+            if (pick == null && !MusterPhase() && UseTowers) { pick = Find(payables, x => x is PayableUpgrade && x.name.StartsWith("Tower") && SafeCanPay(x) && x.price <= coins - 12 && Mathf.Abs(x.transform.position.x - home) < Mathf.Abs(WallEdge(x.transform.position.x < home ? -1 : 1, home) - home) - 2f, home); what = "tower"; }
             if (pick == null) { pick = ShieldShop(payables, home, coins - 12); what = "shield"; }
             // no statues here: the trip to a statue 89 out cost 20 coins in enemy hits before paying (day 21)
             if (pick == null) { Cool(777500, 20f); return false; }
@@ -2137,7 +2140,7 @@ namespace KingdomBot
         {
             var k = Managers.kingdom; int day = GameState.Day;
             bool night = !k.isDaytime || GameState.Hour >= k.dayEnd - 1f;
-            if (!night || day < 9 || OnCooldown(777400)) return false;
+            if (!night || day < 9 || OnCooldown(777400) || !UseTowers) return false;
             if (CastleLevelNow() >= 5 && UnityEngine.Object.FindObjectsOfType<Knight>().Length + ShieldsWaiting() < 4) return false;   // shields first (blitz)
             float px = GameState.PX, home = k.campfirePosition;
             var en = NearestEnemy(px); if (en != null && Mathf.Abs(en.transform.position.x - home) < 25f) return false;

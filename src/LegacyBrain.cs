@@ -242,7 +242,7 @@ namespace KingdomBot
                 var up = Find(payables, x => x is PayableUpgrade && IsBuiltWall(x) && SafeCanPay(x) && x.price <= budget, home);
                 if (up != null) { Status = "Mauer verstärken (" + up.price + ")"; PayAt(up); return; }
                 var tower = Find(payables, x => x is PayableUpgrade && x.name.StartsWith("Tower") && SafeCanPay(x) && x.price <= budget && Between(x.transform.position.x, leftSafe - 1f, rightSafe + 1f), home);
-                if (tower != null) { Status = "Turm bauen (" + tower.price + ")"; PayAt(tower); return; }
+                if (tower != null && Brain.UseTowers) { Status = "Turm bauen (" + tower.price + ")"; PayAt(tower); return; }
             }
 
             // ---------- 8. more walls further out ----------

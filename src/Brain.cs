@@ -1621,7 +1621,7 @@ namespace KingdomBot
         int KnightGoal { get { return TenthRush ? 1 : KnightTarget; } }
         int ChargeArchers { get { return TenthRush ? 10 : MinChargeArchers; } }
         public bool UseCatapults = false;   // guide + logs: big enemies throw our catapult boulders back over the wall (378 archer hits in one run)
-        public int KnightTarget = 5;
+        public int KnightTarget = 4;   // 4 shield shops, one knight each
         public int BlitzKnights = 4, BlitzLatestDay = 17;
         /// <summary>Forum (user): towers are a red herring - the gold is better spent on recruits and bows, towers at the front wall
         /// become useless after expanding, and they hem in farmland (fields stretch 4-6 plots if nothing blocks them).</summary>
@@ -1861,7 +1861,9 @@ namespace KingdomBot
         {
             int cs = ChargeSide();
             var sh = Find(payables, x => x is PayableShield && SafeCanPay(x) && x.price <= maxPrice && (x.transform.position.x - home) * cs > 0, home);
-            return sh;   // no fallback: a shop holds one shield until it is picked up - the 2nd shield went to the other side (4 knights next to far portals 154/162 while 126 was free)
+            // each of the 4 shield shops (2 per side) supplies ONE knight -> max 2 knights per side (guide: "2 knights on both
+            // sides"). Charge side first, then the other side (without the fallback the knights stopped at 2 with 36 coins).
+            return sh ?? Find(payables, x => x is PayableShield && SafeCanPay(x) && x.price <= maxPrice, home);
         }
 
         Payable FarmTarget(Payable[] payables, float home)
@@ -1957,7 +1959,7 @@ namespace KingdomBot
                 target = CastleIndex(castle.name) == 4 ? BankTarget() : castle.price + 3;
                 if (CastleIndex(castle.name) == 4) what = "castle 4+5 and shields";
             }
-            else if (UnityEngine.Object.FindObjectsOfType<Knight>().Length + ShieldsWaiting() < 5)   /* guide: 2 knights on both sides by day 15 */   // with 2 knights the charges come first; more shields only from spare coins
+            else if (UnityEngine.Object.FindObjectsOfType<Knight>().Length + ShieldsWaiting() < 4)   /* guide: 2 knights on both sides by day 15 */   // with 2 knights the charges come first; more shields only from spare coins
             {
                 var sh = ShieldShop(payables, home, 999);
                 if (sh != null) { item = sh; what = "shield"; }
@@ -2080,7 +2082,7 @@ namespace KingdomBot
             bool idle = peasants > onDisplay + ShieldsWaiting();   // shields/scythes/bows need an idle peasant, upgrades do not
             float l = WallEdge(-1, home), r = WallEdge(1, home);
             Payable pick = null; string what = null;
-            if (idle && UnityEngine.Object.FindObjectsOfType<Knight>().Length + ShieldsWaiting() < 5)
+            if (idle && UnityEngine.Object.FindObjectsOfType<Knight>().Length + ShieldsWaiting() < 4)
             { pick = ShieldShop(payables, home, coins - 12); what = "shield"; }
             if (pick == null && idle) { var sc = ScytheFirst(payables, home); if (sc != null && sc.price <= coins - 12) { pick = sc; what = "scythe"; } }
             if (pick == null && idle && bow != null && SafeCanPay(bow) && bow.price <= coins - 12 && UnityEngine.Object.FindObjectsOfType<Archer>().Length < PreCastleArcherCap(30)) { pick = bow; what = "bow"; }

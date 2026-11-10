@@ -287,6 +287,7 @@ namespace KingdomBot
                 bool ready = (d >= 12 && (arch >= 15 || UnityEngine.Object.FindObjectsOfType<Knight>().Length > 0)) || d >= 20 || (TenthRush && d >= 4 && arch >= 8);   // a knight waiting for the 15th archer wasted days 11-15
                 if (!night && DrainStep(hm, hr, pxx)) return;
                 if (ready && !night && !danger && AssaultStep(UnityEngine.Object.FindObjectsOfType<Payable>(), d, hr, bud, arch, hm, pxx)) return;
+                if (!night && !danger && TourStep()) return;
             }
             // (master now shares the survival basis below; economy/defence extras are no longer used)
             // survival: stone walls decide late survival (L3/L4 = 200/300 HP vs 50 HP). Follow a wall schedule and save for
@@ -2035,6 +2036,35 @@ namespace KingdomBot
             Status = "Night: buy " + what + " (" + pick.price + ")"; Plugin.Log(Status + " d" + GameState.Day);
             PayAt(pick); return true;
         }
+
+        /// <summary>User idea: one daily round - far right, far left, home - doing everything on the way (recruit in passing,
+        /// taxes from archers/farmers, coins nearby) instead of riding back and forth for every single job. Bows are bought at night.</summary>
+        bool TourStep()
+        {
+            var k = Managers.kingdom; int day = GameState.Day; float hour = GameState.Hour, px = GameState.PX, home = k.campfirePosition;
+            if (_tourDay != day) { _tourDay = day; _tourLeg = 0; _tourLegStart = -1f; }
+            if (_tourLegStart < 0f) _tourLegStart = hour;
+            if (hour - _tourLegStart > 4f) { _tourLeg++; _tourLegStart = hour; Plugin.Log("Tour leg skipped (blocked) d" + day); }
+            if (_tourLeg >= 3 || day < 3 || !k.isDaytime || hour < 8f || hour > k.dayEnd - 4f) return false;
+            if (BigEnemyNear(px, 40f)) return false;
+            if (_tourLeg < 2)
+            {
+                int side = _tourLeg == 0 ? 1 : -1;
+                float edge = WallEdge(side, home), far = edge + side * 20f;
+                foreach (var bg in UnityEngine.Object.FindObjectsOfType<Beggar>()) { float bx = bg.transform.position.x; if ((bx - home) * side > 0 && Mathf.Abs(bx - home) < 90f && (bx - far) * side > 0) far = bx + side * 3f; }
+                foreach (var fm in UnityEngine.Object.FindObjectsOfType<Farmer>()) { float fx = fm.transform.position.x; if ((fx - home) * side > 0 && Mathf.Abs(fx - home) < 90f && (fx - far) * side > 0) far = fx + side * 3f; }
+                foreach (var po in UnityEngine.Object.FindObjectsOfType<Portal>()) { float ppx = po.transform.position.x; if ((ppx - home) * side > 0 && (far - (ppx - side * 35f)) * side > 0) far = ppx - side * 35f; }
+                if (Mathf.Abs(far - home) > 90f) far = home + side * 90f;
+                if ((far - px) * side <= 2f) { _tourLeg++; _tourLegStart = hour; return TourStep(); }
+                Status = "Tour " + (side > 0 ? "right" : "left") + " to x" + far.ToString("0");
+                Push("goto " + F(far) + " 1.5 " + F(10f + Mathf.Abs(far - px) * 0.5f));
+                return true;
+            }
+            if (Mathf.Abs(px - home) <= 4f) { _tourLeg = 3; return false; }
+            Status = "Tour: home"; Push("goto " + F(home) + " 2 " + F(10f + Mathf.Abs(home - px) * 0.5f));
+            return true;
+        }
+        int _tourDay = -1, _tourLeg; float _tourLegStart = -1f;
 
         /// <summary>User suggestion: towers inside the walls can be paid at night (the king only waited at the fire), which frees
         /// the day for collecting. Same tower targets as by day; the castle/shield reserve is never touched.</summary>

@@ -260,6 +260,7 @@ namespace KingdomBot
                 if (SweepNearCoins()) return;
                 if (NightTowers()) return;
                 if (NightShop()) return;
+                if (IdleBows()) return;
                 bool chargeWindow = Managers.kingdom.isDaytime && GameState.Hour < 7.5f && KnightReady();   // dawn belongs to the charge: day 18 h5.2 a tower was paid, at h12 it was "too late, wait for dawn"
                 if (!chargeWindow && OverflowSpend()) return;
                 try { if (!chargeWindow && Graze()) return; } catch (System.Exception e) { if (Time.time >= _grazeErrAt) { _grazeErrAt = Time.time + 60f; Plugin.Log("Graze error (skipped): " + e.Message); } }
@@ -2069,6 +2070,22 @@ namespace KingdomBot
             return true;
         }
         int _tourDay = -1, _tourLeg; float _tourLegStart = -1f;
+
+        /// <summary>Idle recruits first get a bow (2 coins = 1 archer): after a charge 4-12 peasants stood idle for days while the
+        /// coins went into knight armour, scythes and walls (army stuck at 12-14 archers, defence collapsed on day 23).</summary>
+        bool IdleBows()
+        {
+            if (OnCooldown(777700)) return false;
+            var k = Managers.kingdom; float home = k.campfirePosition, px = GameState.PX;
+            var en = NearestEnemy(px); if (en != null && Mathf.Abs(en.transform.position.x - home) < 20f) return false;
+            var payables = UnityEngine.Object.FindObjectsOfType<Payable>();
+            int peasants = UnityEngine.Object.FindObjectsOfType<Peasant>().Length, onDisplay = 0; PayableShop bow = null;
+            foreach (var py in payables) { var sh = py as PayableShop; if (sh == null) continue; onDisplay += sh.GetItemCount(); if (sh.name.Contains("Bow")) bow = sh; }
+            int archers = UnityEngine.Object.FindObjectsOfType<Archer>().Length;
+            if (bow == null || peasants <= onDisplay + ShieldsWaiting() + 1 || archers >= AssaultArmyCap || !SafeCanPay(bow) || !Affordable(bow.price)) { Cool(777700, 8f); return false; }
+            Cool(777700, 2f);
+            Status = "Idle recruits: buy bow (" + peasants + " idle)"; PayAt(bow); return true;
+        }
 
         /// <summary>User suggestion: towers inside the walls can be paid at night (the king only waited at the fire), which frees
         /// the day for collecting. Same tower targets as by day; the castle/shield reserve is never touched.</summary>

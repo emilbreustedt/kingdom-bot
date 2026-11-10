@@ -784,6 +784,8 @@ namespace KingdomBot
             if (Time.time > _chargeTrackUntil || Time.time < _chargeTrackNext) return;
             _chargeTrackNext = Time.time + 10f;
             var sb = new System.Text.StringBuilder("CHARGE TRACK d" + GameState.Day + " h" + GameState.Hour.ToString("0.0") + ":");
+            // portal hit points: how close do the charges get? (charges cost ~3 knights + ~14 archers per portal)
+            foreach (var po in UnityEngine.Object.FindObjectsOfType<Portal>()) { if (po.outerSpawner) continue; var dm = po.GetComponent<Damageable>(); if (dm != null) sb.Append(" portal x" + po.transform.position.x.ToString("0") + " hp " + dm.hitPoints + ";"); }
             foreach (var kn in UnityEngine.Object.FindObjectsOfType<Knight>())
             {
                 object cur = null; try { var fsm = Acc.Get<object>(kn, "_fsm"); cur = fsm.GetType().GetField("current").GetValue(fsm); } catch { }

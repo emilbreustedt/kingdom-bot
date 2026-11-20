@@ -2449,6 +2449,8 @@ namespace KingdomBot
                         else if (p.name.StartsWith("Tree") && r < td) { td = r; tree = p; }
                     }
                     var pick = spot ?? (portalRel - outerRel < 200f ? tree : null);
+                    if (UnityEngine.Object.FindObjectsOfType<Archer>().Length < 15 || HordeSide() != 0) pick = null;   // weak defence: no trips far out (d19: 9 archers, king rode to x80, crown lost)
+
                     if (_fwDiagDay != day * 10 + side + 1) { _fwDiagDay = day * 10 + side + 1; Plugin.Log("FORWARD DIAG d" + day + " h" + hour.ToString("0.0") + " side " + side + ": gap " + (portalRel - outerRel).ToString("0") + " spot " + (spot != null ? spot.name + "@" + spot.transform.position.x.ToString("0") : "-") + " tree " + (tree != null ? tree.transform.position.x.ToString("0") : "-") + " budget " + budget + " reserve " + AssaultReserve(false)); }   /* portal 182 out (gap ~144) was never reachable: march 12.8 h */   // clearing a whole forest for a far portal eats the charge money
                     bool unreachable = !deadTarget && portalRel - outerRel > 130f;   // no charge can finish before dusk: the forward wall comes before more shields (90 knight-days were "too late (march)")
                     if (pick != null && (budget - AssaultReserve(false) >= pick.price + 2 || (unreachable && GameState.Coins >= pick.price + 6)))
@@ -2528,7 +2530,7 @@ namespace KingdomBot
                     // a banner sends EVERY ready knight with 4 escorts each: keep 10 archers home (blitz with 4 knights left 8 of 28
                     // archers, a boss walked in that evening, game over day 17)
                     int readyAll = 0; foreach (var kn in knights) { try { if ((bool)Acc.Call(kn, "CanCharge")) readyAll++; } catch { } }
-                    bool homeSafe = archers >= 4 * Mathf.Max(1, readySide) + 10;   /* only this side marches: 4x4+10 blocked 8-coin knights on days 16-19 (archers 21-25) */   /* each portal kill releases its queue (55-73 enemies) at the wall: 6 at home -> game over d19 */   // 10 kept the blitz waiting for 6 days (archers stuck at 19-21)
+                    bool homeSafe = archers >= 4 * Mathf.Max(1, readySide) + 14;   /* +10: charges d17+d18 left 9 archers (27 -> 9), crown lost d19 */   /* only this side marches: 4x4+10 blocked 8-coin knights on days 16-19 (archers 21-25) */   /* each portal kill releases its queue (55-73 enemies) at the wall: 6 at home -> game over d19 */   // 10 kept the blitz waiting for 6 days (archers stuck at 19-21)
                     if (_blitz && readyHere >= 1 && !homeSafe && _homeLogDay != day) { _homeLogDay = day; Plugin.Log("CHARGE waits d" + day + ": archers " + archers + " < 4x" + readyAll + " escorts + 6 home"); }
                     bool bossToday = BossWaveOn(day) && !(LiveInnerPortals() == 1 && day >= 22);
                     if (bossToday && _bossSkipLog != day) { _bossSkipLog = day; Plugin.Log("CHARGE skipped d" + day + ": boss wave tonight - escorts stay home"); }

@@ -1390,6 +1390,16 @@ namespace KingdomBot
             float ix = worst.transform.position.x;
             float target = ix > home ? l + 1.5f : r - 1.5f;      // far side, still inside the walls
             if (Mathf.Abs(target - ix) < 12f) target = ix > home ? l - 10f : r + 10f;   // too close anyway -> beyond the wall
+            // breach (boss or 3+ intruders, d21: king stood at x-4 between boss and trolls, 10 coins -> crown lost):
+            // ride out on the side away from the mass of intruders, 30 beyond the wall
+            int nIn = 0; float sumX = 0f; bool bossIn = false;
+            foreach (var e2 in UnityEngine.Object.FindObjectsOfType<Enemy>())
+            {
+                if (!IsLiveEnemy(e2)) continue; float ex2 = e2.transform.position.x;
+                if (ex2 <= l || ex2 >= r) continue;
+                nIn++; sumX += ex2; if (e2.GetComponent<Boss>() != null) bossIn = true;
+            }
+            if (bossIn || nIn >= 3) { float mx = sumX / Mathf.Max(1, nIn); target = mx > px ? l - 30f : r + 30f; }
             _safeMode = true;
             Status = "Intruder inside the walls - keep away (" + worst.name.Replace("(Clone)", "") + ")";
             if (Mathf.Abs(px - target) > 2f) Push("goto " + F(target) + " 1 4"); else Push("wait 1");

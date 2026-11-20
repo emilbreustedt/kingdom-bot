@@ -2511,13 +2511,13 @@ namespace KingdomBot
                     // a banner sends EVERY ready knight with 4 escorts each: keep 10 archers home (blitz with 4 knights left 8 of 28
                     // archers, a boss walked in that evening, game over day 17)
                     int readyAll = 0; foreach (var kn in knights) { try { if ((bool)Acc.Call(kn, "CanCharge")) readyAll++; } catch { } }
-                    bool homeSafe = archers >= 4 * readyAll + 10;   /* each portal kill releases its queue (55-73 enemies) at the wall: 6 at home -> game over d19 */   // 10 kept the blitz waiting for 6 days (archers stuck at 19-21)
+                    bool homeSafe = archers >= 4 * Mathf.Max(1, readySide) + 10;   /* only this side marches: 4x4+10 blocked 8-coin knights on days 16-19 (archers 21-25) */   /* each portal kill releases its queue (55-73 enemies) at the wall: 6 at home -> game over d19 */   // 10 kept the blitz waiting for 6 days (archers stuck at 19-21)
                     if (_blitz && readyHere >= 1 && !homeSafe && _homeLogDay != day) { _homeLogDay = day; Plugin.Log("CHARGE waits d" + day + ": archers " + archers + " < 4x" + readyAll + " escorts + 6 home"); }
                     bool bossToday = BossWaveOn(day) && !(LiveInnerPortals() == 1 && day >= 22);
                     if (bossToday && _bossSkipLog != day) { _bossSkipLog = day; Plugin.Log("CHARGE skipped d" + day + ": boss wave tonight - escorts stay home"); }
                     // horde still alive after a portal kill (run d19: 17 enemies left, charge cost 15 archers and all knights)
-                    int aliveEn = UnityEngine.Object.FindObjectsOfType<Enemy>().Length; bool hordeOut = HordeSide() != 0 || aliveEn > 8;
-                    if (hordeOut && _hordeSkipLog != day) { _hordeSkipLog = day; Plugin.Log("CHARGE skipped d" + day + ": horde out (" + aliveEn + " enemies alive)"); }
+                    int aliveEn = 0; foreach (var en in UnityEngine.Object.FindObjectsOfType<Enemy>()) if ((en.transform.position.x - home) * ps > 0) aliveEn++;   /* only this side: 12-38 stragglers elsewhere blocked days 21-24 */ bool hordeOut = HordeSide() == ps || aliveEn > 8;
+                    if (hordeOut && _hordeSkipLog != day) { _hordeSkipLog = day; Plugin.Log("CHARGE skipped d" + day + ": horde out (" + aliveEn + " enemies on side " + ps + ")"); }
                     bool knightOk = _blitz && readyHere >= 1 && homeSafe && !bossToday && !hordeOut;   /* 91 charges / 36 portals: frequency matters more - the 3-knight rule blocked charges (58 knight-days "knight not ready") */   /* 2-knight charges rarely destroyed a portal (7 runs: 0-2 portals by day 24) - concentrate */
                     if (!bannerOk || !knightOk) { if (_chargeSkipLog != day * 10 + (ps + 1)) { _chargeSkipLog = day * 10 + (ps + 1); Plugin.Log("CHARGE skip d" + day + " h" + hour.ToString("0.0") + " side " + ps + " portal " + pd.ToString("0") + ": bannerOk=" + bannerOk + " knightOk=" + knightOk); } continue; }
                     float score = pd + (ps == ChargeSide() ? 0f : 80f);   // main side first (both of its portals), then the camp side

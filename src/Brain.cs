@@ -2011,7 +2011,7 @@ namespace KingdomBot
         float _fwDiagAt, _mornHbAt;
 
         /// <summary>Same rule as the payid crown guard: from day 10 a purchase must leave 6 coins (else it is skipped at the shop).</summary>
-        public static bool Affordable(int price) { int guard = GameState.Day >= 10 ? (GameState.Hour < 15f && Managers.kingdom.isDaytime ? 2 : 6) : 0; /* morning/midday 2: guard 6 with 6-7 coins froze the economy (farm without farmers, idle peasants, days 16-21) */ if (HordeSide() != 0) guard = 10; if (GameState.Day >= 5 && BossWaveOn(GameState.Day) && GameState.Hour >= 12f) guard = 10; return GameState.Coins - price >= guard; }   // boss night: several hits - keep 10
+        public static bool Affordable(int price) { int guard = GameState.Day >= 10 ? (GameState.Hour < 15f && Managers.kingdom.isDaytime ? 4 : 6) : 0; /* morning/midday 2: guard 6 with 6-7 coins froze the economy (farm without farmers, idle peasants, days 16-21) */ if (HordeSide() != 0) guard = 10; if (GameState.Day >= 5 && BossWaveOn(GameState.Day) && GameState.Hour >= 12f) guard = 10; return GameState.Coins - price >= guard; }   // boss night: several hits - keep 10
         static bool KnightReady()
         {
             foreach (var kn in UnityEngine.Object.FindObjectsOfType<Knight>()) { try { if ((bool)Acc.Call(kn, "CanCharge")) return true; } catch { } }

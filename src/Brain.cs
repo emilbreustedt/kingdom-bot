@@ -2048,6 +2048,7 @@ namespace KingdomBot
         /// <summary>Guide: "beware of the horde after a portal's closing" - a destroyed portal still spawns its queue (48 in one run),
         /// which hit the wall the next afternoon while the king collected on the other side (crown lost day 18).
         /// Returns the side (-1/1) of a dead inner portal with a pending queue, 0 if none.</summary>
+        static int _hordeSkipLog = -1;
         public static int HordeSide()
         {
             try
@@ -2494,7 +2495,9 @@ namespace KingdomBot
                     // nightfall and turned back (run with castle 5 on day 11 never destroyed a portal). Hike + ~3 h fight before dark.
                     float march = Mathf.Max(0f, pd - Mathf.Abs(WallEdge(ps, home) - home)) / 13f;
                     int readyNow = 0; foreach (var kn in knights) { try { if ((bool)Acc.Call(kn, "CanCharge")) readyNow++; } catch { } }
-                    float fight = Mathf.Clamp(12f / Mathf.Max(1, readyNow), 3f, 8f);   // measured: 2 knights took ~6 h for a 100-hp portal (78 -> 24 -> 0 from h16 to h20)
+                    int readySide = 0; foreach (var kn in knights) { try { if ((kn.transform.position.x - home) * ps > 0 && (bool)Acc.Call(kn, "CanCharge")) readySide++; } catch { } }
+                    // only this side's knights march (run d18: 4 ready, 2 charged -> estimate 3 h, real fight 6.5 h, portal fell at dusk, escorts died)
+                    float fight = Mathf.Clamp(12f / Mathf.Max(1, readySide), 3f, 8f);   // measured: 2 knights took ~6 h for a 100-hp portal (78 -> 24 -> 0 from h16 to h20)
                     if (hour + march + fight > k.dayEnd) {   /* no dawn exception: 90 of 138 archer hits were escorts 80-160 out at dusk (arrival ~h15) */   /* at dawn always: a portal 162 out fell to a dawn charge, the estimate is pessimistic */ if (_chargeLateLog != day * 10 + (ps + 1)) { _chargeLateLog = day * 10 + (ps + 1); Plugin.Log("CHARGE too late d" + day + " h" + hour.ToString("0.0") + ": portal " + pd.ToString("0") + " out needs " + march.ToString("0.0") + " h march - wait for dawn"); } continue; }
                     // that side needs a payable banner and a ready knight standing there (day 9/10: the nearest portal was
                     // right, the only knight and the only payable banner left -> no charge, Tenth Day missed)
@@ -2512,7 +2515,10 @@ namespace KingdomBot
                     if (_blitz && readyHere >= 1 && !homeSafe && _homeLogDay != day) { _homeLogDay = day; Plugin.Log("CHARGE waits d" + day + ": archers " + archers + " < 4x" + readyAll + " escorts + 6 home"); }
                     bool bossToday = BossWaveOn(day) && !(LiveInnerPortals() == 1 && day >= 22);
                     if (bossToday && _bossSkipLog != day) { _bossSkipLog = day; Plugin.Log("CHARGE skipped d" + day + ": boss wave tonight - escorts stay home"); }
-                    bool knightOk = _blitz && readyHere >= 1 && homeSafe && !bossToday;   /* 91 charges / 36 portals: frequency matters more - the 3-knight rule blocked charges (58 knight-days "knight not ready") */   /* 2-knight charges rarely destroyed a portal (7 runs: 0-2 portals by day 24) - concentrate */
+                    // horde still alive after a portal kill (run d19: 17 enemies left, charge cost 15 archers and all knights)
+                    int aliveEn = UnityEngine.Object.FindObjectsOfType<Enemy>().Length; bool hordeOut = HordeSide() != 0 || aliveEn > 8;
+                    if (hordeOut && _hordeSkipLog != day) { _hordeSkipLog = day; Plugin.Log("CHARGE skipped d" + day + ": horde out (" + aliveEn + " enemies alive)"); }
+                    bool knightOk = _blitz && readyHere >= 1 && homeSafe && !bossToday && !hordeOut;   /* 91 charges / 36 portals: frequency matters more - the 3-knight rule blocked charges (58 knight-days "knight not ready") */   /* 2-knight charges rarely destroyed a portal (7 runs: 0-2 portals by day 24) - concentrate */
                     if (!bannerOk || !knightOk) { if (_chargeSkipLog != day * 10 + (ps + 1)) { _chargeSkipLog = day * 10 + (ps + 1); Plugin.Log("CHARGE skip d" + day + " h" + hour.ToString("0.0") + " side " + ps + " portal " + pd.ToString("0") + ": bannerOk=" + bannerOk + " knightOk=" + knightOk); } continue; }
                     float score = pd + (ps == ChargeSide() ? 0f : 80f);   // main side first (both of its portals), then the camp side
                     if (score < bestPd) { bestPd = score; pside = ps; }

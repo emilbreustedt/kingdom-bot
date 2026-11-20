@@ -2316,6 +2316,20 @@ namespace KingdomBot
             bool finalWave = Managers.enemies != null && Managers.enemies.finalWaveSpawned;
             bool morning = k.isDaytime && hour < k.dayEnd - 9f;
             bool wallsOk = WallsOnSide(-1, home) > 0 && WallsOnSide(1, home) > 0;
+            // armour first: knights at home with < 3 coins die at the portal (runs: 1-coin knights died 3x at 122 / 162).
+            // The arm step at the end of this method was reached only on 4 of ~40 days (earlier steps return first).
+            if (assault && k.isDaytime && hour < k.dayEnd - 2f && Time.time - _chargePaidAt > 24f * 10f && budget >= 7)
+            {
+                foreach (var kn in UnityEngine.Object.FindObjectsOfType<Knight>())
+                {
+                    int kc = 99; try { kc = Acc.Wallet(kn).coins; } catch { }
+                    float kx = kn.transform.position.x;
+                    if (kc >= 3 || Mathf.Abs(kx - home) > 55f || OnCooldown(kn.GetInstanceID())) continue;
+                    Cool(kn.GetInstanceID(), 6f);
+                    Status = "Assault: arm knight early (" + kc + "/3 coins)";
+                    Push("walkto " + F(kx) + " 0.6 20"); Push("tap 2"); Push("wait 1.5"); return true;
+                }
+            }
 
             // farm first (wall schedule saves for it), then the castle
             if (UseFarms && day >= 5 && day < 14 && UnityEngine.Object.FindObjectsOfType<Knight>().Length == 0 && UnityEngine.Object.FindObjectsOfType<Archer>().Length >= 10 && FarmTarget(payables, home) != null) return false;
@@ -2502,7 +2516,7 @@ namespace KingdomBot
                     // that side needs a payable banner and a ready knight standing there (day 9/10: the nearest portal was
                     // right, the only knight and the only payable banner left -> no charge, Tenth Day missed)
                     bool bannerOk = false; foreach (var bo in UnityEngine.Object.FindObjectsOfType<PayableBorder>()) { bool cp = false; try { cp = bo.CanPay(); } catch { } if ((bo.transform.position.x - home) * ps > 0 && cp) bannerOk = true; }   // no isActiveAndEnabled: banners ~20 away were "not payable" at dawn
-                    int readyHere = 0; foreach (var kn in knights) { try { int kcn = Acc.Wallet(kn).coins; if ((kn.transform.position.x - home) * ps > 0 && (bool)Acc.Call(kn, "CanCharge") && (kcn >= 3 || day >= 26)) readyHere++;   /* run: right knights with 1 coin died at portal 122 twice (27 / 64 dmg), left ones with 3-6 coins killed portal 110 */ } catch { } }
+                    int readyHere = 0, weakHere = 0; foreach (var kn in knights) { try { int kcn = Acc.Wallet(kn).coins; if ((kn.transform.position.x - home) * ps > 0 && (bool)Acc.Call(kn, "CanCharge")) { if (kcn >= 3 || day >= 26) readyHere++; else weakHere++; }   /* run: right knights with 1 coin died at portal 122 twice (27 / 64 dmg), left ones with 3-6 coins killed portal 110 */ } catch { } }
                     // each knight takes 4 escort archers; single-knight charges failed and cost ~30 archers between day 13 and 21
                     // (archers 22 -> 10, made 22 -> 41). Guide: 2 knights per side. Alone only from day 22 (schedule).
                     // user decision (direction 2): muster first, then strike in quick succession. Single knights used to die one by one
@@ -2518,7 +2532,7 @@ namespace KingdomBot
                     // horde still alive after a portal kill (run d19: 17 enemies left, charge cost 15 archers and all knights)
                     int aliveEn = 0; foreach (var en in UnityEngine.Object.FindObjectsOfType<Enemy>()) if ((en.transform.position.x - home) * ps > 0) aliveEn++;   /* only this side: 12-38 stragglers elsewhere blocked days 21-24 */ bool hordeOut = HordeSide() == ps || aliveEn > 8;
                     if (hordeOut && _hordeSkipLog != day) { _hordeSkipLog = day; Plugin.Log("CHARGE skipped d" + day + ": horde out (" + aliveEn + " enemies on side " + ps + ")"); }
-                    bool knightOk = _blitz && readyHere >= 1 && homeSafe && !bossToday && !hordeOut;   /* 91 charges / 36 portals: frequency matters more - the 3-knight rule blocked charges (58 knight-days "knight not ready") */   /* 2-knight charges rarely destroyed a portal (7 runs: 0-2 portals by day 24) - concentrate */
+                    bool knightOk = _blitz && readyHere >= 1 && weakHere == 0 &&   /* a banner sends every ready knight of the side: one weak knight dies (d19: 1+3 coins, both lost) */ homeSafe && !bossToday && !hordeOut;   /* 91 charges / 36 portals: frequency matters more - the 3-knight rule blocked charges (58 knight-days "knight not ready") */   /* 2-knight charges rarely destroyed a portal (7 runs: 0-2 portals by day 24) - concentrate */
                     if (!bannerOk || !knightOk) { if (_chargeSkipLog != day * 10 + (ps + 1)) { _chargeSkipLog = day * 10 + (ps + 1); Plugin.Log("CHARGE skip d" + day + " h" + hour.ToString("0.0") + " side " + ps + " portal " + pd.ToString("0") + ": bannerOk=" + bannerOk + " knightOk=" + knightOk); } continue; }
                     float score = pd + (ps == ChargeSide() ? 0f : 80f);   // main side first (both of its portals), then the camp side
                     if (score < bestPd) { bestPd = score; pside = ps; }

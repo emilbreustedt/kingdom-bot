@@ -2445,7 +2445,7 @@ namespace KingdomBot
                         if (OnCooldown(p.GetInstanceID()) || !canPay) continue;
                         float r = (p.transform.position.x - home) * side;
                         if (r <= outerRel + 8f || r >= portalRel - (deadTarget ? 25f : 60f)) continue;
-                        if (p is PayableUpgrade && p.name.StartsWith("Wall") && !IsBuiltWall(p) && r < sd) { sd = r; spot = p; }
+                        if (p is PayableUpgrade && p.name.StartsWith("Wall") && !IsBuiltWall(p) && (spot == null || r > sd)) { sd = r; spot = p; }   /* farthest slot: the nearest (-41) cut the gap only 137 -> 117, charges still "too late" (286 times) */
                         else if (p.name.StartsWith("Tree") && r < td) { td = r; tree = p; }
                     }
                     var pick = spot ?? (portalRel - outerRel < 200f ? tree : null);

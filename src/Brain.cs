@@ -2054,10 +2054,10 @@ namespace KingdomBot
             try
             {
                 float home = Managers.kingdom.campfirePosition;
-                foreach (var po in UnityEngine.Object.FindObjectsOfType<Portal>())
+                foreach (var po in Resources.FindObjectsOfTypeAll<Portal>())   /* far portals are inactive: FindObjectsOfType missed the horde (tour left, crown lost d20) */
                 {
                     var dm = po.GetComponent<Damageable>();
-                    if (po.outerSpawner || dm == null || dm.hitPoints > 0) continue;
+                    if (!po.gameObject.scene.IsValid()) continue; if (po.outerSpawner || dm == null || dm.hitPoints > 0) continue;
                     var q = Acc.Get<object>(po, "_spawnQueue") as System.Collections.ICollection;
                     if (q != null && q.Count > 0) return po.transform.position.x < home ? -1 : 1;
                 }

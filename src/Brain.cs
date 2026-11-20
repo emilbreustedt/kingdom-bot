@@ -1399,12 +1399,16 @@ namespace KingdomBot
             {
                 float mx = sumX / Mathf.Max(1, nIn);
                 if (_breachSide == 0 || Time.time > _breachUntil) _breachSide = mx > home ? -1 : 1;
-                _breachUntil = Time.time + 20f;
+                // the way out must be free: goto aborts with an enemy ahead (d17: target 32 behind the boss, king froze at x-9)
+                System.Func<int, bool> blocked = sd => { float tg = sd < 0 ? l - 30f : r + 30f; foreach (var e3 in UnityEngine.Object.FindObjectsOfType<Enemy>()) { if (!IsLiveEnemy(e3)) continue; float x3 = e3.transform.position.x; if ((x3 - px) * sd > -2f && (x3 - tg) * sd < 0f) return true; } return false; };
+                if (blocked(_breachSide)) _breachSide = -_breachSide;
+                if (blocked(_breachSide)) _breachSide = 0;   // both ways blocked: fall back to the normal keep-away
+                if (_breachSide != 0) { _breachUntil = Time.time + 20f;
                 float bt = _breachSide < 0 ? l - 30f : r + 30f;
                 _safeMode = true;
                 Status = "Breach: " + nIn + " intruders" + (bossIn ? " + boss" : "") + " - wait outside at " + bt.ToString("0");
                 if (Mathf.Abs(px - bt) > 3f) Push("goto " + F(bt) + " 1 6"); else Push("wait 1");
-                return true;
+                return true; }
             }
             if (worst == null || wd > 22f) return false;
             float ix = worst.transform.position.x;

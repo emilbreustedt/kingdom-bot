@@ -2011,7 +2011,7 @@ namespace KingdomBot
         float _fwDiagAt, _mornHbAt;
 
         /// <summary>Same rule as the payid crown guard: from day 10 a purchase must leave 6 coins (else it is skipped at the shop).</summary>
-        public static bool Affordable(int price) { int guard = GameState.Day >= 10 ? 6 : 0; if (GameState.Day >= 5 && BossWaveOn(GameState.Day) && GameState.Hour >= 12f) guard = 10; return GameState.Coins - price >= guard; }   // boss night: several hits - keep 10
+        public static bool Affordable(int price) { int guard = GameState.Day >= 10 ? 6 : 0; if (HordeSide() != 0) guard = 10; if (GameState.Day >= 5 && BossWaveOn(GameState.Day) && GameState.Hour >= 12f) guard = 10; return GameState.Coins - price >= guard; }   // boss night: several hits - keep 10
         static bool KnightReady()
         {
             foreach (var kn in UnityEngine.Object.FindObjectsOfType<Knight>()) { try { if ((bool)Acc.Call(kn, "CanCharge")) return true; } catch { } }
@@ -2043,6 +2043,25 @@ namespace KingdomBot
             var b = Plugin.Instance != null ? Plugin.Instance.Brain : null;
             if (b == null || b.Mode != "master" || b._blitz || CastleLevelNow() < 5) return false;
             return UnityEngine.Object.FindObjectsOfType<Knight>().Length + ShieldsWaiting() < b.BlitzKnights;
+        }
+
+        /// <summary>Guide: "beware of the horde after a portal's closing" - a destroyed portal still spawns its queue (48 in one run),
+        /// which hit the wall the next afternoon while the king collected on the other side (crown lost day 18).
+        /// Returns the side (-1/1) of a dead inner portal with a pending queue, 0 if none.</summary>
+        public static int HordeSide()
+        {
+            try
+            {
+                float home = Managers.kingdom.campfirePosition;
+                foreach (var po in UnityEngine.Object.FindObjectsOfType<Portal>())
+                {
+                    var dm = po.GetComponent<Damageable>();
+                    if (po.outerSpawner || dm == null || dm.hitPoints > 0) continue;
+                    var q = Acc.Get<object>(po, "_spawnQueue") as System.Collections.ICollection;
+                    if (q != null && q.Count > 0) return po.transform.position.x < home ? -1 : 1;
+                }
+            } catch { }
+            return 0;
         }
 
         /// <summary>Purse near the bag limit (~39-43 spills, half into the water): spend on what the assault needs anyway -
@@ -2103,6 +2122,7 @@ namespace KingdomBot
             if (_tourDay != day) { _tourDay = day; _tourLeg = 0; _tourLegStart = -1f; }
             if (_tourLegStart < 0f) _tourLegStart = hour;
             if (hour - _tourLegStart > 4f) { _tourLeg++; _tourLegStart = hour; Plugin.Log("Tour leg skipped (blocked) d" + day); }
+            if (HordeSide() != 0) return false;   // horde after a portal kill: no tour
             if (_tourLeg >= 3 || day < 3 || !k.isDaytime || hour < 7f || hour > k.dayEnd - 4f) return false;
             if (BigEnemyNear(px, 40f)) return false;
             if (_tourLeg < 2)
@@ -2245,6 +2265,7 @@ namespace KingdomBot
         /// the king passes by. Saving used to patrol inside the walls only. Ride out to them (and pick up coins out there) when it is safe.</summary>
         bool CollectOutside(string label, float home, float px)
         {
+            if (HordeSide() != 0) return false;   // horde pending: stay inside
             if (GameState.Coins >= PurseCap + 3) return false;
             var k = Managers.kingdom;
             if (!k.isDaytime || GameState.Hour > k.dayEnd - 3f) return false;

@@ -2502,7 +2502,7 @@ namespace KingdomBot
                     // that side needs a payable banner and a ready knight standing there (day 9/10: the nearest portal was
                     // right, the only knight and the only payable banner left -> no charge, Tenth Day missed)
                     bool bannerOk = false; foreach (var bo in UnityEngine.Object.FindObjectsOfType<PayableBorder>()) { bool cp = false; try { cp = bo.CanPay(); } catch { } if ((bo.transform.position.x - home) * ps > 0 && cp) bannerOk = true; }   // no isActiveAndEnabled: banners ~20 away were "not payable" at dawn
-                    int readyHere = 0; foreach (var kn in knights) { try { int kcn = Acc.Wallet(kn).coins; if ((kn.transform.position.x - home) * ps > 0 && (bool)Acc.Call(kn, "CanCharge") && (kcn >= 1 || day >= 22)) readyHere++; } catch { } }
+                    int readyHere = 0; foreach (var kn in knights) { try { int kcn = Acc.Wallet(kn).coins; if ((kn.transform.position.x - home) * ps > 0 && (bool)Acc.Call(kn, "CanCharge") && (kcn >= 3 || day >= 26)) readyHere++;   /* run: right knights with 1 coin died at portal 122 twice (27 / 64 dmg), left ones with 3-6 coins killed portal 110 */ } catch { } }
                     // each knight takes 4 escort archers; single-knight charges failed and cost ~30 archers between day 13 and 21
                     // (archers 22 -> 10, made 22 -> 41). Guide: 2 knights per side. Alone only from day 22 (schedule).
                     // user decision (direction 2): muster first, then strike in quick succession. Single knights used to die one by one
@@ -2551,7 +2551,7 @@ namespace KingdomBot
                 int kc = 0; try { kc = Acc.Wallet(kn).coins; } catch { }
                 if (kc < KnightArmor && kc < poorCoins && !OnCooldown(kn.GetInstanceID())) { poorCoins = kc; poor = kn; }
             }
-            if (poor != null && k.isDaytime && !KnightReadyWindow() && Time.time - _chargePaidAt > 24f * 10f && (poorCoins < 1 ? budget >= 2 : budget >= 4 + 3))   /* charge tracking: knights sat in GrabCoin for hours after the banner was paid */   // keep the banner price once every knight has a coin
+            if (poor != null && k.isDaytime && (!KnightReadyWindow() || poorCoins < 3) && Time.time - _chargePaidAt > 24f * 10f && (poorCoins < 1 ? budget >= 2 : budget >= 4 + 3))   /* charge tracking: knights sat in GrabCoin for hours after the banner was paid */   // keep the banner price once every knight has a coin
             {
                 Cool(poor.GetInstanceID(), 6f);
                 Status = "Assault: arm knight (" + poorCoins + "/" + KnightArmor + " coins)";

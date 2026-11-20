@@ -1,7 +1,9 @@
-# Starts Kingdom windowed on the widest connected screen and optionally minimizes it.
-#   .\start.ps1            -> windowed on the widest screen (e.g. a 32:9 monitor)
+# Starts Kingdom windowed on a chosen screen and optionally minimizes it.
+#   .\start.ps1                     -> screen from screen.txt (next to this script), else the widest screen
+#   .\start.ps1 -Screen portrait    -> the portrait (rotated) monitor
+#   .\start.ps1 -Screen DISPLAY2    -> by device name (part of it is enough)
 #   .\start.ps1 -Minimize  -> start, move, then minimize (bot keeps running)
-param([switch]$Minimize, [int]$Width = 1600, [int]$Height = 900, [string]$GamePath = (& "$PSScriptRoot\tools\find-game.ps1"), [string]$AppId = "368230")
+param([switch]$Minimize, [string]$Screen = "", [int]$Width = 1600, [int]$Height = 900, [string]$GamePath = (& "$PSScriptRoot\tools\find-game.ps1"), [string]$AppId = "368230")
 $game = $GamePath
 if (Get-Process Kingdom -ErrorAction SilentlyContinue) { Write-Output 'A Kingdom game (Classic or New Lands) is already running.'; return }
 # keep the previous run's log (BepInEx overwrites LogOutput.log on every start): last 10 in BepInEx\KingdomBot\logs
@@ -22,10 +24,15 @@ public static class Win {
   [DllImport("user32.dll")] public static extern bool ShowWindow(IntPtr h, int cmd);
 }
 '@
-# target = widest screen (32:9 Odyssey); fallback: first non-primary
+# target screen: -Screen, else screen.txt, else the widest screen (32:9 Odyssey)
+if (-not $Screen -and (Test-Path "$PSScriptRoot\screen.txt")) { $Screen = (Get-Content "$PSScriptRoot\screen.txt" -Raw).Trim() }
 $screens = [System.Windows.Forms.Screen]::AllScreens
-$target = $screens | Sort-Object { $_.Bounds.Width / $_.Bounds.Height } -Descending | Select-Object -First 1
+$target = $null
+if ($Screen -eq 'portrait') { $target = $screens | Where-Object { $_.Bounds.Height -gt $_.Bounds.Width } | Select-Object -First 1 }
+elseif ($Screen -and $Screen -ne 'widest') { $target = $screens | Where-Object { $_.DeviceName -like "*$Screen*" } | Select-Object -First 1 }
+if (-not $target) { $target = $screens | Sort-Object { $_.Bounds.Width / $_.Bounds.Height } -Descending | Select-Object -First 1 }
 $b = $target.Bounds
+if ($b.Width -lt $Width + 40) { $Width = $b.Width - 40; $Height = [int]($Width * 9 / 16) }   # narrow (portrait) screen: shrink the window to fit
 $x = $b.X + [int](($b.Width - $Width) / 2); $y = $b.Y + [int](($b.Height - $Height) / 2)
 
 $p = Start-Process "$game\Kingdom.exe" -ArgumentList "-screen-fullscreen 0 -screen-width $Width -screen-height $Height" -WorkingDirectory $game -PassThru

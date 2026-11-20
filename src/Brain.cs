@@ -2497,7 +2497,7 @@ namespace KingdomBot
                     int readyNow = 0; foreach (var kn in knights) { try { if ((bool)Acc.Call(kn, "CanCharge")) readyNow++; } catch { } }
                     int readySide = 0; foreach (var kn in knights) { try { if ((kn.transform.position.x - home) * ps > 0 && (bool)Acc.Call(kn, "CanCharge")) readySide++; } catch { } }
                     // only this side's knights march (run d18: 4 ready, 2 charged -> estimate 3 h, real fight 6.5 h, portal fell at dusk, escorts died)
-                    float fight = Mathf.Clamp(12f / Mathf.Max(1, readySide), 3f, 8f);   // measured: 2 knights took ~6 h for a 100-hp portal (78 -> 24 -> 0 from h16 to h20)
+                    float fight = Mathf.Clamp(14f / Mathf.Max(1, readySide), 3f, 8f) + 1.5f;   // +assembly; run d17/18: 2 knights left h5.5-6.2, portals fell at ~h20-24 -> horde spawned on the escorts at night   // measured: 2 knights took ~6 h for a 100-hp portal (78 -> 24 -> 0 from h16 to h20)
                     if (hour + march + fight > k.dayEnd) {   /* no dawn exception: 90 of 138 archer hits were escorts 80-160 out at dusk (arrival ~h15) */   /* at dawn always: a portal 162 out fell to a dawn charge, the estimate is pessimistic */ if (_chargeLateLog != day * 10 + (ps + 1)) { _chargeLateLog = day * 10 + (ps + 1); Plugin.Log("CHARGE too late d" + day + " h" + hour.ToString("0.0") + ": portal " + pd.ToString("0") + " out needs " + march.ToString("0.0") + " h march - wait for dawn"); } continue; }
                     // that side needs a payable banner and a ready knight standing there (day 9/10: the nearest portal was
                     // right, the only knight and the only payable banner left -> no charge, Tenth Day missed)
@@ -2511,7 +2511,7 @@ namespace KingdomBot
                     // a banner sends EVERY ready knight with 4 escorts each: keep 10 archers home (blitz with 4 knights left 8 of 28
                     // archers, a boss walked in that evening, game over day 17)
                     int readyAll = 0; foreach (var kn in knights) { try { if ((bool)Acc.Call(kn, "CanCharge")) readyAll++; } catch { } }
-                    bool homeSafe = archers >= 4 * readyAll + 6;   // 10 kept the blitz waiting for 6 days (archers stuck at 19-21)
+                    bool homeSafe = archers >= 4 * readyAll + 10;   /* each portal kill releases its queue (55-73 enemies) at the wall: 6 at home -> game over d19 */   // 10 kept the blitz waiting for 6 days (archers stuck at 19-21)
                     if (_blitz && readyHere >= 1 && !homeSafe && _homeLogDay != day) { _homeLogDay = day; Plugin.Log("CHARGE waits d" + day + ": archers " + archers + " < 4x" + readyAll + " escorts + 6 home"); }
                     bool bossToday = BossWaveOn(day) && !(LiveInnerPortals() == 1 && day >= 22);
                     if (bossToday && _bossSkipLog != day) { _bossSkipLog = day; Plugin.Log("CHARGE skipped d" + day + ": boss wave tonight - escorts stay home"); }
@@ -2569,7 +2569,7 @@ namespace KingdomBot
         public static int PreCastleArcherCap(int normalCap)
         {
             if (Plugin.Instance == null || Plugin.Instance.Brain == null || Plugin.Instance.Brain.Mode != "master") return normalCap;
-            return (CastleLevelNow() < 5 || MusterPhase()) ? Mathf.Min(normalCap, 22) : normalCap;   // muster: 22 archers = 4 knights x 4 escorts + 6 home; the rest of the coins go into shields (army grew to 33, budget for shields stayed 5-7)
+            return (CastleLevelNow() < 5 || MusterPhase()) ? Mathf.Min(normalCap, 26) : normalCap;   // muster: 26 archers = 4 knights x 4 escorts + 10 home; the rest of the coins go into shields (army grew to 33, budget for shields stayed 5-7)
         }
 
         static int CastleIndex(string name)

@@ -1386,12 +1386,8 @@ namespace KingdomBot
                 float d = Mathf.Abs(ex - px);
                 if (d < wd) { wd = d; worst = e; }
             }
-            if (worst == null || wd > 22f) return false;
-            float ix = worst.transform.position.x;
-            float target = ix > home ? l + 1.5f : r - 1.5f;      // far side, still inside the walls
-            if (Mathf.Abs(target - ix) < 12f) target = ix > home ? l - 10f : r + 10f;   // too close anyway -> beyond the wall
-            // breach (boss or 3+ intruders, d21: king stood at x-4 between boss and trolls, 10 coins -> crown lost):
-            // ride out on the side away from the mass of intruders, 30 beyond the wall
+            // breach (boss or 3+ intruders anywhere inside): ride out 30 beyond the wall away from them and STAY there -
+            // d19/d21: the king returned for chores while the boss was 25 away and lost the crown
             int nIn = 0; float sumX = 0f; bool bossIn = false;
             foreach (var e2 in UnityEngine.Object.FindObjectsOfType<Enemy>())
             {
@@ -1399,7 +1395,21 @@ namespace KingdomBot
                 if (ex2 <= l || ex2 >= r) continue;
                 nIn++; sumX += ex2; if (e2.GetComponent<Boss>() != null) bossIn = true;
             }
-            if (bossIn || nIn >= 3) { float mx = sumX / Mathf.Max(1, nIn); target = mx > px ? l - 30f : r + 30f; }
+            if ((bossIn || nIn >= 3) && Managers.kingdom.isDaytime && GameState.Hour < Managers.kingdom.dayEnd - 1f)   // outside at night is worse
+            {
+                float mx = sumX / Mathf.Max(1, nIn);
+                if (_breachSide == 0 || Time.time > _breachUntil) _breachSide = mx > home ? -1 : 1;
+                _breachUntil = Time.time + 20f;
+                float bt = _breachSide < 0 ? l - 30f : r + 30f;
+                _safeMode = true;
+                Status = "Breach: " + nIn + " intruders" + (bossIn ? " + boss" : "") + " - wait outside at " + bt.ToString("0");
+                if (Mathf.Abs(px - bt) > 3f) Push("goto " + F(bt) + " 1 6"); else Push("wait 1");
+                return true;
+            }
+            if (worst == null || wd > 22f) return false;
+            float ix = worst.transform.position.x;
+            float target = ix > home ? l + 1.5f : r - 1.5f;      // far side, still inside the walls
+            if (Mathf.Abs(target - ix) < 12f) target = ix > home ? l - 10f : r + 10f;   // too close anyway -> beyond the wall
             _safeMode = true;
             Status = "Intruder inside the walls - keep away (" + worst.name.Replace("(Clone)", "") + ")";
             if (Mathf.Abs(px - target) > 2f) Push("goto " + F(target) + " 1 4"); else Push("wait 1");
@@ -2059,6 +2069,7 @@ namespace KingdomBot
         /// which hit the wall the next afternoon while the king collected on the other side (crown lost day 18).
         /// Returns the side (-1/1) of a dead inner portal with a pending queue, 0 if none.</summary>
         static int _hordeSkipLog = -1;
+        int _breachSide = 0; float _breachUntil = 0f;
         public static int HordeSide()
         {
             try

@@ -2181,6 +2181,13 @@ namespace KingdomBot
             int peasants = UnityEngine.Object.FindObjectsOfType<Peasant>().Length, onDisplay = 0; PayableShop bow = null, ham = null;
             foreach (var py in payables) { var sh = py as PayableShop; if (sh == null) continue; onDisplay += sh.GetItemCount(); if (sh.name.Contains("Bow")) bow = sh; else if (sh.name.Contains("Hammer")) ham = sh; }
             int archers = UnityEngine.Object.FindObjectsOfType<Archer>().Length;
+            // scythes before bows once a farm stands (run: farm without farmers, income 1-3/day, no coins for banners)
+            {
+                PayableShop sc = null; foreach (var py in payables) { var sh = py as PayableShop; if (sh != null && sh.name.Contains("Scythe")) sc = sh; }
+                bool farm = false; foreach (var fh in UnityEngine.Object.FindObjectsOfType<Farmhouse>()) if (fh.level > 0) farm = true;
+                if (sc != null && farm && !FarmsExposed(k.campfirePosition) && UnityEngine.Object.FindObjectsOfType<Farmer>().Length < FarmerTarget && peasants > onDisplay + ShieldsWaiting() && SafeCanPay(sc) && Affordable(sc.price))
+                { Cool(777700, 2f); Status = "Idle recruits: buy scythe (farm)"; PayAt(sc); return true; }
+            }
             // builders first: workers died (4 -> 0) and no forward wall towards the far portals got built for 6 days
             if (ham != null && UnityEngine.Object.FindObjectsOfType<Worker>().Length < 3 && peasants > onDisplay + ShieldsWaiting() && SafeCanPay(ham) && Affordable(ham.price))
             { Cool(777700, 2f); Status = "Idle recruits: buy hammer (workers low)"; PayAt(ham); return true; }
@@ -2360,7 +2367,7 @@ namespace KingdomBot
             }
 
             // farm first (wall schedule saves for it), then the castle
-            if (UseFarms && day >= 5 && day < 14 && UnityEngine.Object.FindObjectsOfType<Knight>().Length == 0 && UnityEngine.Object.FindObjectsOfType<Archer>().Length >= 10 && FarmTarget(payables, home) != null) return false;
+            if (UseFarms && day >= 5 && day < 18 && (UnityEngine.Object.FindObjectsOfType<Knight>().Length == 0 || day >= 10) && UnityEngine.Object.FindObjectsOfType<Archer>().Length >= 10 && FarmTarget(payables, home) != null) return false;
             // castle first from day 8 (level 5 = shield shops) - only when attacking; survive upgrades normally
             if (assault && day >= (TenthRush ? 4 : 8) && archers >= 6)
             {

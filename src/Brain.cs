@@ -2153,9 +2153,12 @@ namespace KingdomBot
             var k = Managers.kingdom; float home = k.campfirePosition, px = GameState.PX;
             var en = NearestEnemy(px); if (en != null && Mathf.Abs(en.transform.position.x - home) < 20f) return false;
             var payables = UnityEngine.Object.FindObjectsOfType<Payable>();
-            int peasants = UnityEngine.Object.FindObjectsOfType<Peasant>().Length, onDisplay = 0; PayableShop bow = null;
-            foreach (var py in payables) { var sh = py as PayableShop; if (sh == null) continue; onDisplay += sh.GetItemCount(); if (sh.name.Contains("Bow")) bow = sh; }
+            int peasants = UnityEngine.Object.FindObjectsOfType<Peasant>().Length, onDisplay = 0; PayableShop bow = null, ham = null;
+            foreach (var py in payables) { var sh = py as PayableShop; if (sh == null) continue; onDisplay += sh.GetItemCount(); if (sh.name.Contains("Bow")) bow = sh; else if (sh.name.Contains("Hammer")) ham = sh; }
             int archers = UnityEngine.Object.FindObjectsOfType<Archer>().Length;
+            // builders first: workers died (4 -> 0) and no forward wall towards the far portals got built for 6 days
+            if (ham != null && UnityEngine.Object.FindObjectsOfType<Worker>().Length < 3 && peasants > onDisplay + ShieldsWaiting() && SafeCanPay(ham) && Affordable(ham.price))
+            { Cool(777700, 2f); Status = "Idle recruits: buy hammer (workers low)"; PayAt(ham); return true; }
             if (bow == null || peasants <= onDisplay + ShieldsWaiting() + 1 || archers >= PreCastleArcherCap(AssaultArmyCap) || !SafeCanPay(bow) || !Affordable(bow.price)) { Cool(777700, 8f); return false; }
             Cool(777700, 2f);
             Status = "Idle recruits: buy bow (" + peasants + " idle)"; PayAt(bow); return true;

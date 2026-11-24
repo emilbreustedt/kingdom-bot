@@ -1819,7 +1819,7 @@ namespace KingdomBot
         public int BankTarget() { int d = GameState.Day; if (TenthRush) return 9 + 6 + 4 + 3; return Mathf.Min(PurseCap, d >= 24 ? 38 : 40); }
         /// <summary>The coin bag overflows at ~39 coins and every spilled coin falls into the water with p=0.5 (measured: 10 coins fell by day 13). Never save above this.</summary>
         public int PurseCap = 28;   // archers toss ~8 tax coins at once when the king rides by: 34 -> 42 spilled. Keep ~10 coins headroom
-        public float MaxPortalDistance = 140f;   /* 2026-11-24: seed 1505016530 (farthest 162): 20+ runs stuck at 1-2 portals, the two at ~158 unreachable */   // far portals cost march time AND forward-wall money (tested 185: 0-2 portals by day 24); ~1 map in 30 qualifies, rerolls are cheap   // 155 matched no map (30 maps: farthest 166-238); a portal 162 out fell to a dawn charge
+        public float MaxPortalDistance = 170f;   /* 2026-11-24 search with 140: farthest portal was >= 170 on 50 maps in a row - ~160 is about the minimum, so the fixed seed (162) stays */   // far portals cost march time AND forward-wall money (tested 185: 0-2 portals by day 24); ~1 map in 30 qualifies, rerolls are cheap   // 155 matched no map (30 maps: farthest 166-238); a portal 162 out fell to a dawn charge
         bool _bootDone;   /* castle 4 (8) + castle 5 (9) + 2 shields (12) + banner (4) + purse; 60 delayed the knights by days */   // the assault (3 shields + 5-8 charges) is paid from the bank: castle 5 earns ~1 coin/day
 
         /// <summary>Coins the record strategy must leave alone while the assault saves for castle 4/5 and shields.</summary>

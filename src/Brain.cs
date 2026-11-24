@@ -1923,6 +1923,7 @@ namespace KingdomBot
                 if (!(fp is PayableUpgrade) || !fp.name.StartsWith("Farmhouse")) continue;
                 float fx = fp.transform.position.x;
                 if (fx < lw - 20f || fx > rw + 20f) continue;   // only spots right in front of the walls
+                if ((fx - home) * ms < 0 && GameState.Day < 11) continue;   // main side first (right spot 22 got cleared on day 8, farm outside the wall again)
                 float lo = Mathf.Min(home, fx) - 2f, hi = Mathf.Max(home, fx) + 2f;
                 int count = 0; Payable nearest = null; float nd = float.MaxValue;
                 foreach (var t in payables)

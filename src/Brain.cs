@@ -1907,9 +1907,11 @@ namespace KingdomBot
             // no forest clearing for a farm (that cost the army a lot in the first farm test)
             float lw = WallEdge(-1, home), rw = WallEdge(1, home);
             int ms = MainSide();
-            var farmMain = Find(payables, x => x is PayableUpgrade && x.name.StartsWith("Farmhouse") && SafeCanPay(x) && (x.transform.position.x - home) * ms > 0 && Mathf.Abs(x.transform.position.x - home) < 45f, home);
+            var allPay = System.Linq.Enumerable.ToArray(System.Linq.Enumerable.Where(Resources.FindObjectsOfTypeAll<Payable>(), q => q.gameObject.scene.IsValid()));   // inactive trees/spots too: the cleared spot at -34 was never picked (inactive while the king was elsewhere)
+            System.Func<Payable, bool> canPayAny = x => { bool r = false; try { r = x.CanPay(); } catch { } return r; };
+            var farmMain = Find(allPay, x => x is PayableUpgrade && x.name.StartsWith("Farmhouse") && canPayAny(x) && (x.transform.position.x - home) * ms > 0 && Mathf.Abs(x.transform.position.x - home) < 45f, home);
             if (farmMain != null) return farmMain;
-            var farm = Find(payables, x => x is PayableUpgrade && x.name.StartsWith("Farmhouse") && SafeCanPay(x)
+            var farm = Find(allPay, x => x is PayableUpgrade && x.name.StartsWith("Farmhouse") && canPayAny(x)
                                            && Mathf.Abs(x.transform.position.x - home) < 45f, home);   /* guide: farm close to the castle, then the wall beyond it (FarmWall) */   /* only inside the walls: a farm 20 in front stayed exposed (farm wall never built), max 1 farmer, no late income */
             // main side first: its farm at -34 ends up inside the walls (6 farmers by day 10); the off-side spot at 22
             // stays outside the wall (1-4 farmers, they die) - take it only after day 10
@@ -1917,7 +1919,6 @@ namespace KingdomBot
             if (!FarmClearTrees) return farm;
             // farmhouse spots only become payable inside the buildable (cleared) land: cut the trees between the camp
             // and the nearest spot, fewest trees first
-            var allPay = System.Linq.Enumerable.ToArray(System.Linq.Enumerable.Where(Resources.FindObjectsOfTypeAll<Payable>(), q => q.gameObject.scene.IsValid()));   // inactive trees/spots too
             Payable bestTree = null; int bestCount = 99;
             foreach (var fp in allPay)
             {

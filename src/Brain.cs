@@ -1938,6 +1938,11 @@ namespace KingdomBot
                 }
                 if (nearest != null && count <= 4 && count < bestCount) { bestCount = count; bestTree = nearest; }   // a few trees at most
             }
+            if (_farmDiagDay != GameState.Day) { _farmDiagDay = GameState.Day; var sb = new System.Text.StringBuilder("FARM TARGET d" + GameState.Day + " ms " + ms + " lw " + lw.ToString("0") + " rw " + rw.ToString("0") + ":");
+                foreach (var fp in allPay) { if (!(fp is PayableUpgrade) || !fp.name.StartsWith("Farmhouse")) continue; float fx = fp.transform.position.x; int c = 0, cp = 0, cd = 0; float lo = Mathf.Min(home, fx) - 2f, hi = Mathf.Max(home, fx) + 2f;
+                    foreach (var t in allPay) { if (!t.name.StartsWith("Tree")) continue; float tx = t.transform.position.x; if (tx < lo || tx > hi) continue; c++; bool q = false; try { q = t.CanPay(); } catch { } if (q) cp++; if (OnCooldown(t.GetInstanceID())) cd++; }
+                    sb.Append(" [" + fp.name.Replace("(Clone)", "") + "@" + fx.ToString("0") + " trees " + c + " payable " + cp + " cooldown " + cd + "]"); }
+                sb.Append(" -> " + (bestTree != null ? "tree@" + bestTree.transform.position.x.ToString("0") : "none")); Plugin.Log(sb.ToString()); }
             _farmTree = bestTree;   // farm side: its last tree may stand next to a camp (run: tree on a 600 s camp cooldown, no farm all game)
             return bestTree;
         }
@@ -2705,7 +2710,7 @@ namespace KingdomBot
             return Mathf.Clamp(archers / 4, 3, 6);
         }
 
-        Payable _farmTree;
+        Payable _farmTree; int _farmDiagDay = -1;
         void PayAt(Payable py)
         {
             // forum (user): never clear the trees of a beggar camp - a camp never comes back (farm/forward-wall/gap clearing did that)

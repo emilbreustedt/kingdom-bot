@@ -1911,8 +1911,10 @@ namespace KingdomBot
             if (farmMain != null) return farmMain;
             var farm = Find(payables, x => x is PayableUpgrade && x.name.StartsWith("Farmhouse") && SafeCanPay(x)
                                            && Mathf.Abs(x.transform.position.x - home) < 45f, home);   /* guide: farm close to the castle, then the wall beyond it (FarmWall) */   /* only inside the walls: a farm 20 in front stayed exposed (farm wall never built), max 1 farmer, no late income */
-            if (farm != null) return farm;
-            if (!FarmClearTrees) return null;
+            // main side first: its farm at -34 ends up inside the walls (6 farmers by day 10); the off-side spot at 22
+            // stays outside the wall (1-4 farmers, they die) - take it only after day 10
+            if (farm != null && GameState.Day >= 11) return farm;
+            if (!FarmClearTrees) return farm;
             // farmhouse spots only become payable inside the buildable (cleared) land: cut the trees between the camp
             // and the nearest spot, fewest trees first
             Payable bestTree = null; int bestCount = 99;

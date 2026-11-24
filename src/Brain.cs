@@ -1917,7 +1917,7 @@ namespace KingdomBot
             // stays outside the wall (1-4 farmers, they die) - take it only after day 10
             // the main-side spot (-34) only becomes payable once the wall reaches it: earlier runs with a farm there had the
             // left wall at -41 first. Spot cleared (no trees) but not payable -> build the wall slot just beyond it.
-            if (GameState.Day < 11)
+            if (false)
             {
                 Payable spotM = null; foreach (var fp in allPay) if (fp is PayableUpgrade && fp.name.StartsWith("Farmhouse0") && (fp.transform.position.x - home) * ms > 0 && Mathf.Abs(fp.transform.position.x - home) < 45f) spotM = fp;
                 if (spotM != null)
@@ -1934,7 +1934,7 @@ namespace KingdomBot
                     if (wb != null) { if (_farmDiagDay != GameState.Day) { _farmDiagDay = GameState.Day; Plugin.Log("FARM TARGET d" + GameState.Day + ": spot " + spotM.transform.position.x.ToString("0") + " needs the wall first -> " + wb.name + "@" + wb.transform.position.x.ToString("0")); } return wb; }
                 }
             }
-            if (farm != null && GameState.Day >= 11) return farm;
+            if (farm != null) return farm;   /* main-side-first (day < 11) reverted: the -34 spot is not buildable before the wall reaches -41 */
             if (!FarmClearTrees) return farm;
             // farmhouse spots only become payable inside the buildable (cleared) land: cut the trees between the camp
             // and the nearest spot, fewest trees first
@@ -1944,7 +1944,7 @@ namespace KingdomBot
                 if (!(fp is PayableUpgrade) || !fp.name.StartsWith("Farmhouse")) continue;
                 float fx = fp.transform.position.x;
                 if (fx < lw - 20f || fx > rw + 20f) continue;   // only spots right in front of the walls
-                if ((fx - home) * ms < 0 && GameState.Day < 11) continue;   // main side first (right spot 22 got cleared on day 8, farm outside the wall again)
+                if (false && (fx - home) * ms < 0) continue;   // main side first (right spot 22 got cleared on day 8, farm outside the wall again)
                 float lo = Mathf.Min(home, fx) - 2f, hi = Mathf.Max(home, fx) + 2f;
                 int count = 0; Payable nearest = null; float nd = float.MaxValue;
                 foreach (var t in allPay)

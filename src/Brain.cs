@@ -2481,7 +2481,7 @@ namespace KingdomBot
                         if (p is PayableUpgrade && p.name.StartsWith("Wall") && !IsBuiltWall(p) && (spot == null || r > sd)) { sd = r; spot = p; }   /* farthest slot: the nearest (-41) cut the gap only 137 -> 117, charges still "too late" (286 times) */
                         else if (p.name.StartsWith("Tree") && r < td) { td = r; tree = p; }
                     }
-                    var pick = spot ?? (portalRel - outerRel < 200f ? tree : null);
+                    var pick = (spot != null && tree != null && td < sd) ? tree : spot ?? (portalRel - outerRel < 200f ? tree : null);   /* trees between: the slot at 83 was never selectable (payid "target not selected", 4 trips) - clear the land up to it first */
                     if (UnityEngine.Object.FindObjectsOfType<Archer>().Length < 15 || HordeSide() != 0) pick = null;   // weak defence: no trips far out (d19: 9 archers, king rode to x80, crown lost)
 
                     if (_fwDiagDay != day * 10 + side + 1) { _fwDiagDay = day * 10 + side + 1; Plugin.Log("FORWARD DIAG d" + day + " h" + hour.ToString("0.0") + " side " + side + ": gap " + (portalRel - outerRel).ToString("0") + " spot " + (spot != null ? spot.name + "@" + spot.transform.position.x.ToString("0") : "-") + " tree " + (tree != null ? tree.transform.position.x.ToString("0") : "-") + " budget " + budget + " reserve " + AssaultReserve(false)); }   /* portal 182 out (gap ~144) was never reachable: march 12.8 h */   // clearing a whole forest for a far portal eats the charge money

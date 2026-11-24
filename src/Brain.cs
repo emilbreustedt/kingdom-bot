@@ -1915,6 +1915,25 @@ namespace KingdomBot
                                            && Mathf.Abs(x.transform.position.x - home) < 45f, home);   /* guide: farm close to the castle, then the wall beyond it (FarmWall) */   /* only inside the walls: a farm 20 in front stayed exposed (farm wall never built), max 1 farmer, no late income */
             // main side first: its farm at -34 ends up inside the walls (6 farmers by day 10); the off-side spot at 22
             // stays outside the wall (1-4 farmers, they die) - take it only after day 10
+            // the main-side spot (-34) only becomes payable once the wall reaches it: earlier runs with a farm there had the
+            // left wall at -41 first. Spot cleared (no trees) but not payable -> build the wall slot just beyond it.
+            if (GameState.Day < 11)
+            {
+                Payable spotM = null; foreach (var fp in allPay) if (fp is PayableUpgrade && fp.name.StartsWith("Farmhouse0") && (fp.transform.position.x - home) * ms > 0 && Mathf.Abs(fp.transform.position.x - home) < 45f) spotM = fp;
+                if (spotM != null)
+                {
+                    float sr = Mathf.Abs(spotM.transform.position.x - home), er = Mathf.Abs((ms < 0 ? lw : rw) - home);
+                    Payable wb = null; float wd = float.MaxValue;
+                    foreach (var w in allPay)
+                    {
+                        if (!(w is PayableUpgrade) || !w.name.StartsWith("Wall") || IsBuiltWall(w)) continue;
+                        float wr = (w.transform.position.x - home) * ms;
+                        if (wr <= er + 3f || wr < sr + 2f || wr > sr + 15f) continue;
+                        if (wr < wd) { wd = wr; wb = w; }
+                    }
+                    if (wb != null) { if (_farmDiagDay != GameState.Day) { _farmDiagDay = GameState.Day; Plugin.Log("FARM TARGET d" + GameState.Day + ": spot " + spotM.transform.position.x.ToString("0") + " needs the wall first -> " + wb.name + "@" + wb.transform.position.x.ToString("0")); } return wb; }
+                }
+            }
             if (farm != null && GameState.Day >= 11) return farm;
             if (!FarmClearTrees) return farm;
             // farmhouse spots only become payable inside the buildable (cleared) land: cut the trees between the camp

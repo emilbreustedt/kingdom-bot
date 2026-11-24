@@ -1917,8 +1917,9 @@ namespace KingdomBot
             if (!FarmClearTrees) return farm;
             // farmhouse spots only become payable inside the buildable (cleared) land: cut the trees between the camp
             // and the nearest spot, fewest trees first
+            var allPay = System.Linq.Enumerable.ToArray(System.Linq.Enumerable.Where(Resources.FindObjectsOfTypeAll<Payable>(), q => q.gameObject.scene.IsValid()));   // inactive trees/spots too
             Payable bestTree = null; int bestCount = 99;
-            foreach (var fp in payables)
+            foreach (var fp in allPay)
             {
                 if (!(fp is PayableUpgrade) || !fp.name.StartsWith("Farmhouse")) continue;
                 float fx = fp.transform.position.x;
@@ -1926,13 +1927,14 @@ namespace KingdomBot
                 if ((fx - home) * ms < 0 && GameState.Day < 11) continue;   // main side first (right spot 22 got cleared on day 8, farm outside the wall again)
                 float lo = Mathf.Min(home, fx) - 2f, hi = Mathf.Max(home, fx) + 2f;
                 int count = 0; Payable nearest = null; float nd = float.MaxValue;
-                foreach (var t in payables)
+                foreach (var t in allPay)
                 {
                     if (!t.name.StartsWith("Tree")) continue;
                     float tx = t.transform.position.x;
                     if (tx < lo || tx > hi) continue;
                     count++;
-                    if (SafeCanPay(t) && !OnCooldown(t.GetInstanceID()) && Mathf.Abs(tx - home) < nd) { nd = Mathf.Abs(tx - home); nearest = t; }
+                    bool tcp = false; try { tcp = t.CanPay(); } catch { }   /* SafeCanPay needs isActiveAndEnabled: trees 30+ out are inactive, clearing stopped on day 7 */
+                    if (tcp && !OnCooldown(t.GetInstanceID()) && Mathf.Abs(tx - home) < nd) { nd = Mathf.Abs(tx - home); nearest = t; }
                 }
                 if (nearest != null && count <= 4 && count < bestCount) { bestCount = count; bestTree = nearest; }   // a few trees at most
             }

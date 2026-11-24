@@ -2481,6 +2481,7 @@ namespace KingdomBot
                         if (p is PayableUpgrade && p.name.StartsWith("Wall") && !IsBuiltWall(p) && (spot == null || r > sd)) { sd = r; spot = p; }   /* farthest slot: the nearest (-41) cut the gap only 137 -> 117, charges still "too late" (286 times) */
                         else if (p.name.StartsWith("Tree") && r < td) { td = r; tree = p; }
                     }
+                    if (!deadTarget && spot != null && portalRel - sd > 100f) continue;   /* a slot that still leaves > 100 to the portal is no use (left -49: 109 to go, trips from day 17 delayed the right slot at 83 until day 24) */
                     var pick = (spot != null && tree != null && td < sd) ? tree : spot ?? (portalRel - outerRel < 200f ? tree : null);   /* trees between: the slot at 83 was never selectable (payid "target not selected", 4 trips) - clear the land up to it first */
                     if (UnityEngine.Object.FindObjectsOfType<Archer>().Length < 15 || HordeSide() != 0) pick = null;   // weak defence: no trips far out (d19: 9 archers, king rode to x80, crown lost)
 
